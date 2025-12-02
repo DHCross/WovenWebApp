@@ -27,32 +27,32 @@ const API_ENDPOINTS = {
   SYNASTRY_CHART: `${API_BASE_URL}/api/v3/charts/synastry`,
   COMPOSITE_CHART: `${API_BASE_URL}/api/v3/charts/composite`,
   TRANSIT_CHART: `${API_BASE_URL}/api/v3/charts/transit`,
-  
+
   // Analysis endpoints for transit data over time
   NATAL_TRANSITS: `${API_BASE_URL}/api/v3/charts/natal-transits`,
-  
+
   // Raw data endpoints (faster, no interpretations)
   DATA_POSITIONS: `${API_BASE_URL}/api/v3/data/positions`,
   DATA_ASPECTS: `${API_BASE_URL}/api/v3/data/aspects`,
   DATA_HOUSE_CUSPS: `${API_BASE_URL}/api/v3/data/house-cusps`,
   DATA_LUNAR_METRICS: `${API_BASE_URL}/api/v3/data/lunar-metrics`,
   DATA_GLOBAL_POSITIONS: `${API_BASE_URL}/api/v3/data/global-positions`,
-  
+
   // Enhanced data (traditional astrology features)
   ENHANCED_POSITIONS: `${API_BASE_URL}/api/v3/data/positions/enhanced`,
   ENHANCED_ASPECTS: `${API_BASE_URL}/api/v3/data/aspects/enhanced`,
-  
+
   // Returns (Solar/Lunar)
   SOLAR_RETURN: `${API_BASE_URL}/api/v3/charts/solar-return`,
   LUNAR_RETURN: `${API_BASE_URL}/api/v3/charts/lunar-return`,
-  
+
   // Progressions and Directions
   PROGRESSIONS: `${API_BASE_URL}/api/v3/charts/progressions`,
   DIRECTIONS: `${API_BASE_URL}/api/v3/charts/directions`,
-  
+
   // Current sky data
   NOW: `${API_BASE_URL}/api/v3/data/now`,
-  
+
   // Legacy compatibility aliases (mapped to new endpoints)
   NATAL_ASPECTS_DATA: `${API_BASE_URL}/api/v3/data/aspects`,
   TRANSIT_ASPECTS: `${API_BASE_URL}/api/v3/charts/transit`,
@@ -92,7 +92,7 @@ function convertNationToCountryCode(nation) {
   if (!nation) return 'US';
   const nationUpper = nation.toUpperCase();
   if (nationUpper.length === 2) return nationUpper;
-  
+
   const nationMap = {
     'USA': 'US', 'UNITED STATES': 'US', 'UNITED STATES OF AMERICA': 'US',
     'UK': 'GB', 'UNITED KINGDOM': 'GB', 'GREAT BRITAIN': 'GB', 'ENGLAND': 'GB',
@@ -135,12 +135,12 @@ function buildChartOptions(pass = {}) {
  */
 function subjectToAPI(s = {}, pass = {}) {
   if (!s) return {};
-  
+
   const hasCoords = (typeof s.latitude === 'number' || typeof s.lat === 'number')
     && (typeof s.longitude === 'number' || typeof s.lon === 'number' || typeof s.lng === 'number')
     && (s.timezone || s.tz_str);
   const hasCity = !!(s.city && (s.nation || s.country_code));
-  
+
   // Build birth_data object
   const birthData = {
     year: s.year,
@@ -150,7 +150,7 @@ function subjectToAPI(s = {}, pass = {}) {
     minute: s.minute ?? 0,
     second: s.second ?? 0,
   };
-  
+
   // Priority: Use coordinates when available (more accurate, avoids city name ambiguity)
   const includeCoords = hasCoords && !pass.force_city_mode && !pass.suppress_coords;
   if (includeCoords) {
@@ -159,14 +159,14 @@ function subjectToAPI(s = {}, pass = {}) {
     const tz = normalizeTimezone(s.timezone || s.tz_str);
     if (tz) birthData.timezone = tz;
   }
-  
+
   // Add city-based location (for display or when coords not available)
   const wantCity = hasCity && (pass.require_city || !includeCoords);
   if (wantCity) {
     birthData.city = s.state ? `${s.city}, ${s.state}` : s.city;
     birthData.country_code = s.country_code || convertNationToCountryCode(s.nation);
   }
-  
+
   return {
     name: s.name || 'Subject',
     birth_data: birthData,
@@ -217,11 +217,11 @@ function mapDateRangeToV3(startDate, endDate) {
  */
 function subjectToAPIStrict(s = {}, pass = {}) {
   if (!s) return {};
-  
+
   const lat = s.latitude ?? s.lat;
   const lon = s.longitude ?? s.lon ?? s.lng;
   const hasCoords = (typeof lat === 'number') && (typeof lon === 'number') && (s.timezone || s.tz_str);
-  
+
   // Build birth_data object
   const birthData = {
     year: s.year,
@@ -231,7 +231,7 @@ function subjectToAPIStrict(s = {}, pass = {}) {
     minute: s.minute ?? 0,
     second: s.second ?? 0,
   };
-  
+
   // STRICT: When coordinates available, use ONLY coordinates (no city/country_code)
   // This forces the API to use exact geometry, avoiding city name resolution issues
   if (hasCoords && !pass.force_city_mode) {
@@ -239,7 +239,7 @@ function subjectToAPIStrict(s = {}, pass = {}) {
     birthData.longitude = lon;
     const tz = normalizeTimezone(s.timezone || s.tz_str);
     if (tz) birthData.timezone = tz;
-    
+
     // DIAGNOSTIC: Log that we're intentionally omitting city to prevent re-geocoding
     logger.debug(`[STRICT_MODE] Omitting city/country_code for ${s.name || 'Subject'}:`, {
       coords: { lat, lon },
@@ -251,13 +251,13 @@ function subjectToAPIStrict(s = {}, pass = {}) {
     // City fallback only when coordinates not available
     birthData.city = s.state ? `${s.city}, ${s.state}` : s.city;
     birthData.country_code = s.country_code || convertNationToCountryCode(s.nation);
-    
+
     logger.debug(`[STRICT_MODE] Using city mode for ${s.name || 'Subject'} (no coords available):`, {
       city: birthData.city,
       country_code: birthData.country_code
     });
   }
-  
+
   return {
     name: s.name || 'Subject',
     birth_data: birthData,
@@ -282,14 +282,14 @@ async function callNatal(endpoint, subject, headers, pass = {}, description = 'N
   if (hasCoords) {
     const apiSubject = subjectToAPIStrict(subject, pass);
     const payload = { subject: apiSubject, options: buildChartOptions(pass) };
-    
+
     logger.info(`[COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent):`, {
       description, latitude: subject.latitude, longitude: subject.longitude,
-      timezone: subject.timezone, 
+      timezone: subject.timezone,
       cityOmitted: true,  // Confirm city is NOT being sent
       originalCity: subject.city  // Log for debugging only
     });
-    
+
     try {
       return await apiCallWithRetry(endpoint, { method: 'POST', headers, body: JSON.stringify(payload) }, description);
     } catch (eCoords) {
@@ -302,11 +302,11 @@ async function callNatal(endpoint, subject, headers, pass = {}, description = 'N
   if (canTryCity) {
     const apiSubject = subjectToAPI(subject, { ...pass, require_city: true, force_city_mode: true, suppress_coords: true });
     const payload = { subject: apiSubject, options: buildChartOptions(pass) };
-    
+
     logger.info(`[COORD_TRACE] callNatal using CITY mode:`, {
       description, city: subject.city, state: subject.state, nation: subject.nation || subject.country_code
     });
-    
+
     try {
       return await apiCallWithRetry(endpoint, { method: 'POST', headers, body: JSON.stringify(payload) }, `${description} (city-first)`);
     } catch (eCity) {
@@ -728,7 +728,7 @@ async function getTransitsV3(subject, transitParams, headers, pass = {}) {
   // Build the v3 payload structure
   const apiSubject = subjectToAPIStrict(subject, pass);
   const options = buildChartOptions(pass);
-  
+
   const payload = {
     subject: apiSubject,
     date_range: dateRange,
@@ -757,14 +757,14 @@ async function getTransitsV3(subject, transitParams, headers, pass = {}) {
     // The API returns transits grouped by date in a single response
     if (response && response.transits) {
       const transits = Array.isArray(response.transits) ? response.transits : [];
-      
+
       for (const transitEntry of transits) {
         const date = transitEntry.date;
         const aspects = transitEntry.aspects || [];
-        
+
         if (date && aspects.length > 0) {
           transitsByDate[date] = aspects;
-          
+
           // Extract retrograde flags if available
           const retroMap = {};
           if (transitEntry.planets) {
@@ -777,7 +777,7 @@ async function getTransitsV3(subject, transitParams, headers, pass = {}) {
           if (Object.keys(retroMap).length) {
             retroFlagsByDate[date] = retroMap;
           }
-          
+
           // Build provenance for this date
           provenanceByDate[date] = {
             timestamp_utc: `${date}T12:00:00Z`,
@@ -788,7 +788,7 @@ async function getTransitsV3(subject, transitParams, headers, pass = {}) {
           };
         }
       }
-      
+
       logger.info(`[V3] Natal-transits completed for ${subject.name}:`, {
         datesWithData: Object.keys(transitsByDate).length,
         totalAspects: Object.values(transitsByDate).reduce((sum, aspects) => sum + aspects.length, 0),
@@ -810,7 +810,7 @@ async function getTransitsV3(subject, transitParams, headers, pass = {}) {
     return { transitsByDate, retroFlagsByDate, provenanceByDate, chartAssets };
   } catch (error) {
     logger.error(`[V3] Natal-transits failed for ${subject.name}:`, error.message);
-    
+
     // Fallback to legacy per-day method if v3 endpoint fails
     logger.info(`[V3] Falling back to legacy getTransits for ${subject.name}`);
     return getTransits(subject, transitParams, headers, pass);
@@ -841,7 +841,7 @@ async function callSynastry(personA, personB, headers, pass = {}) {
     // Use strict mode to prevent re-geocoding issues
     const hasACords = !!(personA?.latitude && personA?.longitude && personA?.timezone);
     const hasBCords = !!(personB?.latitude && personB?.longitude && personB?.timezone);
-    
+
     const payload = {
       subject1: hasACords ? subjectToAPIStrict(personA, pass) : subjectToAPI(personA, pass),
       subject2: hasBCords ? subjectToAPIStrict(personB, pass) : subjectToAPI(personB, pass),
@@ -861,18 +861,18 @@ async function callSynastry(personA, personB, headers, pass = {}) {
     });
 
     // Extract aspects from various possible response locations
-    const aspects = response.aspects 
-      || response.cross_aspects 
-      || data.aspects 
+    const aspects = response.aspects
+      || response.cross_aspects
+      || data.aspects
       || [];
-    
+
     logger.debug('[Synastry] Calculation successful:', {
       aspectCount: aspects.length,
       hasAssets: !!(assets && assets.length)
     });
 
-    return { 
-      aspects, 
+    return {
+      aspects,
       raw: data,
       assets: assets || [],
     };
@@ -940,7 +940,7 @@ async function getSynastryTransits(personA, personB, transitParams, headers, pas
  */
 function extractHotDegrees(aspects, maxOrb = 3.0) {
   if (!Array.isArray(aspects)) return [];
-  
+
   return aspects
     .filter(a => Math.abs(a.orb || 0) <= maxOrb)
     .flatMap(a => [a.degree_a, a.degree_b, a.p1_degree, a.p2_degree])
@@ -958,7 +958,7 @@ async function computeComposite(personA, personB, pass = {}, headers) {
     // This prevents re-geocoding issues (e.g., wrong city resolution)
     const hasACords = !!(personA?.latitude && personA?.longitude && personA?.timezone);
     const hasBCords = !!(personB?.latitude && personB?.longitude && personB?.timezone);
-    
+
     const payload = {
       first_subject: hasACords ? subjectToAPIStrict(personA, pass) : subjectToAPI(personA, pass),
       second_subject: hasBCords ? subjectToAPIStrict(personB, pass) : subjectToAPI(personB, pass),
@@ -1376,6 +1376,128 @@ async function fetchNatalChartComplete(subject, headers, pass, subjectLabel, con
   return natalData;
 }
 
+// ============================================================
+// RAW DATA API FUNCTIONS (v3)
+// ============================================================
+
+/**
+ * Get planetary positions (Raw Data)
+ * @param {Object} subject - Subject data
+ * @param {Object} headers - Request headers
+ * @param {Object} pass - Options
+ */
+async function getPositions(subject, headers, pass = {}) {
+  const hasCoords = !!(subject.latitude && subject.longitude && subject.timezone);
+  const apiSubject = hasCoords ? subjectToAPIStrict(subject, pass) : subjectToAPI(subject, pass);
+  const payload = {
+    subject: apiSubject,
+    options: buildChartOptions(pass)
+  };
+
+  return apiCallWithRetry(
+    API_ENDPOINTS.DATA_POSITIONS,
+    { method: 'POST', headers, body: JSON.stringify(payload) },
+    `Positions for ${subject.name}`
+  );
+}
+
+/**
+ * Get house cusps (Raw Data)
+ * @param {Object} subject - Subject data
+ * @param {Object} headers - Request headers
+ * @param {Object} pass - Options
+ */
+async function getHouseCusps(subject, headers, pass = {}) {
+  const hasCoords = !!(subject.latitude && subject.longitude && subject.timezone);
+  const apiSubject = hasCoords ? subjectToAPIStrict(subject, pass) : subjectToAPI(subject, pass);
+  const payload = {
+    subject: apiSubject,
+    options: buildChartOptions(pass)
+  };
+
+  return apiCallWithRetry(
+    API_ENDPOINTS.DATA_HOUSE_CUSPS,
+    { method: 'POST', headers, body: JSON.stringify(payload) },
+    `House Cusps for ${subject.name}`
+  );
+}
+
+/**
+ * Get aspects (Raw Data)
+ * @param {Object} subject - Subject data
+ * @param {Object} headers - Request headers
+ * @param {Object} pass - Options
+ */
+async function getAspects(subject, headers, pass = {}) {
+  const hasCoords = !!(subject.latitude && subject.longitude && subject.timezone);
+  const apiSubject = hasCoords ? subjectToAPIStrict(subject, pass) : subjectToAPI(subject, pass);
+  const payload = {
+    subject: apiSubject,
+    options: buildChartOptions(pass)
+  };
+
+  return apiCallWithRetry(
+    API_ENDPOINTS.DATA_ASPECTS,
+    { method: 'POST', headers, body: JSON.stringify(payload) },
+    `Aspects for ${subject.name}`
+  );
+}
+
+/**
+ * Get lunar metrics (Raw Data)
+ * @param {Object} subject - Subject data
+ * @param {Object} headers - Request headers
+ * @param {Object} pass - Options
+ */
+async function getLunarMetrics(subject, headers, pass = {}) {
+  const hasCoords = !!(subject.latitude && subject.longitude && subject.timezone);
+  const apiSubject = hasCoords ? subjectToAPIStrict(subject, pass) : subjectToAPI(subject, pass);
+  const payload = {
+    subject: apiSubject,
+    options: buildChartOptions(pass)
+  };
+
+  return apiCallWithRetry(
+    API_ENDPOINTS.DATA_LUNAR_METRICS,
+    { method: 'POST', headers, body: JSON.stringify(payload) },
+    `Lunar Metrics for ${subject.name}`
+  );
+}
+
+/**
+ * Get global positions for a specific date (Raw Data)
+ * @param {string} date - ISO date string YYYY-MM-DD
+ * @param {Object} headers - Request headers
+ * @param {Object} pass - Options
+ */
+async function getGlobalPositions(date, headers, pass = {}) {
+  const d = parseDateToV3(date);
+  if (!d) throw new Error('Invalid date format for global positions');
+
+  const payload = {
+    date: d,
+    options: buildChartOptions(pass)
+  };
+
+  return apiCallWithRetry(
+    API_ENDPOINTS.DATA_GLOBAL_POSITIONS,
+    { method: 'POST', headers, body: JSON.stringify(payload) },
+    `Global Positions for ${date}`
+  );
+}
+
+/**
+ * Get current astrological data (Now)
+ * @param {Object} headers - Request headers
+ */
+async function getCurrentData(headers) {
+  return apiCallWithRetry(
+    API_ENDPOINTS.NOW,
+    { method: 'GET', headers },
+    'Current Data'
+  );
+}
+
 module.exports = {
   API_ENDPOINTS,
   buildHeaders,
@@ -1399,4 +1521,11 @@ module.exports = {
   callSynastry,
   getSynastryTransits,
   extractHotDegrees,
+  // Raw Data v3
+  getPositions,
+  getHouseCusps,
+  getAspects,
+  getLunarMetrics,
+  getGlobalPositions,
+  getCurrentData,
 };

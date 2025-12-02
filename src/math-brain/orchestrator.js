@@ -59,6 +59,13 @@ const {
   callSynastry,
   getSynastryTransits,
   extractHotDegrees,
+  // Raw Data v3
+  getPositions,
+  getHouseCusps,
+  getAspects,
+  getLunarMetrics,
+  getGlobalPositions,
+  getCurrentData,
 } = require('./api-client');
 
 // ============================================================================
@@ -112,6 +119,14 @@ module.exports = {
   callSynastry,
   getSynastryTransits,
   extractHotDegrees,
+
+  // Raw Data v3
+  getPositions,
+  getHouseCusps,
+  getAspects,
+  getLunarMetrics,
+  getGlobalPositions,
+  getCurrentData,
 };
 
 /**
