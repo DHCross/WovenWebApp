@@ -1,0 +1,55 @@
+--- Testing fetchNatalChartComplete with flat subject ---
+Fetching complete natal chart for person_a (test)
+[COORD_TRACE] person_a SENDING to API: {
+  name: 'Test Subject',
+  city: 'New York',
+  nation: 'US',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  contextLabel: 'test'
+}
+[STRICT_MODE] Omitting city/country_code for Test Subject: {
+  coords: { lat: 40.7128, lon: -74.006 },
+  omittedCity: 'New York',
+  omittedCountry: 'US',
+  reason: 'Prevent API re-geocoding from overwriting exact coordinates'
+}
+[COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Birth chart (person_a) - test',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'New York'
+}
+API call attempt 1/2 for Birth chart (person_a) - test
+[COORD_TRACE] person_a RECEIVED from API: {
+  lat: undefined,
+  lng: undefined,
+  tz_str: undefined,
+  person_lat: undefined,
+  person_lng: undefined
+}
+Natal API response validation {
+  subject: 'Test Subject',
+  hasResponse: true,
+  hasData: false,
+  hasPerson: false,
+  hasPlanets: false,
+  responseKeys: [ 'subject_data', 'chart_data' ],
+  dataKeys: 'none'
+}
+Incomplete natal chart data received from upstream API {
+  subject: 'Test Subject',
+  subjectLabel: 'person_a',
+  contextLabel: 'test',
+  hasResponse: true,
+  hasData: false,
+  hasPerson: false,
+  planetCount: 0,
+  keyedPlanets: [],
+  hasSubject: false,
+  hasAspects: false
+}
+❌ Failed: fetchNatalChartComplete returned null

@@ -1304,6 +1304,19 @@ async function fetchNatalChartComplete(subject, headers, pass, subjectLabel, con
     `Birth chart (${subjectLabel}) - ${contextLabel}`
   );
 
+  // NEW: Handle flat V3 response structure (subject_data / chart_data)
+  // The API sometimes returns flat objects instead of wrapping in .data
+  if (natalResponse && !natalResponse.data && (natalResponse.chart_data || natalResponse.subject_data)) {
+    logger.info(`[V3] Normalizing flat response for ${subjectLabel}`);
+    natalResponse.data = {
+      person: natalResponse.subject_data,
+      chart: natalResponse.chart_data,
+      aspects: natalResponse.chart_data?.aspects,
+      // Map top-level planets if they exist in subject_data
+      ...natalResponse.subject_data
+    };
+  }
+
   // DIAGNOSTIC: Log the coordinates received from the API
   const responseCoords = {
     lat: natalResponse?.data?.lat,

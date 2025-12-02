@@ -1,0 +1,115 @@
+--- Testing fetchNatalChartComplete with flat subject ---
+Fetching complete natal chart for person_a (test)
+[COORD_TRACE] person_a SENDING to API: {
+  name: 'Test Subject',
+  city: 'New York',
+  nation: 'US',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  contextLabel: 'test'
+}
+[STRICT_MODE] Omitting city/country_code for Test Subject: {
+  coords: { lat: 40.7128, lon: -74.006 },
+  omittedCity: 'New York',
+  omittedCountry: 'US',
+  reason: 'Prevent API re-geocoding from overwriting exact coordinates'
+}
+[COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Birth chart (person_a) - test',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'New York'
+}
+API call attempt 1/2 for Birth chart (person_a) - test
+[V3] Normalizing flat response for person_a
+[COORD_TRACE] person_a RECEIVED from API: {
+  lat: 40.7128,
+  lng: -74.006,
+  tz_str: 'America/New_York',
+  person_lat: undefined,
+  person_lng: undefined
+}
+Natal API response validation {
+  subject: 'Test Subject',
+  hasResponse: true,
+  hasData: true,
+  hasPerson: true,
+  hasPlanets: true,
+  responseKeys: [ 'subject_data', 'chart_data', 'data' ],
+  dataKeys: [
+    'person',
+    'chart',
+    'aspects',
+    'name',
+    'year',
+    'month',
+    'day',
+    'hour',
+    'minute',
+    'city',
+    'nation',
+    'lng',
+    'lat',
+    'tz_str',
+    'zodiac_type',
+    'sidereal_mode',
+    'houses_system_identifier',
+    'houses_system_name',
+    'perspective_type',
+    'iso_formatted_local_datetime',
+    'iso_formatted_utc_datetime',
+    'julian_day',
+    'utc_time',
+    'local_time',
+    'sun',
+    'moon',
+    'mercury',
+    'venus',
+    'mars',
+    'jupiter',
+    'saturn',
+    'uranus',
+    'neptune',
+    'pluto',
+    'ascendant',
+    'descendant',
+    'medium_coeli',
+    'imum_coeli',
+    'chiron',
+    'mean_lilith',
+    'first_house',
+    'second_house',
+    'third_house',
+    'fourth_house',
+    'fifth_house',
+    'sixth_house',
+    'seventh_house',
+    'eighth_house',
+    'ninth_house',
+    'tenth_house',
+    'eleventh_house',
+    'twelfth_house',
+    'mean_node',
+    'true_node',
+    'mean_south_node',
+    'true_south_node',
+    'planets_names_list',
+    'axial_cusps_names_list',
+    'houses_names_list',
+    'lunar_phase'
+  ]
+}
+Extracted 12 natal house cusps for person_a: [
+  '169.79', '194.92',
+  '224.74', '258.16',
+  '292.01', '322.96',
+  '349.79', '14.92',
+  '44.74',  '78.16',
+  '112.01', '142.96'
+]
+Natal chart complete for person_a: 41 aspects, 12 house cusps
+✅ Success! Chart data received.
+Keys: [ 'details', 'chart', 'aspects', 'assets' ]
