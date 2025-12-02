@@ -18,48 +18,49 @@ const { extractHouseCusps, calculateNatalHouse } = require('./utils/compression.
 const { buildWindowSamples } = require('../../lib/time-sampling');
 
 // AstroAPI v3 Base URL
-const API_BASE_URL = 'https://api.astrology-api.io';
+// Switched to RapidAPI gateway URL to match user subscription
+const API_BASE_URL = 'https://best-astrology-api.p.rapidapi.com';
 
 // AstroAPI v3 Endpoints
 const API_ENDPOINTS = {
   // Chart endpoints
-  BIRTH_CHART: `${API_BASE_URL}/api/v3/charts/natal`,
-  SYNASTRY_CHART: `${API_BASE_URL}/api/v3/charts/synastry`,
-  COMPOSITE_CHART: `${API_BASE_URL}/api/v3/charts/composite`,
-  TRANSIT_CHART: `${API_BASE_URL}/api/v3/charts/transit`,
+  BIRTH_CHART: `${API_BASE_URL}/v3/charts/natal`,
+  SYNASTRY_CHART: `${API_BASE_URL}/v3/charts/synastry`,
+  COMPOSITE_CHART: `${API_BASE_URL}/v3/charts/composite`,
+  TRANSIT_CHART: `${API_BASE_URL}/v3/charts/transit`,
 
   // Analysis endpoints for transit data over time
-  NATAL_TRANSITS: `${API_BASE_URL}/api/v3/charts/natal-transits`,
-  RELOCATION_CHART: `${API_BASE_URL}/api/v3/astrocartography/relocation-chart`,
+  NATAL_TRANSITS: `${API_BASE_URL}/v3/charts/natal-transits`,
+  RELOCATION_CHART: `${API_BASE_URL}/v3/astrocartography/relocation-chart`,
 
   // Raw data endpoints (faster, no interpretations)
-  DATA_POSITIONS: `${API_BASE_URL}/api/v3/data/positions`,
-  DATA_ASPECTS: `${API_BASE_URL}/api/v3/data/aspects`,
-  DATA_HOUSE_CUSPS: `${API_BASE_URL}/api/v3/data/house-cusps`,
-  DATA_LUNAR_METRICS: `${API_BASE_URL}/api/v3/data/lunar-metrics`,
-  DATA_GLOBAL_POSITIONS: `${API_BASE_URL}/api/v3/data/global-positions`,
+  DATA_POSITIONS: `${API_BASE_URL}/v3/data/positions`,
+  DATA_ASPECTS: `${API_BASE_URL}/v3/data/aspects`,
+  DATA_HOUSE_CUSPS: `${API_BASE_URL}/v3/data/house-cusps`,
+  DATA_LUNAR_METRICS: `${API_BASE_URL}/v3/data/lunar-metrics`,
+  DATA_GLOBAL_POSITIONS: `${API_BASE_URL}/v3/data/global-positions`,
 
   // Enhanced data (traditional astrology features)
-  ENHANCED_POSITIONS: `${API_BASE_URL}/api/v3/data/positions/enhanced`,
-  ENHANCED_ASPECTS: `${API_BASE_URL}/api/v3/data/aspects/enhanced`,
+  ENHANCED_POSITIONS: `${API_BASE_URL}/v3/data/positions/enhanced`,
+  ENHANCED_ASPECTS: `${API_BASE_URL}/v3/data/aspects/enhanced`,
 
   // Returns (Solar/Lunar)
-  SOLAR_RETURN: `${API_BASE_URL}/api/v3/charts/solar-return`,
-  LUNAR_RETURN: `${API_BASE_URL}/api/v3/charts/lunar-return`,
+  SOLAR_RETURN: `${API_BASE_URL}/v3/charts/solar-return`,
+  LUNAR_RETURN: `${API_BASE_URL}/v3/charts/lunar-return`,
 
   // Progressions and Directions
-  PROGRESSIONS: `${API_BASE_URL}/api/v3/charts/progressions`,
-  DIRECTIONS: `${API_BASE_URL}/api/v3/charts/directions`,
+  PROGRESSIONS: `${API_BASE_URL}/v3/charts/progressions`,
+  DIRECTIONS: `${API_BASE_URL}/v3/charts/directions`,
 
   // Current sky data
-  NOW: `${API_BASE_URL}/api/v3/data/now`,
+  NOW: `${API_BASE_URL}/v3/data/now`,
 
   // Legacy compatibility aliases (mapped to new endpoints)
-  NATAL_ASPECTS_DATA: `${API_BASE_URL}/api/v3/data/aspects`,
-  TRANSIT_ASPECTS: `${API_BASE_URL}/api/v3/charts/transit`,
-  SYNASTRY_ASPECTS: `${API_BASE_URL}/api/v3/charts/synastry`,
-  COMPOSITE_ASPECTS: `${API_BASE_URL}/api/v3/charts/composite`,
-  BIRTH_DATA: `${API_BASE_URL}/api/v3/data/positions`,
+  NATAL_ASPECTS_DATA: `${API_BASE_URL}/v3/data/aspects`,
+  TRANSIT_ASPECTS: `${API_BASE_URL}/v3/charts/transit`,
+  SYNASTRY_ASPECTS: `${API_BASE_URL}/v3/charts/synastry`,
+  COMPOSITE_ASPECTS: `${API_BASE_URL}/v3/charts/composite`,
+  BIRTH_DATA: `${API_BASE_URL}/v3/data/positions`,
 };
 
 // House system mapping (single character codes used by new API)
@@ -1189,14 +1190,15 @@ async function rapidApiPing(headers) {
  * @throws {Error} If the RAPIDAPI_KEY environment variable is not set.
  */
 function buildHeaders() {
-  const rawKey = process.env.RAPIDAPI_KEY;
+  // Check RAPIDAPI_KEY first, then fall back to ASTROLOGER_API (legacy var name)
+  const rawKey = process.env.RAPIDAPI_KEY || process.env.ASTROLOGER_API;
   const key = rawKey && String(rawKey).trim();
   if (!key) {
     if (!loggedMissingRapidApiKey) {
       logger.error('RAPIDAPI_KEY environment variable is not configured.');
       loggedMissingRapidApiKey = true;
     }
-    throw new Error('RAPIDAPI_KEY environment variable is not configured.');
+    throw new Error('RAPIDAPI_KEY (or ASTROLOGER_API) environment variable is not configured.');
   }
   // Log masked key for debugging (show only first/last 4 chars)
   const maskedKey = key.length > 8 ? `${key.slice(0, 4)}...${key.slice(-4)}` : '****';
