@@ -755,43 +755,71 @@ async function getTransitsV3(subject, transitParams, headers, pass = {}) {
 
     // Parse the v3 response format
     // The API returns transits grouped by date in a single response
-    if (response && response.transits) {
-      const transits = Array.isArray(response.transits) ? response.transits : [];
+    // Some endpoints return 'transits', others 'events'
+    const transitsArray = response?.transits || response?.events;
+
+    if (transitsArray) {
+      const transits = Array.isArray(transitsArray) ? transitsArray : [];
+
+      if (transits.length === 0) {
+        logger.warn(`[V3] Natal-transits response has empty array for ${subject.name}`);
+      }
 
       for (const transitEntry of transits) {
         const date = transitEntry.date;
-        const aspects = transitEntry.aspects || [];
 
-        if (date && aspects.length > 0) {
-          transitsByDate[date] = aspects;
+        // Handle flat event structure (API v3 returns events, not grouped days)
+        // If transitEntry has 'aspects', it's grouped. If not, it's a single event.
+        if (transitEntry.aspects) {
+          // Grouped format (legacy or specific endpoint)
+          if (date && Array.isArray(transitEntry.aspects) && transitEntry.aspects.length > 0) {
+            transitsByDate[date] = transitEntry.aspects;
+          }
+        } else {
+          // Flat event format (API v3 natal-transits)
+          if (date) {
+            if (!transitsByDate[date]) {
+              transitsByDate[date] = [];
+            }
+            transitsByDate[date].push(transitEntry);
+          }
+        }
 
-          // Extract retrograde flags if available
+        // Extract retrograde flags if available (usually in a separate 'planets' object in grouped response)
+        // For flat events, we might need to check the event itself or a separate metadata field
+        if (transitEntry.planets) {
           const retroMap = {};
-          if (transitEntry.planets) {
-            for (const [name, data] of Object.entries(transitEntry.planets)) {
-              if (data && typeof data === 'object' && 'retrograde' in data) {
-                retroMap[name] = !!data.retrograde;
-              }
+          for (const [name, data] of Object.entries(transitEntry.planets)) {
+            if (data && typeof data === 'object' && 'retrograde' in data) {
+              retroMap[name] = !!data.retrograde;
             }
           }
           if (Object.keys(retroMap).length) {
             retroFlagsByDate[date] = retroMap;
           }
-
-          // Build provenance for this date
-          provenanceByDate[date] = {
-            timestamp_utc: `${date}T12:00:00Z`,
-            timezone: subject.timezone || 'UTC',
-            endpoint: 'natal-transits-v3',
-            formation: 'coords',
-            aspect_count: aspects.length,
-          };
         }
+      }
+
+      // Post-process to build provenance for each date found
+      for (const date of Object.keys(transitsByDate)) {
+        provenanceByDate[date] = {
+          timestamp_utc: `${date}T12:00:00Z`,
+          timezone: subject.timezone || 'UTC',
+          endpoint: 'natal-transits-v3',
+          formation: 'coords',
+          aspect_count: transitsByDate[date].length,
+        };
       }
 
       logger.info(`[V3] Natal-transits completed for ${subject.name}:`, {
         datesWithData: Object.keys(transitsByDate).length,
         totalAspects: Object.values(transitsByDate).reduce((sum, aspects) => sum + aspects.length, 0),
+      });
+    } else {
+      logger.warn(`[V3] Natal-transits response MISSING 'transits' or 'events' property for ${subject.name}`, {
+        responseKeys: response ? Object.keys(response) : 'null',
+        status: response?.status,
+        error: response?.error
       });
     }
 
@@ -854,7 +882,13 @@ async function callSynastry(personA, personB, headers, pass = {}) {
       `Synastry: ${personA?.name || 'A'} & ${personB?.name || 'B'}`
     );
 
-    const { sanitized: data, assets } = sanitizeChartPayload(response.data || response || {}, {
+    // logger.info('[Synastry] Raw response keys:', Object.keys(response || {}));
+    // if (response?.chart_data) logger.info(`[Synastry] Found chart_data with keys: ${Object.keys(response.chart_data)}`);
+
+    // Handle v3 response structure (chart_data) vs legacy (data or root)
+    const rawData = response.chart_data || response.data || response || {};
+
+    const { sanitized: data, assets } = sanitizeChartPayload(rawData, {
       subject: 'synastry',
       chartType: 'synastry',
       scope: 'synastry_chart',
@@ -920,9 +954,9 @@ async function getSynastryTransits(personA, personB, transitParams, headers, pas
     });
 
     return {
-      terrain: terrainResult,
-      streamA: streamAResult,
-      streamB: streamBResult,
+      synastry: terrainResult,
+      transitsA: streamAResult,
+      transitsB: streamBResult,
     };
   } catch (error) {
     logger.error('[SynastryTransits] Failed:', error.message);
