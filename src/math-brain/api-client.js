@@ -1198,7 +1198,7 @@ function buildHeaders() {
       logger.error('RAPIDAPI_KEY environment variable is not configured.');
       loggedMissingRapidApiKey = true;
     }
-    throw new Error('RAPIDAPI_KEY environment variable is not configured.');
+    throw new Error('RAPIDAPI_KEY (or ASTROLOGER_API) environment variable is not configured.');
   }
   // Log masked key for debugging (show only first/last 4 chars)
   const maskedKey = key.length > 8 ? `${key.slice(0, 4)}...${key.slice(-4)}` : '****';
