@@ -14,7 +14,89 @@ const { runMathBrain } = require('../../../src/math_brain/main.js');
 const { createMarkdownReading } = require('../../../src/formatter/create_markdown_reading.js');
 const { sanitizeForFilename } = require('../../../src/utils/sanitizeFilename.js');
 
+// Synastry Transits / Resonance Seismograph
+const { getSynastryTransits, extractHotDegrees } = require('../../../src/math-brain/orchestrator.js');
+import { 
+  computeResonanceSeismograph, 
+  CORPUS_FORMAT, 
+  MATH_BRAIN_VERSION,
+  JUNGIAN_TRADITION,
+  ENGINE_IDENTITY
+} from '../../../lib/balance/resonance-seismograph';
+
 const MAX_DAILY_TRANSIT_WINDOW_DAYS = 30;
+
+// ============================================================================
+// 🔒 JUNGIAN LOCK: Texture Source Protocol (NOT Raven's Identity)
+// ============================================================================
+// CRITICAL: Raven Calder is NOT a "Jungian Astrologer."
+// Raven is a SYMBOLIC SYSTEMS DIAGNOSTIC (SSD) engine.
+//
+// The API's "psychological" tradition is the most compatible RAW MATERIAL because:
+// - It provides Archetypal Texture without fatalism or event-prediction
+// - It speaks the LANGUAGE of symbols (which Raven needs)
+// - But Raven enforces the GRAMMAR of geometry and agency
+//
+// THE TRANSFORMATION PIPELINE:
+//   Step A (FIELD): Math Brain calculates Geometry + Seismograph (Magnitude/Valence)
+//   Step B (MAP):   System ingests API text as Archetypal Data, not truth
+//                   API says "depressed" → Raven reads "compression"
+//   Step C (VOICE): Raven synthesizes Geometry + Theme into Diagnostic Sentence
+//
+// RAVEN'S THREE CONSTRAINTS:
+// 1. Diagnostic, Not Predictive:
+//    - Jungian API: "You are entering a phase of growth." (Predictive-lite)
+//    - Raven: "The geometry opens a vector for expansion." (Diagnostic)
+//
+// 2. Falsifiability (SST):
+//    - Jungian API: Assumes text is true for everyone with that transit
+//    - Raven: Frames as hypothesis for WB/ABE/OSR classification
+//
+// 3. Agency-First:
+//    - Jungian API: "Your unconscious is driving you to..."
+//    - Raven: "You may notice a pull toward..." (Conditional)
+// ============================================================================
+
+/**
+ * Archetypal theme mapping for SST bridge.
+ * These are the symbolic NOUNS the Corpus uses for narrative selection.
+ * (API supplies nouns, Math Brain supplies verbs, Raven arranges the sentence)
+ */
+const ARCHETYPAL_THEMES = {
+  AUTHORITY: 'internal_authority',
+  SECURITY: 'emotional_security',
+  SHADOW: 'shadow_integration',
+  INTIMACY: 'relational_intimacy',
+  AUTONOMY: 'personal_autonomy',
+  TRANSFORMATION: 'psychological_transformation',
+  CREATIVITY: 'creative_expression',
+  STRUCTURE: 'structural_foundation',
+} as const;
+
+/**
+ * Narrative overlay structure for Corpus ingestion.
+ * 
+ * CRITICAL: This is NOT "Jungian Astrology" output—it's RAW MATERIAL
+ * that Raven transforms through Field → Map → Voice into Diagnostic output.
+ * 
+ * The structure captures:
+ * - tradition: The API texture source (always 'psychological')
+ * - archetypal_themes: The NOUNS extracted from geometry
+ * - transformation_protocol: How Raven converts API themes to diagnostic language
+ */
+interface NarrativeOverlay {
+  tradition: typeof JUNGIAN_TRADITION;
+  engine_identity: typeof ENGINE_IDENTITY;
+  language: string;
+  archetypal_themes: string[];
+  transformation_protocol: {
+    input_mode: 'archetypal_texture';      // What API provides
+    output_mode: 'geometric_diagnostic';    // What Raven produces
+    strips: string[];                       // What gets removed (emotion-words)
+    replaces_with: string[];                // What gets added (geometry-words)
+  };
+  source_text?: string;
+}
 
 // Balance Meter Tooltip Types (Mandate 2 - Phase 1)
 interface ScoredAspect {
@@ -59,6 +141,55 @@ function getVolatilityLabel(value: number): string {
   if (value >= 2) return 'High';
   if (value >= 1) return 'Moderate';
   return 'Low';
+}
+
+/**
+ * Extracts archetypal themes from shared_geometry for SST bridge.
+ * Maps geometric patterns to Jungian psychological themes.
+ * 
+ * @param sharedGeometry - Array of geometry strings like "Saturn_square_Moon"
+ * @returns Array of archetypal theme identifiers
+ */
+function extractArchetypalThemes(sharedGeometry: string[]): string[] {
+  const themes = new Set<string>();
+  
+  for (const geo of sharedGeometry) {
+    const geoLower = geo.toLowerCase();
+    
+    // Authority/Structure themes (Saturn, Capricorn, 10th house)
+    if (geoLower.includes('saturn') || geoLower.includes('capricorn')) {
+      themes.add(ARCHETYPAL_THEMES.AUTHORITY);
+      themes.add(ARCHETYPAL_THEMES.STRUCTURE);
+    }
+    
+    // Emotional Security themes (Moon, Cancer, 4th house)
+    if (geoLower.includes('moon') || geoLower.includes('cancer')) {
+      themes.add(ARCHETYPAL_THEMES.SECURITY);
+    }
+    
+    // Shadow/Transformation themes (Pluto, Scorpio, 8th house)
+    if (geoLower.includes('pluto') || geoLower.includes('scorpio')) {
+      themes.add(ARCHETYPAL_THEMES.SHADOW);
+      themes.add(ARCHETYPAL_THEMES.TRANSFORMATION);
+    }
+    
+    // Intimacy themes (Venus, Libra, 7th house aspects)
+    if (geoLower.includes('venus') || geoLower.includes('libra')) {
+      themes.add(ARCHETYPAL_THEMES.INTIMACY);
+    }
+    
+    // Autonomy themes (Mars, Aries, Uranus)
+    if (geoLower.includes('mars') || geoLower.includes('aries') || geoLower.includes('uranus')) {
+      themes.add(ARCHETYPAL_THEMES.AUTONOMY);
+    }
+    
+    // Creative Expression themes (Sun, Leo, 5th house)
+    if (geoLower.includes('sun') || geoLower.includes('leo')) {
+      themes.add(ARCHETYPAL_THEMES.CREATIVITY);
+    }
+  }
+  
+  return Array.from(themes);
 }
 
 const logger = {
@@ -338,6 +469,237 @@ export async function POST(request: NextRequest) {
       };
       rawPayload.report_type = 'natal';
       rawPayload.solar_return_year = solarReturnYear;
+    }
+
+    // =========================================================================
+    // SYNASTRY_TRANSITS Mode: Resonance Seismograph
+    // Relational weather for two people - treats synastry as terrain, transits as weather
+    // =========================================================================
+    const isSynastryTransits = reportTypeRaw === 'synastry_transits' || reportTypeRaw === 'synastry-transits';
+    
+    if (isSynastryTransits) {
+      logger.info('Processing SYNASTRY_TRANSITS mode (Resonance Seismograph)');
+      
+      // Validate required inputs
+      if (!rawPayload.personA || !rawPayload.personB) {
+        return NextResponse.json({
+          success: false,
+          error: 'Synastry Transits requires both personA and personB data.',
+          code: 'SYNASTRY_TRANSITS_MISSING_PERSON'
+        }, { status: 400 });
+      }
+      
+      const transitWindow = rawPayload.window;
+      if (!transitWindow?.start || !transitWindow?.end) {
+        return NextResponse.json({
+          success: false,
+          error: 'Synastry Transits requires a date window (window.start and window.end).',
+          code: 'SYNASTRY_TRANSITS_MISSING_WINDOW'
+        }, { status: 400 });
+      }
+      
+      try {
+        // Build RapidAPI headers
+        const rapidApiKey = process.env.RAPIDAPI_KEY;
+        if (!rapidApiKey) {
+          return NextResponse.json({
+            success: false,
+            error: 'Math Brain is offline until RAPIDAPI_KEY is configured.',
+            code: 'RAPIDAPI_KEY_MISSING'
+          }, { status: 503 });
+        }
+        
+        const apiHeaders = {
+          'x-rapidapi-key': rapidApiKey,
+          'x-rapidapi-host': 'astrologer.p.rapidapi.com',
+          'Content-Type': 'application/json'
+        };
+        
+        const transitParams = {
+          startDate: transitWindow.start,
+          endDate: transitWindow.end,
+          step: transitWindow.step || 'daily',
+          aspects: rawPayload.aspects || undefined,
+          orbs: rawPayload.orbs || undefined,
+        };
+        
+        // Call the 3-call orchestration: synastry + 2x natal-transits
+        const synastryTransitsData = await getSynastryTransits(
+          rawPayload.personA,
+          rawPayload.personB,
+          transitParams,
+          apiHeaders,
+          { debug: process.env.NODE_ENV === 'development' }
+        );
+        
+        // Extract terrain (hot degrees from synastry)
+        const hotDegrees = extractHotDegrees(synastryTransitsData.synastry?.aspects || [], 3.0);
+        
+        // Compute the Resonance Seismograph
+        const resonanceResult = computeResonanceSeismograph(
+          synastryTransitsData.transitsA,
+          synastryTransitsData.transitsB,
+          synastryTransitsData.synastry?.aspects || []
+        );
+        
+        // Build response names
+        const safePersonA = sanitizeForFilename(rawPayload.personA.name, 'PersonA');
+        const safePersonB = sanitizeForFilename(rawPayload.personB.name, 'PersonB');
+        const todayIso = new Date().toISOString().split('T')[0];
+        
+        // === ANGLE DRIFT GUARDRAIL ===
+        // Check if birth time/location is uncertain for either person
+        const personAHasTime = rawPayload.personA.hour !== undefined && rawPayload.personA.hour !== null;
+        const personBHasTime = rawPayload.personB.hour !== undefined && rawPayload.personB.hour !== null;
+        const angleDriftAlert = !personAHasTime || !personBHasTime;
+        
+        // === BUILD CORPUS-COMPLIANT RESPONSE ===
+        // This structure is the schema the Corpus is written to ingest
+        return NextResponse.json({
+          // === GOLDEN HANDSHAKE: Mandatory root metadata for Corpus activation ===
+          "_format": CORPUS_FORMAT,                    // "mirror-symbolic-weather-v1"
+          "_poetic_brain_compatible": true,
+          "_natal_section": true,
+          
+          "success": true,
+          "report_type": "synastry-transits",
+          
+          // === SUBJECTS: Natal data for both people ===
+          "subjects": {
+            "person_a": {
+              name: rawPayload.personA.name || safePersonA,
+              birth_data: {
+                year: rawPayload.personA.year,
+                month: rawPayload.personA.month,
+                day: rawPayload.personA.day,
+                hour: rawPayload.personA.hour,
+                minute: rawPayload.personA.minute,
+                city: rawPayload.personA.city,
+                state: rawPayload.personA.state,
+                latitude: rawPayload.personA.latitude,
+                longitude: rawPayload.personA.longitude,
+                timezone: rawPayload.personA.timezone,
+              }
+            },
+            "person_b": {
+              name: rawPayload.personB.name || safePersonB,
+              birth_data: {
+                year: rawPayload.personB.year,
+                month: rawPayload.personB.month,
+                day: rawPayload.personB.day,
+                hour: rawPayload.personB.hour,
+                minute: rawPayload.personB.minute,
+                city: rawPayload.personB.city,
+                state: rawPayload.personB.state,
+                latitude: rawPayload.personB.latitude,
+                longitude: rawPayload.personB.longitude,
+                timezone: rawPayload.personB.timezone,
+              }
+            }
+          },
+          
+          // === RELATIONSHIP CONTEXT ===
+          "relationship_context": rawPayload.relationship_context || rawPayload.relationship || {
+            type: "UNSPECIFIED",
+            intimacy_tier: null
+          },
+          
+          // === ANGLE DRIFT GUARDRAIL ===
+          "context": {
+            "angle_drift_alert": angleDriftAlert,
+            "house_system": angleDriftAlert ? "Planetary-Only" : (rawPayload.house_system || "Placidus")
+          },
+          
+          // === CORPUS-COMPLIANT DAILY ENTRIES ===
+          // Each entry has: date, seismograph{magnitude,valence,volatility}, resonance_flags{divergence,shared_geometry}
+          "daily_entries": resonanceResult.entries.map(entry => ({
+            date: entry.date,
+            seismograph: entry.seismograph,
+            resonance_flags: entry.resonance_flags
+          })),
+          
+          // === 🔒 JUNGIAN LOCK: NARRATIVE OVERLAY (Texture Source, NOT Identity) ===
+          // CRITICAL: Raven is NOT a "Jungian Astrologer"—it's a Symbolic Systems Diagnostic.
+          // The API's "psychological" tradition provides RAW MATERIAL that Raven TRANSFORMS.
+          "narrative_overlay": {
+            // Engine identity: Raven is SSD, not Jungian
+            engine_identity: ENGINE_IDENTITY,  // "symbolic-systems-diagnostic"
+            
+            // Texture source: API "psychological" mode provides archetypal nouns
+            tradition: JUNGIAN_TRADITION,  // 🔒 Always "psychological" (texture source)
+            language: rawPayload.language || 'en',
+            
+            // TRANSFORMATION PROTOCOL: How Raven converts API → Diagnostic
+            // API supplies NOUNS (themes), Math Brain supplies VERBS (geometry),
+            // Raven arranges them into DIAGNOSTIC SENTENCES
+            transformation_protocol: {
+              input_mode: 'archetypal_texture',      // What API provides
+              output_mode: 'geometric_diagnostic',   // What Raven produces
+              strips: ['depressed', 'blocked', 'fated', 'destined', 'will', 'must'],
+              replaces_with: ['compression', 'resistance', 'geometry', 'vector', 'may', 'tends to']
+            },
+            
+            // Archetypal themes = NOUNS extracted from shared geometry
+            archetypal_themes: extractArchetypalThemes(
+              resonanceResult.entries.flatMap(e => e.resonance_flags.shared_geometry)
+            ),
+            
+            // Theme mapping for SST classification (WB/ABE/OSR)
+            theme_mapping: {
+              divergence_present: resonanceResult.summary.divergence_days > 0,
+              resonance_density: resonanceResult.summary.resonance_events_count / Math.max(1, resonanceResult.summary.total_days),
+              peak_pressure_context: resonanceResult.summary.peak_magnitude >= 4 ? 'high_intensity' : 
+                                     resonanceResult.summary.peak_magnitude >= 2 ? 'moderate_activity' : 'low_pressure'
+            }
+          } as NarrativeOverlay,
+          
+          // === PROVENANCE ===
+          "provenance": {
+            "math_brain_version": MATH_BRAIN_VERSION,
+            "generation_timestamp": new Date().toISOString(),
+            "angle_drift_alert": angleDriftAlert,
+            "person_a": safePersonA,
+            "person_b": safePersonB,
+            "window": transitWindow,
+            "terrain": {
+              hot_degrees: hotDegrees,
+              hot_degrees_count: hotDegrees.length,
+              synastry_aspects_used: resonanceResult.terrain.synastry_aspects_used
+            }
+          },
+          
+          // === SUMMARY STATS ===
+          "summary": resonanceResult.summary,
+          
+          // === RAW DATA (for advanced use / debugging) ===
+          "_raw": {
+            synastry_aspects: synastryTransitsData.synastry?.aspects?.length || 0,
+            transits_a_days: synastryTransitsData.transitsA?.length || 0,
+            transits_b_days: synastryTransitsData.transitsB?.length || 0,
+            full_entries: resonanceResult.entries  // Includes _internal debug data
+          },
+          
+          // === DOWNLOAD FORMATS ===
+          "download_formats": {
+            resonance_seismograph: {
+              format: 'json',
+              filename: `ResonanceSeismograph_${safePersonA}_${safePersonB}_${todayIso}.json`,
+            }
+          }
+        }, { status: 200 });
+        
+      } catch (synastryError: any) {
+        logger.error('SYNASTRY_TRANSITS processing error', {
+          error: synastryError.message,
+          stack: synastryError.stack
+        });
+        return NextResponse.json({
+          success: false,
+          error: 'Synastry Transits calculation failed.',
+          detail: synastryError.message,
+          code: 'SYNASTRY_TRANSITS_ERROR'
+        }, { status: 500 });
+      }
     }
 
     const body = JSON.stringify(rawPayload);

@@ -208,7 +208,8 @@ const TRANSIT_MODES = new Set<ReportMode>([
   'COMPOSITE_TRANSITS',
 ]);
 const TRANSIT_WARN_DAYS = 14;
-const TRANSIT_HARD_CAP_DAYS = 28;
+// AstroAPI v3 supports 90+ days in a single call - no more chunking needed
+const TRANSIT_HARD_CAP_DAYS = 90;
 
 type ParsedJsonResult<T> = {
   data: T | null;
@@ -1499,10 +1500,34 @@ export default function MathBrainPage() {
       setTimePolicy('planetary_only');
     }
   }, [timeUnknown, timePolicy]);
-  // Timezone dropdown options (US-centric + GMT/UTC) - simplified format
+  // Timezone dropdown options - IANA format accepted by AstroAPI v3
+  // Common timezones organized by region
   const tzOptions = useMemo(() => [
-    'GMT', 'UTC', 'US/Eastern', 'US/Central', 'US/Mountain', 'US/Pacific',
-    'US/Alaska', 'US/Hawaii'
+    // UTC/GMT
+    'UTC', 'GMT',
+    // Americas
+    'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
+    'America/Anchorage', 'America/Honolulu', 'America/Phoenix',
+    'America/Toronto', 'America/Vancouver', 'America/Mexico_City',
+    'America/Sao_Paulo', 'America/Buenos_Aires', 'America/Lima',
+    // Europe
+    'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Rome',
+    'Europe/Madrid', 'Europe/Amsterdam', 'Europe/Brussels', 'Europe/Vienna',
+    'Europe/Zurich', 'Europe/Stockholm', 'Europe/Oslo', 'Europe/Copenhagen',
+    'Europe/Dublin', 'Europe/Lisbon', 'Europe/Warsaw', 'Europe/Prague',
+    'Europe/Athens', 'Europe/Helsinki', 'Europe/Moscow', 'Europe/Kiev',
+    // Asia
+    'Asia/Tokyo', 'Asia/Seoul', 'Asia/Shanghai', 'Asia/Hong_Kong',
+    'Asia/Singapore', 'Asia/Bangkok', 'Asia/Jakarta', 'Asia/Manila',
+    'Asia/Kolkata', 'Asia/Mumbai', 'Asia/Dubai', 'Asia/Jerusalem',
+    'Asia/Istanbul', 'Asia/Tehran', 'Asia/Karachi',
+    // Oceania
+    'Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane',
+    'Australia/Perth', 'Pacific/Auckland', 'Pacific/Fiji',
+    // Africa
+    'Africa/Cairo', 'Africa/Johannesburg', 'Africa/Lagos', 'Africa/Nairobi',
+    // Legacy US shortcuts (for backwards compatibility)
+    'US/Eastern', 'US/Central', 'US/Mountain', 'US/Pacific', 'US/Alaska', 'US/Hawaii'
   ], []);
   // Legacy formatting helpers
   // Translocation / Relocation selection (angles/houses reference)
@@ -4528,82 +4553,9 @@ export default function MathBrainPage() {
     personA_lon_type: typeof (personA as any).longitude,
   }), [reportType, includeTransits, canSubmit, submitDisabled, aCoordsValid, bCoordsValid, includePersonB, timeUnknown, timeUnknownB, timePolicy, contactState, personA]);
 
-  // Helper: Split date range into chunks to avoid API timeouts
-  function splitDateRangeIntoChunks(start: string, end: string, maxDaysPerChunk: number = 6): Array<{ start: string, end: string }> {
-    const chunks: Array<{ start: string, end: string }> = [];
-    // Force UTC to avoid timezone shifts when calculating chunks
-    const startDate = new Date(start.includes('T') ? start : `${start}T00:00:00Z`);
-    const endDate = new Date(end.includes('T') ? end : `${end}T00:00:00Z`);
-
-    let currentStart = new Date(startDate);
-    while (currentStart <= endDate) {
-      const currentEnd = new Date(currentStart);
-      currentEnd.setUTCDate(currentEnd.getUTCDate() + maxDaysPerChunk - 1);
-
-      if (currentEnd > endDate) {
-        chunks.push({
-          start: currentStart.toISOString().split('T')[0],
-          end: endDate.toISOString().split('T')[0]
-        });
-        break;
-      } else {
-        chunks.push({
-          start: currentStart.toISOString().split('T')[0],
-          end: currentEnd.toISOString().split('T')[0]
-        });
-        // Advance to next day
-        currentStart.setUTCDate(currentEnd.getUTCDate() + 1);
-      }
-    }
-
-    return chunks;
-  }
-
-  // Helper: Merge multiple Math Brain results into one
-  function mergeChunkedResults(results: Array<any>): any {
-    if (results.length === 0) return null;
-    if (results.length === 1) return results[0];
-
-    // Deep copy first result as base
-    const merged = JSON.parse(JSON.stringify(results[0]));
-
-    // Merge unified_output.daily_entries
-    if (merged.unified_output?.daily_entries) {
-      const allEntries = results.flatMap(r => r.unified_output?.daily_entries || []);
-      merged.unified_output.daily_entries = allEntries;
-
-      // Update date_range in metadata
-      if (allEntries.length > 0) {
-        const dates = allEntries.map((e: any) => e.date).sort();
-        merged.unified_output.run_metadata.date_range = [dates[0], dates[dates.length - 1]];
-      }
-    }
-
-    // Merge markdown_reading (concatenate with separators)
-    if (merged.markdown_reading) {
-      merged.markdown_reading = results.map(r => r.markdown_reading).filter(Boolean).join('\n\n---\n\n');
-    }
-
-    // Merge transitsByDate for Person A
-    if (merged.person_a?.chart?.transitsByDate) {
-      const allTransitsA = results.reduce((acc, r) => ({
-        ...acc,
-        ...(r.person_a?.chart?.transitsByDate || {})
-      }), {});
-      merged.person_a.chart.transitsByDate = allTransitsA;
-    }
-
-    // Merge transitsByDate for Person B
-    if (merged.person_b?.chart?.transitsByDate) {
-      const allTransitsB = results.reduce((acc, r) => ({
-        ...acc,
-        ...(r.person_b?.chart?.transitsByDate || {})
-      }), {});
-      merged.person_b.chart.transitsByDate = allTransitsB;
-    }
-
-    return merged;
-  }
+  // NOTE: splitDateRangeIntoChunks and mergeChunkedResults removed
+  // AstroAPI v3 handles date ranges natively via the date_range parameter
+  // No frontend chunking needed - single API call handles up to 90+ days
 
   async function onSubmit(e?: any) {
     console.log('[onSubmit] Called', { submitDisabled, canSubmit, loading, providerCheckPending });
@@ -4677,14 +4629,7 @@ export default function MathBrainPage() {
     setError(null);
     setResult(null);
     try {
-      // Check if we need to chunk the request
-      const needsChunking = includeTransits && startDate && endDate;
-      const daysDiff = needsChunking ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1 : 0;
-      const chunks = (needsChunking && daysDiff > 6) ? splitDateRangeIntoChunks(startDate, endDate, 6) : null;
-
-      if (chunks && chunks.length > 1) {
-        setToast(`Processing ${daysDiff} days in ${chunks.length} chunks...`);
-      }
+      // AstroAPI v3 handles date ranges natively - no chunking needed
       // Build unified request payload
       const normalizedPersonA = {
         ...personA,
@@ -4712,7 +4657,7 @@ export default function MathBrainPage() {
         theme: 'classic',
       };
 
-      // Add transit window if requested
+      // Add transit window if requested - AstroAPI v3 accepts date_range natively
       if (includeTransits && startDate && endDate) {
         payload.window = { start: startDate, end: endDate, step };
         payload.transits = { from: startDate, to: endDate, step };
@@ -4764,141 +4709,73 @@ export default function MathBrainPage() {
         };
       }
 
-      // Send request(s) - chunked if needed
+      // Send single request - AstroAPI v3 handles full date range natively
       let finalData: any;
-
-      if (chunks && chunks.length > 1) {
-        // Chunked mode: process each chunk sequentially
-        const results: any[] = [];
-
-        for (let i = 0; i < chunks.length; i++) {
-          const chunk = chunks[i];
-          setToast(`Processing chunk ${i + 1} of ${chunks.length} (${chunk.start} to ${chunk.end})...`);
-
-          const chunkPayload = {
-            ...payload,
-            window: { start: chunk.start, end: chunk.end, step },
-            transits: { from: chunk.start, to: chunk.end, step },
-            transitStartDate: chunk.start,
-            transitEndDate: chunk.end,
-          };
-
-          let response: Response;
-          try {
-            const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-            const timeoutMs = 25000;
-            const timeoutId = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : null;
-            try {
-              response = await fetch("/api/astrology-mathbrain", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(chunkPayload),
-                signal: controller ? controller.signal : undefined,
-              });
-            } finally {
-              if (timeoutId !== null) {
-                clearTimeout(timeoutId);
-              }
-            }
-          } catch (networkError: any) {
-            const isAbortError = Boolean(networkError && (networkError as any).name === "AbortError");
-            if (isAbortError) {
-              const timeoutMessage = `Chunk ${i + 1} timed out. Math Brain took too long to respond. Please try again or shorten the date range.`;
-              setError(timeoutMessage);
-              setToast(timeoutMessage);
-            } else {
-              const errorMessage = networkError instanceof Error ? networkError.message : String(networkError);
-              const wrapped = `Network error during chunk ${i + 1}: ${errorMessage}`;
-              setError(wrapped);
-              setToast(wrapped);
-            }
-            setTimeout(() => setToast(null), 2500);
-            setLoading(false);
-            return;
-          }
-
-          const parsed = await parseJsonSafely<Record<string, any>>(response);
-          const chunkData = parsed.data;
-
-          if (!response.ok || parsed.parseError || !isRecord(chunkData) || chunkData.success === false) {
-            const errorDetail = chunkData?.error || parsed.parseError?.message || `Request failed with status ${response.status}`;
-            setToast(`Chunk ${i + 1} failed: ${errorDetail}`);
-            setTimeout(() => setToast(null), 2500);
-            throw new Error(errorDetail);
-          }
-
-          results.push(chunkData);
-        }
-
-        // Merge all chunks
-        setToast('Merging results...');
-        finalData = mergeChunkedResults(results);
-      } else {
-        // Single request mode (no chunking needed)
-        setToast(includeTransits ? 'Generating report with transits...' : 'Generating report...');
-        let response;
+      setToast(includeTransits ? 'Generating report with transits...' : 'Generating report...');
+      
+      let response;
+      try {
+        const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+        // AstroAPI v3 can handle large date ranges - increase timeout for longer windows
+        const timeoutMs = includeTransits && transitDays && transitDays > 30 ? 45000 : 30000;
+        const timeoutId = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : null;
         try {
-          const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-          const timeoutMs = 25000;
-          const timeoutId = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : null;
-          try {
-            response = await fetch("/api/astrology-mathbrain", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
-              signal: controller ? controller.signal : undefined,
-            });
-          } finally {
-            if (timeoutId !== null) {
-              clearTimeout(timeoutId);
-            }
-          }
-        } catch (networkError) {
-          console.error('Network error during API request:', networkError);
-          const isAbortError = Boolean(networkError && (networkError as any).name === "AbortError");
-          if (isAbortError) {
-            setError('Math Brain request timed out. Please try again with the same settings.');
-            setToast('Math Brain took too long to respond. Please try again.');
-          } else {
-            const errorMessage = networkError instanceof Error ? networkError.message : String(networkError);
-            setError(`Network error: ${errorMessage}`);
-            setToast('Failed to connect to the server. Please check your connection.');
-          }
-          setTimeout(() => setToast(null), 2500);
-          setLoading(false);
-          return;
-        }
-
-        let parsed;
-        try {
-          parsed = await parseJsonSafely<Record<string, any>>(response);
-          finalData = parsed.data;
-        } catch (parseError) {
-          console.error('Error parsing API response:', parseError);
-          const parseMessage = parseError instanceof Error ? parseError.message : String(parseError);
-          setError(`Invalid response from server: ${parseMessage}`);
-          setToast('Failed to process server response.');
-          setTimeout(() => setToast(null), 2500);
-          setLoading(false);
-          return;
-        }
-
-        if (!response.ok || parsed.parseError || !isRecord(finalData) || finalData.success === false) {
-          const errorDetail = finalData?.error ||
-            parsed.parseError?.message ||
-            response.statusText ||
-            `Request failed with status ${response.status}`;
-          console.error('API Error:', {
-            status: response.status,
-            error: finalData?.error,
-            parseError: parsed.parseError,
-            response: finalData
+          response = await fetch("/api/astrology-mathbrain", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            signal: controller ? controller.signal : undefined,
           });
-          setError(`Report generation failed: ${errorDetail}`);
-          setToast('Report generation failed. See error for details.');
-          setTimeout(() => setToast(null), 2500);
-          throw new Error(errorDetail);
+        } finally {
+          if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+          }
         }
+      } catch (networkError) {
+        console.error('Network error during API request:', networkError);
+        const isAbortError = Boolean(networkError && (networkError as any).name === "AbortError");
+        if (isAbortError) {
+          setError('Math Brain request timed out. Please try again with the same settings.');
+          setToast('Math Brain took too long to respond. Please try again.');
+        } else {
+          const errorMessage = networkError instanceof Error ? networkError.message : String(networkError);
+          setError(`Network error: ${errorMessage}`);
+          setToast('Failed to connect to the server. Please check your connection.');
+        }
+        setTimeout(() => setToast(null), 2500);
+        setLoading(false);
+        return;
+      }
+
+      let parsed;
+      try {
+        parsed = await parseJsonSafely<Record<string, any>>(response);
+        finalData = parsed.data;
+      } catch (parseError) {
+        console.error('Error parsing API response:', parseError);
+        const parseMessage = parseError instanceof Error ? parseError.message : String(parseError);
+        setError(`Invalid response from server: ${parseMessage}`);
+        setToast('Failed to process server response.');
+        setTimeout(() => setToast(null), 2500);
+        setLoading(false);
+        return;
+      }
+
+      if (!response.ok || parsed.parseError || !isRecord(finalData) || finalData.success === false) {
+        const errorDetail = finalData?.error ||
+          parsed.parseError?.message ||
+          response.statusText ||
+          `Request failed with status ${response.status}`;
+        console.error('API Error:', {
+          status: response.status,
+          error: finalData?.error,
+          parseError: parsed.parseError,
+          response: finalData
+        });
+        setError(`Report generation failed: ${errorDetail}`);
+        setToast('Report generation failed. See error for details.');
+        setTimeout(() => setToast(null), 2500);
+        throw new Error(errorDetail);
       }
 
 

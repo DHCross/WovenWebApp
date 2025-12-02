@@ -47,11 +47,18 @@ const {
 // ============================================================================
 const {
   getTransits,
+  getTransitsV3,
   geoResolve,
   computeComposite,
-  getTransitsByDateRange,
-  getNatalAspectsData,
-  synastryComparison,
+  subjectToAPI,
+  subjectToAPIStrict,
+  mapDateRangeToV3,
+  buildChartOptions,
+  API_ENDPOINTS,
+  // Synastry/Resonance Seismograph
+  callSynastry,
+  getSynastryTransits,
+  extractHotDegrees,
 } = require('./api-client');
 
 // ============================================================================
@@ -83,11 +90,14 @@ module.exports = {
 
   // API Client Layer
   getTransits,
+  getTransitsV3,  // New v3 API with date_range support
   geoResolve,
   computeComposite,
-  getTransitsByDateRange,
-  getNatalAspectsData,
-  synastryComparison,
+  subjectToAPI,
+  subjectToAPIStrict,  // Strict coordinate mode for relocation
+  mapDateRangeToV3,    // Helper for v3 date_range format
+  buildChartOptions,   // Build v3 options object
+  API_ENDPOINTS,       // Endpoint constants
 
   // Seismograph Engine
   calculateSeismograph,
@@ -97,6 +107,11 @@ module.exports = {
   sanitizeChartPayload,
   resolveChartPreferences,
   appendChartAssets,
+
+  // Synastry / Resonance Seismograph
+  callSynastry,
+  getSynastryTransits,
+  extractHotDegrees,
 };
 
 /**
