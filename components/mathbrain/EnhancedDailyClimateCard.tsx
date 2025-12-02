@@ -24,6 +24,14 @@ interface EnhancedDailyClimateCardProps {
   defaultExpanded?: boolean;
   /** Relationship context for negative constraints (what NOT to assume) */
   relationshipContext?: RelationshipContext;
+  /** NEW: Which person's data is this (for synastry reports) */
+  person?: 'A' | 'B';
+  /** NEW: Display name for this person */
+  personName?: string;
+  /** NEW: Is this person's chart relocated? */
+  relocationActive?: boolean;
+  /** NEW: Where this person is relocated to (if applicable) */
+  relocationLabel?: string;
 }
 
 function MagnitudeVisual({ value, className }: { value: number; className?: string }) {
@@ -32,13 +40,12 @@ function MagnitudeVisual({ value, className }: { value: number; className?: stri
       {[1, 2, 3, 4, 5].map((level) => (
         <div
           key={level}
-          className={`h-3 w-2 rounded-sm transition-all ${
-            value >= level
+          className={`h-3 w-2 rounded-sm transition-all ${value >= level
               ? "bg-current opacity-100"
               : value >= level - 0.5
-              ? "bg-current opacity-50"
-              : "bg-slate-700 opacity-30"
-          }`}
+                ? "bg-current opacity-50"
+                : "bg-slate-700 opacity-30"
+            }`}
         />
       ))}
     </div>
@@ -48,17 +55,16 @@ function MagnitudeVisual({ value, className }: { value: number; className?: stri
 function BiasVisual({ value, className }: { value: number; className?: string }) {
   // Map -5 to +5 range to 0-100%
   const percentage = Math.max(0, Math.min(100, ((value + 5) / 10) * 100));
-  
+
   return (
     <div className={`relative h-3 w-24 rounded-full bg-slate-800 border border-slate-700 overflow-hidden ${className}`} aria-label={`Bias ${value > 0 ? '+' : ''}${value.toFixed(1)}`}>
       {/* Center marker */}
       <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-500/50" />
-      
+
       {/* Value marker */}
-      <div 
-        className={`absolute top-0 bottom-0 w-1.5 -ml-0.5 rounded-full transition-all ${
-          value > 0.5 ? 'bg-emerald-500' : value < -0.5 ? 'bg-rose-500' : 'bg-slate-400'
-        }`}
+      <div
+        className={`absolute top-0 bottom-0 w-1.5 -ml-0.5 rounded-full transition-all ${value > 0.5 ? 'bg-emerald-500' : value < -0.5 ? 'bg-rose-500' : 'bg-slate-400'
+          }`}
         style={{ left: `${percentage}%` }}
       />
     </div>
@@ -77,6 +83,10 @@ export default memo(function EnhancedDailyClimateCard({
   dateRange,
   defaultExpanded = true,
   relationshipContext,
+  person,
+  personName,
+  relocationActive = false,
+  relocationLabel,
 }: EnhancedDailyClimateCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const narrative = generateClimateNarrative(climate, activatedHouses, isRangeSummary, false, mode, names, relationshipContext);
@@ -135,10 +145,28 @@ export default memo(function EnhancedDailyClimateCard({
     ? `Drivers: ${(overflowDetail?.drivers ?? []).join(' · ')}`
     : null;
 
-  const modeLabel =
-    mode === "single"
-      ? "One Person (Natal + Transits)"
-      : `Two People (${names?.[0] ?? "Person A"} + ${names?.[1] ?? "Person B"}, Synastry + Transits)`;
+  // Generate label showing person attribution and relocation status
+  const modeLabel = (() => {
+    if (mode === "single") {
+      // Solo report
+      if (relocationActive && relocationLabel) {
+        return `One Person (Natal → ${relocationLabel})`;
+      }
+      return "One Person (Natal + Transits)";
+    }
+
+    // Synastry report - show which person's data this is
+    if (person && personName) {
+      const personLabel = `Person ${person} - ${personName}`;
+      if (relocationActive && relocationLabel) {
+        return `${personLabel} (Relocated to ${relocationLabel})`;
+      }
+      return `${personLabel} (Natal)`;
+    }
+
+    // Fallback for combined/legacy view
+    return `Two People (${names?.[0] ?? "Person A"} + ${names?.[1] ?? "Person B"}, Synastry + Transits)`;
+  })();
 
   const formatValue = (value: number, showSign: boolean = false): string => {
     const formatted = value.toFixed(2);
@@ -161,7 +189,7 @@ export default memo(function EnhancedDailyClimateCard({
       aria-label="Daily symbolic weather narrative"
     >
       {/* Header / Toggle Area */}
-      <div 
+      <div
         className={`p-6 cursor-pointer hover:bg-slate-800/30 transition-colors ${!isExpanded ? 'rounded-lg' : 'rounded-t-lg'}`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -184,7 +212,7 @@ export default memo(function EnhancedDailyClimateCard({
               </>
             )}
           </div>
-          
+
           <div className="flex items-center gap-4 justify-end">
             {/* Collapsed Metrics Preview */}
             {!isExpanded && (
@@ -197,10 +225,9 @@ export default memo(function EnhancedDailyClimateCard({
                 <div className="flex items-center gap-2" title="Directional Bias">
                   <span className="text-slate-500">Bias</span>
                   <BiasVisual value={narrative.dimensions.valence.value} />
-                  <span className={`font-medium ${
-                    narrative.dimensions.valence.value > 0 ? 'text-emerald-400' : 
-                    narrative.dimensions.valence.value < 0 ? 'text-rose-400' : 'text-slate-400'
-                  }`}>
+                  <span className={`font-medium ${narrative.dimensions.valence.value > 0 ? 'text-emerald-400' :
+                      narrative.dimensions.valence.value < 0 ? 'text-rose-400' : 'text-slate-400'
+                    }`}>
                     {formatValue(narrative.dimensions.valence.value, true)}
                   </span>
                 </div>
@@ -222,11 +249,11 @@ export default memo(function EnhancedDailyClimateCard({
                   </div>
                 </div>
               )}
-              
+
               {/* Toggle Icon */}
               <div className={`p-1 rounded-full hover:bg-slate-700/50 transition-colors ${isExpanded ? 'rotate-180' : ''}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
-                  <path d="m6 9 6 6 6-6"/>
+                  <path d="m6 9 6 6 6-6" />
                 </svg>
               </div>
             </div>
@@ -283,13 +310,12 @@ export default memo(function EnhancedDailyClimateCard({
               <div className="relative bg-slate-900/40 rounded-md p-3 border border-slate-700/50 overflow-hidden">
                 {/* Conditional gradient overlay based on directional bias sign */}
                 <div
-                  className={`absolute inset-0 opacity-10 ${
-                    narrative.dimensions.valence.value > 0
+                  className={`absolute inset-0 opacity-10 ${narrative.dimensions.valence.value > 0
                       ? 'bg-gradient-to-br from-emerald-500 to-emerald-600'
                       : narrative.dimensions.valence.value < 0
-                      ? 'bg-gradient-to-br from-rose-500 to-rose-600'
-                      : 'bg-slate-800'
-                  }`}
+                        ? 'bg-gradient-to-br from-rose-500 to-rose-600'
+                        : 'bg-slate-800'
+                    }`}
                   aria-hidden="true"
                 />
                 <div className="relative z-10">
@@ -299,13 +325,12 @@ export default memo(function EnhancedDailyClimateCard({
                     </span>
                     <div className="flex items-center gap-3">
                       <BiasVisual value={narrative.dimensions.valence.value} />
-                      <span className={`text-lg font-semibold ${
-                        narrative.dimensions.valence.value > 0
+                      <span className={`text-lg font-semibold ${narrative.dimensions.valence.value > 0
                           ? 'text-emerald-400'
                           : narrative.dimensions.valence.value < 0
-                          ? 'text-rose-400'
-                          : climateClasses.text
-                      }`}>
+                            ? 'text-rose-400'
+                            : climateClasses.text
+                        }`}>
                         {formatValue(narrative.dimensions.valence.value, true)}
                       </span>
                     </div>

@@ -36,7 +36,13 @@ export function WeatherPlots({
   const unifiedData = useMemo(() => {
     if (!canShowUnified) return null;
     try {
-      return transformToUnifiedDashboard(result);
+      // Detect synastry mode: both Person A and Person B present with synastry aspects
+      const isSynastry = Boolean(
+        result?.person_b &&
+        (result?.synastry_aspects || result?.relationship)
+      );
+
+      return transformToUnifiedDashboard(result, { showPersonB: isSynastry });
     } catch {
       return null;
     }
@@ -66,21 +72,19 @@ export function WeatherPlots({
           <div className="flex gap-1">
             <button
               onClick={() => setViewMode('unified')}
-              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                viewMode === 'unified'
+              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${viewMode === 'unified'
                   ? 'bg-purple-600 text-white'
                   : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-              }`}
+                }`}
             >
               Unified (MAP + FIELD)
             </button>
             <button
               onClick={() => setViewMode('scatter')}
-              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                viewMode === 'scatter'
+              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${viewMode === 'scatter'
                   ? 'bg-purple-600 text-white'
                   : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-              }`}
+                }`}
             >
               Scatter (FIELD only)
             </button>

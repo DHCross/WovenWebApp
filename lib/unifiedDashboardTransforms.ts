@@ -13,15 +13,15 @@ import type { MapDataPoint, FieldDataPoint, IntegrationPoint } from '@/component
  * Extract MAP layer data from transitsByDate
  * Each transit position gets mapped to its natal house
  */
-export function extractMapData(transitsByDate: any): MapDataPoint[] {
+export function extractMapData(transitsByDate: any, subject: 'A' | 'B' = 'A'): MapDataPoint[] {
   const mapPoints: MapDataPoint[] = [];
-  
+
   if (!transitsByDate || typeof transitsByDate !== 'object') {
     return mapPoints;
   }
 
   const planetNames = [
-    'Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 
+    'Sun', 'Moon', 'Mercury', 'Venus', 'Mars',
     'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto',
     'Chiron'
   ];
@@ -37,12 +37,13 @@ export function extractMapData(transitsByDate: any): MapDataPoint[] {
         if (idx < planetNames.length && house) {
           const planet = planetNames[idx];
           const position = transitPositions[idx];
-          
+
           mapPoints.push({
             date,
             planet,
             degree: position ? formatDegree(position / 100) : '', // Convert from centidegrees
             house,
+            subject, // Track which person this data belongs to
           });
         }
       });
@@ -61,7 +62,7 @@ export function extractFieldData(
   subjectName?: string
 ): FieldDataPoint[] {
   const fieldPoints: FieldDataPoint[] = [];
-  
+
   if (!transitsByDate || typeof transitsByDate !== 'object') {
     return fieldPoints;
   }
@@ -70,7 +71,7 @@ export function extractFieldData(
     // Extract seismograph data (old format) or meter data (new v5.0 format)
     const seismograph = dayData?.seismograph;
     const meter = dayData?.meter;
-    
+
     let magnitude: number | null = null;
     let valence: number | null = null;
 
@@ -86,7 +87,7 @@ export function extractFieldData(
 
     if (magnitude !== null && valence !== null) {
       const intensityLabel = getMagnitudeLabel(magnitude);
-      
+
       fieldPoints.push({
         date,
         subject: subjectName || 'Subject',
@@ -111,7 +112,7 @@ export function extractIntegrationPoints(
   threshold: { magnitude?: number; house?: number[] } = {}
 ): IntegrationPoint[] {
   const integrationPoints: IntegrationPoint[] = [];
-  
+
   const { magnitude: magThreshold = 3.5, house: focusHouses = [1, 4, 7, 10] } = threshold;
 
   // Group MAP data by date
@@ -144,7 +145,7 @@ export function extractIntegrationPoints(
     if (significantPlanets.length > 0) {
       // Create integration point for the most significant planet
       const primaryPlanet = significantPlanets[0]; // Could rank by planet importance
-      
+
       // Check for aspects involving this planet
       const dayData = transitsByDate[date];
       const aspects = Array.isArray(dayData?.aspects) ? dayData.aspects : (dayData || []);
@@ -175,7 +176,7 @@ function findRelevantAspect(aspects: any[], planetName: string): string | undefi
 
   // Look for aspects involving this planet and angular points
   const angularPoints = ['Ascendant', 'Medium_Coeli', 'Descendant', 'Imum_Coeli'];
-  
+
   for (const aspect of aspects) {
     const p1 = aspect.p1_name || aspect.planet1 || aspect.a;
     const p2 = aspect.p2_name || aspect.planet2 || aspect.b;
@@ -205,13 +206,13 @@ function generateHandshakeNote(
   const biasDesc = fieldPoint.valence > 1 ? 'expansive' : fieldPoint.valence < -1 ? 'contractive' : 'neutral';
 
   let note = `${mapPoint.planet} activates ${houseContext}`;
-  
+
   if (aspect) {
     note += ` via ${aspect}`;
   }
-  
+
   note += `, matches ${intensityDesc} magnitude with ${biasDesc} bias.`;
-  
+
   return note;
 }
 
@@ -233,7 +234,7 @@ function getHouseContext(house: number): string {
     11: 'H11 (Community)',
     12: 'H12 (Dissolution)',
   };
-  
+
   return contexts[house] || `H${house}`;
 }
 
@@ -255,35 +256,64 @@ function formatDegree(absolutePosition: number): string {
     'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
     'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
   ];
-  
+
   const signIndex = Math.floor(absolutePosition / 30);
   const degreeInSign = absolutePosition % 30;
   const sign = signs[signIndex] || signs[0];
-  
+
   const deg = Math.floor(degreeInSign);
   const min = Math.floor((degreeInSign - deg) * 60);
-  
+
   return `${deg}°${min.toString().padStart(2, '0')}' ${sign}`;
 }
 
 /**
  * All-in-one transformer: extract MAP, FIELD, and Integration from result object
+ * Now supports dual-person extraction for synastry reports
  */
 export function transformToUnifiedDashboard(result: any, options?: {
   subjectName?: string;
   magnitudeThreshold?: number;
   focusHouses?: number[];
+  showPersonB?: boolean; // Enable Person B track in synastry
 }) {
-  const transitsByDate = result?.person_a?.chart?.transitsByDate || {};
-  const summary = result?.person_a?.summary;
-  const subjectName = options?.subjectName || result?.person_a?.name || 'Subject';
+  const personATransits = result?.person_a?.chart?.transitsByDate || {};
+  const personBTransits = result?.person_b?.chart?.transitsByDate || {};
+  const subjectNameA = result?.person_a?.details?.name || result?.person_a?.name || options?.subjectName || 'Person A';
+  const subjectNameB = result?.person_b?.details?.name || result?.person_b?.name || 'Person B';
 
-  const mapData = extractMapData(transitsByDate);
-  const fieldData = extractFieldData(transitsByDate, summary, subjectName);
+  // Determine if we should show Person B (for synastry reports)
+  const showPersonB = options?.showPersonB && Object.keys(personBTransits).length > 0;
+
+  // Extract MAP data for Person A
+  const mapDataA = extractMapData(personATransits, 'A');
+
+  // Extract MAP data for Person B (if present and requested)
+  const mapDataB = showPersonB ? extractMapData(personBTransits, 'B') : [];
+
+  // Combine MAP data from both persons
+  const mapData = [...mapDataA, ...mapDataB];
+
+  // Extract FIELD data for both persons
+  const fieldDataA = extractFieldData(personATransits, result?.person_a?.derived?.seismograph_summary, subjectNameA);
+  const fieldDataB = showPersonB
+    ? extractFieldData(personBTransits, result?.person_b?.derived?.seismograph_summary, subjectNameB)
+    : [];
+
+  // Combine FIELD data
+  const fieldData = [...fieldDataA, ...fieldDataB];
+
+  // Create combined transitsByDate for integration points
+  const combinedTransits = {
+    ...personATransits,
+    ...(showPersonB ? personBTransits : {})
+  };
+
+  // Extract integration points
   const integration = extractIntegrationPoints(
     mapData,
     fieldData,
-    transitsByDate,
+    combinedTransits,
     {
       magnitude: options?.magnitudeThreshold,
       house: options?.focusHouses,
@@ -292,3 +322,4 @@ export function transformToUnifiedDashboard(result: any, options?: {
 
   return { mapData, fieldData, integration };
 }
+

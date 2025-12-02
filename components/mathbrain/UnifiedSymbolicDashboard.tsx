@@ -36,6 +36,7 @@ export type MapDataPoint = {
   planet: string;
   degree: string;
   house: number; // 1-12
+  subject: 'A' | 'B'; // Person A or Person B
   aspect?: string;
   house_label?: string;
 };
@@ -91,7 +92,7 @@ export function UnifiedSymbolicDashboard({
 
     import('chart.js').then((ChartJS) => {
       const { Chart, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } = ChartJS;
-      
+
       Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
       if (chartInstanceRef.current) {
@@ -100,7 +101,7 @@ export function UnifiedSymbolicDashboard({
 
       const canvas = canvasRef.current;
       if (!canvas) return;
-      
+
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
@@ -110,26 +111,31 @@ export function UnifiedSymbolicDashboard({
         ...fieldData.map(d => d.date)
       ])).sort();
 
-      // Group MAP data by planet
-      const planetGroups: { [planet: string]: { x: number; y: number; date: string }[] } = {};
+      // Group MAP data by planet AND subject (Person A vs Person B)
+      const planetGroups: { [key: string]: { x: number; y: number; date: string; subject: 'A' | 'B' }[] } = {};
       mapData.forEach(point => {
-        if (!planetGroups[point.planet]) {
-          planetGroups[point.planet] = [];
+        const key = `${point.planet}_${point.subject}`; // e.g., "Sun_A" or "Sun_B"
+        if (!planetGroups[key]) {
+          planetGroups[key] = [];
         }
         const xIndex = allDates.indexOf(point.date);
-        planetGroups[point.planet].push({
+        planetGroups[key].push({
           x: xIndex,
           y: point.house,
           date: point.date,
+          subject: point.subject,
         });
       });
 
       // Sort planet points by date to create continuous lines
-      Object.keys(planetGroups).forEach(planet => {
-        planetGroups[planet].sort((a, b) => a.x - b.x);
+      Object.keys(planetGroups).forEach(key => {
+        planetGroups[key].sort((a, b) => a.x - b.x);
       });
 
-      // Planet color mapping
+      // Check if we have Person B data
+      const hasPersonB = mapData.some(p => p.subject === 'B');
+
+      // Planet color mapping (base colors)
       const planetColors: { [planet: string]: string } = {
         'Sun': 'rgb(251, 191, 36)', // yellow
         'Moon': 'rgb(203, 213, 225)', // silver
@@ -144,24 +150,49 @@ export function UnifiedSymbolicDashboard({
         'Chiron': 'rgb(167, 139, 250)', // light purple
       };
 
-      // Create MAP layer datasets (lines for each planet)
-      const mapDatasets = Object.entries(planetGroups).map(([planet, points]) => ({
-        label: `${planet} (MAP)`,
-        data: points,
-        borderColor: planetColors[planet] || 'rgb(148, 163, 184)',
-        backgroundColor: planetColors[planet] || 'rgb(148, 163, 184)',
-        borderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        showLine: true,
-        tension: 0.1,
-        type: 'line' as const,
-      }));
+      // Color modifiers for Person A vs Person B
+      const getPersonColor = (baseColor: string, subject: 'A' | 'B'): string => {
+        if (subject === 'A') {
+          // Person A: Use base colors with purple tint
+          return baseColor;
+        } else {
+          // Person B: Shift to green tint
+          return baseColor.replace(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/, (match, r, g, b) => {
+            const rNum = parseInt(r);
+            const gNum = parseInt(g);
+            const bNum = parseInt(b);
+            // Add green, reduce red slightly
+            return `rgb(${Math.max(0, rNum - 30)}, ${Math.min(255, gNum + 50)}, ${bNum})`;
+          });
+        }
+      };
+
+      // Create MAP layer datasets (lines for each planet, separated by person)
+      const mapDatasets = Object.entries(planetGroups).map(([key, points]) => {
+        const [planetName, subject] = key.split('_') as [string, 'A' | 'B'];
+        const baseColor = planetColors[planetName] || 'rgb(148, 163, 184)';
+        const personColor = getPersonColor(baseColor, subject);
+        const displayLabel = hasPersonB ? `${planetName} (${subject})` : planetName;
+
+        return {
+          label: `${displayLabel} (MAP)`,
+          data: points,
+          borderColor: personColor,
+          backgroundColor: personColor,
+          borderWidth: subject === 'A' ? 2 : 2,
+          borderDash: subject === 'B' ? [5, 5] : [], // Dashed line for Person B
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          showLine: true,
+          tension: 0.1,
+          type: 'line' as const,
+        };
+      });
 
       // FIELD layer: scatter bubbles
       const getColorFromValence = (valence: number): string => {
         const normalized = (valence + 5) / 10; // [-5, +5] → [0, 1]
-        
+
         if (normalized < 0.5) {
           // Red to Gray (friction to neutral)
           const t = normalized * 2;
@@ -209,8 +240,8 @@ export function UnifiedSymbolicDashboard({
         type: 'scatter' as const,
       };
 
-      // Combine datasets
-      const datasets = [...mapDatasets, fieldDataset];
+      // Combine datasets (cast to any to avoid Chart.js type conflicts)
+      const datasets = [...mapDatasets, fieldDataset] as any;
 
       chartInstanceRef.current = new Chart(ctx, {
         type: 'scatter',
@@ -343,7 +374,7 @@ export function UnifiedSymbolicDashboard({
             <span className="mx-2">•</span>
             <span>Poetic Brain Reading = MAP (chart geometry) + Symbolic Weather / FIELD (symbolic pressure)</span>
           </div>
-          
+
           {/* Color legend for FIELD layer */}
           <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
             <div className="font-medium">FIELD Layer:</div>
@@ -360,12 +391,27 @@ export function UnifiedSymbolicDashboard({
               <span>Ease (+5)</span>
             </div>
           </div>
+
+          {/* Person A vs B legend (only show in synastry) */}
+          {mapData.some(p => p.subject === 'B') && (
+            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+              <div className="font-medium">MAP Tracks:</div>
+              <div className="flex items-center gap-1">
+                <div className="h-0.5 w-4 bg-purple-500" />
+                <span>Person A (Solid)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="h-0.5 w-4 border-t-2 border-dashed border-green-500" />
+                <span>Person B (Dashed)</span>
+              </div>
+            </div>
+          )}
         </div>
-        
+
         <div style={{ height: '500px', position: 'relative' }}>
           <canvas ref={canvasRef} />
         </div>
-        
+
         <div className="mt-4 grid grid-cols-1 gap-3 text-xs text-slate-500 sm:grid-cols-2">
           <div>
             <span className="font-medium text-slate-400">MAP Layer (Lines):</span> Planetary movement through houses — the geometric structure

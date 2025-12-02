@@ -1569,7 +1569,7 @@ export default function MathBrainPage() {
     keys.forEach((key) => {
       try {
         window.localStorage.removeItem(key);
-      } catch {/* ignore */}
+      } catch {/* ignore */ }
     });
   }, []);
   // Lightweight toast for ephemeral notices (e.g., Mirror failure)
@@ -1688,7 +1688,7 @@ export default function MathBrainPage() {
 
     // Clear any stale cached payloads (legacy keys and scoped)
     clearStoredReportPayload();
-    
+
     // Clear any stale result state on component mount to prevent showing old reports
     console.log('[Debug] Component mount - clearing all states');
     setResult(null);
@@ -2516,7 +2516,7 @@ export default function MathBrainPage() {
         trimmed[d] = entries[d];
       });
       payload.person_a.chart.transitsByDate = trimmed;
-    } catch {/* ignore trim errors */}
+    } catch {/* ignore trim errors */ }
     return payload;
   }
 
@@ -6071,7 +6071,7 @@ export default function MathBrainPage() {
                                 }
                               };
                             }
-                            
+
                             // Fallback to original calculation if not in cache
                             const dayData = transitsByDate[date];
                             const seismo = dayData?.seismograph || {};
@@ -6212,190 +6212,30 @@ export default function MathBrainPage() {
                           <div className="mb-6">
                             <h3 className="text-sm font-medium text-slate-200 mb-3">Daily Symbolic Weather Cards</h3>
                             {(() => {
-                              const daily = frontStageTransitsByDate;
-                              const dates = Object.keys(daily).sort();
+                              // Get daily data for both persons
+                              const dailyPersonA = frontStageTransitsByDate;
+                              const dailyPersonB = result?.person_b?.chart?.transitsByDate || {};
+
+                              // Get all dates (union of both persons' dates)
+                              const datesA = Object.keys(dailyPersonA);
+                              const datesB = Object.keys(dailyPersonB);
+                              const dates = Array.from(new Set([...datesA, ...datesB])).sort();
+
                               if (!dates.length) {
                                 return <div className="text-sm text-slate-500 p-4 border border-slate-700 rounded bg-slate-900/20">No daily data available</div>;
                               }
+
+                              // Determine if this is synastry mode
+                              const modeKind = RELATIONAL_MODES.includes(mode) ? 'relational' : 'single';
+                              const isSynastry = modeKind === 'relational' && personB && Object.keys(dailyPersonB).length > 0;
 
                               // Determine default expanded state (Today, or first day if today not present)
                               const today = new Date().toISOString().split('T')[0];
                               const hasToday = dates.includes(today);
 
-                              // State descriptor functions
-                              const getMagnitudeState = (mag: number) => {
-                                if (mag <= 1) return 'Latent';
-                                if (mag <= 2) return 'Murmur';
-                                if (mag <= 4) return 'Active';
-                                return 'Threshold';
-                              };
-
-                              const getValenceStyle = (valence: number, magnitude: number) => {
-                                const magLevel = magnitude <= 2 ? 'low' : 'high';
-
-                                if (valence >= 4.5) {
-                                  const emojis = magLevel === 'low' ? ['🦋', '🌈'] : ['🦋', '🌈', '🔥'];
-                                  return { emojis, descriptor: 'Liberation', anchor: '+5', pattern: 'peak openness; breakthroughs / big‑sky view' };
-                                } else if (valence >= 3.5) {
-                                  const emojis = magLevel === 'low' ? ['💎', '🔥'] : ['💎', '🔥', '🦋'];
-                                  return { emojis, descriptor: 'Expansion', anchor: '+4', pattern: 'widening opportunities; clear insight fuels growth' };
-                                } else if (valence >= 2.5) {
-                                  const emojis = magLevel === 'low' ? ['🧘', '✨'] : ['🧘', '✨', '🌊'];
-                                  return { emojis, descriptor: 'Harmony', anchor: '+3', pattern: 'coherent progress; both/and solutions' };
-                                } else if (valence >= 1.5) {
-                                  const emojis = magLevel === 'low' ? ['🌊', '🧘'] : ['🌊', '🧘'];
-                                  return { emojis, descriptor: 'Flow', anchor: '+2', pattern: 'smooth adaptability; things click' };
-                                } else if (valence >= 0.5) {
-                                  const emojis = magLevel === 'low' ? ['🌱', '✨'] : ['🌱', '✨'];
-                                  return { emojis, descriptor: 'Lift', anchor: '+1', pattern: 'gentle tailwind; beginnings sprout' };
-                                } else if (valence >= -0.5) {
-                                  return { emojis: ['⚖️'], descriptor: 'Equilibrium', anchor: '0', pattern: 'net‑neutral tilt; forces cancel or diffuse' };
-                                } else if (valence >= -1.5) {
-                                  const emojis = magLevel === 'low' ? ['🌪', '🌫'] : ['🌪', '🌫'];
-                                  return { emojis, descriptor: 'Drag', anchor: '−1', pattern: 'subtle headwind; minor loops or haze' };
-                                } else if (valence >= -2.5) {
-                                  const emojis = magLevel === 'low' ? ['🌫', '🧩'] : ['🌫', '🧩', '⬇️'];
-                                  return { emojis, descriptor: 'Contraction', anchor: '−2', pattern: 'narrowing options; ambiguity or energy drain' };
-                                } else if (valence >= -3.5) {
-                                  const emojis = magLevel === 'low' ? ['⚔️', '🌊'] : ['⚔️', '🌊', '🌫'];
-                                  return { emojis, descriptor: 'Friction', anchor: '−3', pattern: 'conflicts or cross‑purposes slow motion' };
-                                } else if (valence >= -4.5) {
-                                  const emojis = magLevel === 'low' ? ['🕰', '⚔️'] : ['🕰', '⚔️', '🌪'];
-                                  return { emojis, descriptor: 'Grind', anchor: '−4', pattern: 'sustained resistance; heavy duty load' };
-                                } else {
-                                  const emojis = magLevel === 'low' ? ['🌋', '🧩'] : ['🌋', '🧩', '⬇️'];
-                                  return { emojis, descriptor: 'Compression', anchor: '−5', pattern: 'maximum restrictive tilt; deep inward compression' };
-                                }
-                              };
-
-                              const getVolatilityState = (vol: number) => {
-                                if (vol <= 2) return 'Coherent';
-                                if (vol <= 4) return 'Complex';
-                                return 'Dispersed';
-                              };
-
-                              // SFD state helper removed (deprecated)
-
-                              const classifyMagnitude = (mag: number) => {
-                                if (mag <= 2) {
-                                  return { key: 'low' as const, label: 'Low', badge: 'Low Intensity' };
-                                }
-                                if (mag <= 4) {
-                                  return { key: 'medium' as const, label: 'Medium', badge: 'Medium Intensity' };
-                                }
-                                return { key: 'high' as const, label: 'High', badge: 'High Intensity' };
-                              };
-
-                              const classifyValence = (val: number) => {
-                                if (val >= 1.5) {
-                                  return {
-                                    key: 'supportive' as const,
-                                    label: 'Supportive',
-                                    badge: 'Positive Tilt',
-                                  };
-                                }
-                                if (val <= -1.5) {
-                                  return {
-                                    key: 'tense' as const,
-                                    label: 'Tense',
-                                    badge: 'Tense Tilt',
-                                  };
-                                }
-                                return {
-                                  key: 'mixed' as const,
-                                  label: 'Mixed',
-                                  badge: 'Mixed Tilt',
-                                };
-                              };
-
-                              const classifyVolatility = (vol: number) => {
-                                if (vol <= 2) {
-                                  return { key: 'stable' as const, label: 'Stable', badge: 'Stable Distribution' };
-                                }
-                                if (vol <= 4) {
-                                  return { key: 'variable' as const, label: 'Variable', badge: 'Variable Distribution' };
-                                }
-                                return { key: 'scattered' as const, label: 'Scattered', badge: 'Scattered Distribution' };
-                              };
-
-                              const magnitudeForkText = (mag: number) => {
-                                if (mag >= 4) {
-                                  return {
-                                    wb: 'Breakthrough wave: high charge favors bold moves and outreach.',
-                                    abe: 'Overload wave: same charge can oversaturate the schedule or nervous system.',
-                                  };
-                                }
-                                if (mag >= 2) {
-                                  return {
-                                    wb: 'Productive surge: solid momentum to advance priority work.',
-                                    abe: 'Overextension risk: adding too much can fragment focus.',
-                                  };
-                                }
-                                return {
-                                  wb: 'Integration window: gentle charge supports rest or soft starts.',
-                                  abe: 'Stagnation risk: low voltage may feel stuck without intentional sparks.',
-                                };
-                              };
-
-                              const valenceForkText = (val: number) => {
-                                if (val >= 4) {
-                                  return {
-                                    wb: 'Liberation flow: peak openness creates breakthrough possibilities.',
-                                    abe: 'Open-field sprawl: infinite options can stall momentum until you set constraints.',
-                                  };
-                                }
-                                if (val >= 3) {
-                                  return {
-                                    wb: 'Expansion clarity: widening opportunities land with clarity.',
-                                    abe: 'Expansion overreach: ambition outruns capacity and scatters energy.',
-                                  };
-                                }
-                                if (val >= 2) {
-                                  return {
-                                    wb: 'Harmony integration: both/and solutions emerge through coherent progress.',
-                                    abe: 'Harmony avoidance: pleasing everyone delays necessary calls.',
-                                  };
-                                }
-                                if (val >= 1) {
-                                  return {
-                                    wb: 'Lift momentum: gentle tailwinds back natural beginnings.',
-                                    abe: 'Lift impatience: slow build can feel frustrating when you want speed.',
-                                  };
-                                }
-                                if (val >= -1) {
-                                  return {
-                                    wb: 'Equilibrium balance: forces offset, leaving space for discernment.',
-                                    abe: 'Equilibrium stall: neutrality can feel like treading water.',
-                                  };
-                                }
-                                if (val >= -2) {
-                                  return {
-                                    wb: 'Contraction focus: narrowing options create useful boundaries.',
-                                    abe: 'Contraction anxiety: tightening scope can spark scarcity thinking.',
-                                  };
-                                }
-                                if (val >= -3) {
-                                  return {
-                                    wb: 'Friction catalyst: tension reveals truths that unlock progress.',
-                                    abe: 'Friction exhaustion: unresolved cross-currents burn energy fast.',
-                                  };
-                                }
-                                if (val >= -4) {
-                                  return {
-                                    wb: 'Grind stamina: disciplined effort builds staying power.',
-                                    abe: 'Grind depletion: sustained resistance can drain capacity unless paced.',
-                                  };
-                                }
-                                return {
-                                  wb: 'Compression focus: maximum density creates clarity through constraint.',
-                                  abe: 'Compression overload: extreme restriction can trigger shutdown.',
-                                };
-                              };
-
-                              return dates.map(date => { // Show all requested days
-                                const dayData = daily[date];
+                              // Helper to extract climate from day data
+                              const extractClimateFromDay = (dayData: any) => {
                                 const seismo = dayData?.seismograph || dayData;
-
                                 const overflowDetail = computeOverflowDetailFromDay(dayData);
 
                                 const mag = firstFinite(
@@ -6413,70 +6253,146 @@ export default function MathBrainPage() {
                                   seismo?.valence,
                                   seismo?.axes?.directional_bias?.value,
                                 ) ?? 0;
-
                                 const vol = firstFinite(
                                   seismo?.volatility,
                                   seismo?.axes?.volatility?.value,
                                 ) ?? 0;
 
-                                // SFD removed — use magnitude/valence/volatility for cards
-                                const valenceStyle = getValenceStyle(val, mag);
+                                return { mag, val, vol, overflowDetail };
+                              };
 
-                                const magnitudeClass = classifyMagnitude(mag);
-                                const valenceClass = classifyValence(val);
-                                const volatilityClass = classifyVolatility(vol);
-                                const magnitudeFork = magnitudeForkText(mag);
-                                const valenceFork = valenceForkText(val);
-                                const badgeLine = `${magnitudeClass.badge} / ${valenceClass.badge} / ${volatilityClass.badge}`;
+                              // Determine relocation info
+                              const relocationActive = relocationStatus.effectiveMode !== 'NONE';
+                              const personARelocated = relocationActive && ['A_LOCAL', 'BOTH_LOCAL'].includes(relocationStatus.effectiveMode);
+                              const personBRelocated = relocationActive && ['B_LOCAL', 'BOTH_LOCAL'].includes(relocationStatus.effectiveMode);
 
-                                const dateLabel = new Date(date).toLocaleDateString('en-US', {
-                                  weekday: 'long',
-                                  month: 'long',
-                                  day: 'numeric',
-                                });
+                              const baseLocation = [personA.city, personA.state].filter(Boolean).join(', ') || personA.city || '';
+                              const locationLabel = relocationActive
+                                ? (relocLabel || baseLocation || 'Relocation lens active')
+                                : (baseLocation || 'Location not specified');
 
-                                const baseLocation = [personA.city, personA.state].filter(Boolean).join(', ') || personA.city || '';
-                                const locationLabel = relocationStatus.effectiveMode !== 'NONE'
-                                  ? (relocLabel || baseLocation || 'Relocation lens active')
-                                  : (baseLocation || 'Location not specified');
+                              const relationalNames: [string, string] | undefined = modeKind === 'relational'
+                                ? [personA.name || 'Person A', personB.name || 'Person B']
+                                : undefined;
 
-                                const modeKind = RELATIONAL_MODES.includes(mode) ? 'relational' : 'single';
-                                const relationalNames: [string, string] | undefined = modeKind === 'relational'
-                                  ? [personA.name || 'Person A', personB.name || 'Person B']
-                                  : undefined;
+                              // Build relationship context for negative constraints
+                              const relationalCtx: RelationshipContext | undefined = modeKind === 'relational'
+                                ? {
+                                  type: relationshipType as 'PARTNER' | 'FRIEND' | 'FAMILY' | undefined,
+                                  intimacy_tier: relationshipType === 'PARTNER' && relationshipTier
+                                    ? relationshipTier as 'P1' | 'P2' | 'P3' | 'P4' | 'P5a' | 'P5b'
+                                    : undefined,
+                                  role: relationshipType !== 'PARTNER' ? relationshipRole || undefined : undefined,
+                                }
+                                : undefined;
 
-                                const isDefaultExpanded = hasToday ? date === today : date === dates[0];
+                              if (isSynastry) {
+                                // SYNASTRY MODE: Generate separate cards for Person A and Person B
+                                return dates.flatMap(date => {
+                                  const dateLabel = new Date(date).toLocaleDateString('en-US', {
+                                    weekday: 'long',
+                                    month: 'long',
+                                    day: 'numeric',
+                                  });
 
-                                // Build relationship context for negative constraints (what NOT to assume)
-                                const relationalCtx: RelationshipContext | undefined = modeKind === 'relational'
-                                  ? {
-                                    type: relationshipType as 'PARTNER' | 'FRIEND' | 'FAMILY' | undefined,
-                                    intimacy_tier: relationshipType === 'PARTNER' && relationshipTier
-                                      ? relationshipTier as 'P1' | 'P2' | 'P3' | 'P4' | 'P5a' | 'P5b'
-                                      : undefined,
-                                    role: relationshipType !== 'PARTNER' ? relationshipRole || undefined : undefined,
+                                  const isDefaultExpanded = hasToday ? date === today : date === dates[0];
+
+                                  const cards = [];
+
+                                  // Person A Card
+                                  if (dailyPersonA[date]) {
+                                    const { mag, val, vol, overflowDetail } = extractClimateFromDay(dailyPersonA[date]);
+
+                                    cards.push(
+                                      <EnhancedDailyClimateCard
+                                        key={`${date}-A`}
+                                        date={dateLabel}
+                                        location={locationLabel}
+                                        mode={modeKind}
+                                        names={relationalNames}
+                                        climate={{
+                                          magnitude: mag,
+                                          valence_bounded: val,
+                                          volatility: vol,
+                                          drivers: overflowDetail?.drivers,
+                                        }}
+                                        overflowDetail={overflowDetail}
+                                        defaultExpanded={isDefaultExpanded}
+                                        relationshipContext={relationalCtx}
+                                        person="A"
+                                        personName={personA.name || 'Person A'}
+                                        relocationActive={personARelocated}
+                                        relocationLabel={personARelocated ? relocLabel : undefined}
+                                      />
+                                    );
                                   }
-                                  : undefined;
 
-                                return (
-                                  <EnhancedDailyClimateCard
-                                    key={date}
-                                    date={dateLabel}
-                                    location={locationLabel}
-                                    mode={modeKind}
-                                    names={relationalNames}
-                                    climate={{
-                                      magnitude: mag,
-                                      valence_bounded: val,
-                                      volatility: vol,
-                                      drivers: overflowDetail?.drivers,
-                                    }}
-                                    overflowDetail={overflowDetail}
-                                    defaultExpanded={isDefaultExpanded}
-                                    relationshipContext={relationalCtx}
-                                  />
-                                );
-                              });
+                                  // Person B Card
+                                  if (dailyPersonB[date]) {
+                                    const { mag, val, vol, overflowDetail } = extractClimateFromDay(dailyPersonB[date]);
+
+                                    cards.push(
+                                      <EnhancedDailyClimateCard
+                                        key={`${date}-B`}
+                                        date={dateLabel}
+                                        location={locationLabel}
+                                        mode={modeKind}
+                                        names={relationalNames}
+                                        climate={{
+                                          magnitude: mag,
+                                          valence_bounded: val,
+                                          volatility: vol,
+                                          drivers: overflowDetail?.drivers,
+                                        }}
+                                        overflowDetail={overflowDetail}
+                                        defaultExpanded={isDefaultExpanded}
+                                        relationshipContext={relationalCtx}
+                                        person="B"
+                                        personName={personB.name || 'Person B'}
+                                        relocationActive={personBRelocated}
+                                        relocationLabel={personBRelocated ? relocLabel : undefined}
+                                      />
+                                    );
+                                  }
+
+                                  return cards;
+                                });
+                              } else {
+                                // SINGLE MODE: Generate one card per day (unchanged behavior)
+                                return dates.map(date => {
+                                  const dayData = dailyPersonA[date];
+                                  const { mag, val, vol, overflowDetail } = extractClimateFromDay(dayData);
+
+                                  const dateLabel = new Date(date).toLocaleDateString('en-US', {
+                                    weekday: 'long',
+                                    month: 'long',
+                                    day: 'numeric',
+                                  });
+
+                                  const isDefaultExpanded = hasToday ? date === today : date === dates[0];
+
+                                  return (
+                                    <EnhancedDailyClimateCard
+                                      key={date}
+                                      date={dateLabel}
+                                      location={locationLabel}
+                                      mode={modeKind}
+                                      names={relationalNames}
+                                      climate={{
+                                        magnitude: mag,
+                                        valence_bounded: val,
+                                        volatility: vol,
+                                        drivers: overflowDetail?.drivers,
+                                      }}
+                                      overflowDetail={overflowDetail}
+                                      defaultExpanded={isDefaultExpanded}
+                                      relationshipContext={relationalCtx}
+                                      relocationActive={personARelocated}
+                                      relocationLabel={personARelocated ? relocLabel : undefined}
+                                    />
+                                  );
+                                });
+                              }
                             })()}
                           </div>
                         )}
@@ -6574,23 +6490,25 @@ export default function MathBrainPage() {
                           <div className="text-slate-100">{t.applies ? 'Yes' : 'No'}</div>
                         </div>
                         <div>
-                          <div className="text-xs text-slate-400">Method</div>
+                          <div className="text-xs text-slate-400">Mode</div>
                           <div className="text-slate-100">{(() => {
                             const m = String(t.method || 'Natal');
-                            if (/^A[_ ]?local$/i.test(m) || m === 'A_local') return 'Person A';
-                            if (/^B[_ ]?local$/i.test(m) || m === 'B_local') return 'Person B';
-                            if (/^midpoint$/i.test(m)) return 'Person A + B';
-                            if (/^natal$/i.test(m)) return 'None (Natal Base)';
+                            // Handle BOTH_LOCAL explicitly
+                            if (/^both[_ ]?local$/i.test(m)) return 'Both Persons';
+                            if (/^A[_ ]?local$/i.test(m) || m === 'A_local') return 'Person A Only';
+                            if (/^B[_ ]?local$/i.test(m) || m === 'B_local') return 'Person B Only';
+                            if (/^midpoint$/i.test(m)) return 'Midpoint (A+B)';
+                            if (/^natal$/i.test(m)) return 'None (Natal)';
                             return m;
                           })()}</div>
                         </div>
                         <div>
-                          <div className="text-xs text-slate-400">House System</div>
-                          <div className="text-slate-100">{t.house_system || 'Placidus'}</div>
+                          <div className="text-xs text-slate-400">Location</div>
+                          <div className="text-slate-100">{t.coords?.city || t.current_location?.city || '—'}</div>
                         </div>
                         <div>
-                          <div className="text-xs text-slate-400">TZ</div>
-                          <div className="text-slate-100">{t.tz || (personA?.timezone || '—')}</div>
+                          <div className="text-xs text-slate-400">House System</div>
+                          <div className="text-slate-100">{t.house_system || 'Placidus'}</div>
                         </div>
                       </div>
                     </Section>
