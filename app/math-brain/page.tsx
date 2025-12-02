@@ -2406,8 +2406,8 @@ export default function MathBrainPage() {
       minute: profile.birthTime.split(':')[1] || '',
       city: profile.birthCity,
       state: profile.birthState || '',
-      latitude: hasCoords && typeof lat === 'number' ? String(lat) : '',
-      longitude: hasCoords && typeof lng === 'number' ? String(lng) : '',
+      latitude: hasCoords && typeof lat === 'number' ? lat : '',
+      longitude: hasCoords && typeof lng === 'number' ? lng : '',
       timezone: profile.timezone || '',
       nation: profile.birthCountry || 'US',
       zodiac_type: 'Tropic' as const,
@@ -4712,7 +4712,7 @@ export default function MathBrainPage() {
       // Send single request - AstroAPI v3 handles full date range natively
       let finalData: any;
       setToast(includeTransits ? 'Generating report with transits...' : 'Generating report...');
-      
+
       let response;
       try {
         const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
