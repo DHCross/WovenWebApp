@@ -1195,7 +1195,7 @@ function buildHeaders() {
   const key = rawKey && String(rawKey).trim();
   if (!key) {
     if (!loggedMissingRapidApiKey) {
-      logger.error('RAPIDAPI_KEY (or ASTROLOGER_API) environment variable is not configured.');
+      logger.error('RAPIDAPI_KEY environment variable is not configured.');
       loggedMissingRapidApiKey = true;
     }
     throw new Error('RAPIDAPI_KEY environment variable is not configured.');
