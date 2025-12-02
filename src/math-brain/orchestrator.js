@@ -48,6 +48,7 @@ const {
 const {
   getTransits,
   getTransitsV3,
+  getRelocationChart,
   geoResolve,
   computeComposite,
   subjectToAPI,
@@ -104,6 +105,7 @@ module.exports = {
   subjectToAPIStrict,  // Strict coordinate mode for relocation
   mapDateRangeToV3,    // Helper for v3 date_range format
   buildChartOptions,   // Build v3 options object
+  getRelocationChart,  // NEW: V3 Relocation Chart
   API_ENDPOINTS,       // Endpoint constants
 
   // Seismograph Engine

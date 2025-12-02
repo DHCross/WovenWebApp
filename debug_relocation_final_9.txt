@@ -1,0 +1,38 @@
+--- TEST 1: Static Relocated Chart ---
+[INFO] [V3] Fetching relocation chart (via swap) for Test Subject at Panama City, FL
+[INFO] [COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Relocation Chart (Swap) for Test Subject',
+  latitude: 30.2027,
+  longitude: -85.6579,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'Panama City, FL'
+}
+[INFO] [DEBUG] getRelocationChart response keys: [ 'subject_data', 'chart_data' ]
+DEBUG: Result from getRelocationChart: undefined
+❌ Relocation chart fetch failed (no chart data).
+
+--- TEST 2: Relocated Transits (Coordinate Swap) ---
+[INFO] [V3] Fetching natal-transits for Test Subject: {
+  startDate: '2025-10-18',
+  endDate: '2025-10-19',
+  latitude: 30.2027,
+  longitude: -85.6579
+}
+[DEBUG] V3 PAYLOAD: {"subject":{"name":"Test Subject","birth_data":{"year":1973,"month":7,"day":24,"hour":14,"minute":30,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},"date_range":{"start_date":{"year":2025,"month":10,"day":18},"end_date":{"year":2025,"month":10,"day":19}},"options":{"house_system":"P","zodiac_type":"Tropic","active_points":["Sun","Moon"],"precision":2}}
+[INFO] [V3] Natal-transits completed for Test Subject: { datesWithData: 2, totalAspects: 18 }
+Found 2 dates with data.
+First date (2025-10-18) has 7 items.
+First item sample: {
+  "date": "2025-10-18",
+  "exact_time": null,
+  "transiting_planet": "Venus",
+  "aspect_type": "square",
+  "stationed_planet": "Mean_Node",
+  "orb": 0.41923199632981323,
+  "aspect_direction": "separating",
+  "transiting_speed": 1.2437871948696966,
+  "transiting_house": 9,
+  "natal_house": 2
+}
+✅ House data FOUND in V3 response (Coordinate Swap successful)

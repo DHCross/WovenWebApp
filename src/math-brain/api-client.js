@@ -30,6 +30,7 @@ const API_ENDPOINTS = {
 
   // Analysis endpoints for transit data over time
   NATAL_TRANSITS: `${API_BASE_URL}/api/v3/charts/natal-transits`,
+  RELOCATION_CHART: `${API_BASE_URL}/api/v3/astrocartography/relocation-chart`,
 
   // Raw data endpoints (faster, no interpretations)
   DATA_POSITIONS: `${API_BASE_URL}/api/v3/data/positions`,
@@ -222,14 +223,17 @@ function subjectToAPIStrict(s = {}, pass = {}) {
   const lon = s.longitude ?? s.lon ?? s.lng;
   const hasCoords = (typeof lat === 'number') && (typeof lon === 'number') && (s.timezone || s.tz_str);
 
+  // Handle nested birth_data if present (common in internal modules)
+  const source = s.birth_data || s;
+
   // Build birth_data object
   const birthData = {
-    year: s.year,
-    month: s.month,
-    day: s.day,
-    hour: s.hour ?? 12,
-    minute: s.minute ?? 0,
-    second: s.second ?? 0,
+    year: source.year,
+    month: source.month,
+    day: source.day,
+    hour: source.hour ?? 12,
+    minute: source.minute ?? 0,
+    second: source.second ?? 0,
   };
 
   // STRICT: When coordinates available, use ONLY coordinates (no city/country_code)
@@ -272,6 +276,58 @@ function subjectToAPIStrict(s = {}, pass = {}) {
  * OMITS city/country_code to prevent the API from re-geocoding and overwriting
  * the exact coordinates (e.g., Bryn Mawr PA → Bryn Mawr WA bug)
  */
+/**
+ * NEW: Get a static relocated chart using AstroAPI v3 dedicated endpoint
+ * @param {Object} subject - Original birth subject
+ * @param {Object} targetLocation - { latitude, longitude, city? }
+ * @param {Object} headers - Request headers
+ * @param {Object} pass - Options (house_system, etc.)
+ */
+async function getRelocationChart(subject, targetLocation, headers, pass = {}) {
+  // Fallback to Coordinate Swap pattern since /relocation-chart returned 501
+  // We construct a subject with the original birth time but target coordinates.
+  // subjectToAPIStrict will ensure latitude/longitude are prioritized over city.
+
+  // Extract timezone from subject or its birth_data
+  const originalTimezone = subject.timezone || subject.birth_data?.timezone;
+
+  const relocatedSubject = {
+    ...subject,
+    latitude: targetLocation.latitude,
+    longitude: targetLocation.longitude,
+    city: targetLocation.city,
+    timezone: originalTimezone, // Ensure timezone is at top level for callNatal validation
+  };
+
+  logger.info(`[V3] Fetching relocation chart (via swap) for ${subject.name} at ${targetLocation.city || 'target coords'}`);
+
+  try {
+    // Reuse callNatal which hits API_ENDPOINTS.BIRTH_CHART
+    const response = await callNatal(
+      API_ENDPOINTS.BIRTH_CHART,
+      relocatedSubject,
+      headers,
+      pass,
+      `Relocation Chart (Swap) for ${subject.name}`
+    );
+
+    // Handle different response formats (wrapped in .data or flat)
+    if (response.data) {
+      return response.data;
+    } else if (response.chart_data) {
+      // Map flat response to expected structure
+      return {
+        chart: response.chart_data,
+        person: response.subject_data
+      };
+    }
+    return response;
+  } catch (error) {
+    logger.error(`[V3] Relocation chart fetch failed: ${error.message}`);
+    throw error;
+  }
+}
+
 async function callNatal(endpoint, subject, headers, pass = {}, description = 'Natal call') {
   const hasCoords = !!(subject.latitude && subject.longitude && subject.timezone);
   const canTryCity = !!(subject.city && (subject.nation || subject.country_code));
@@ -742,6 +798,8 @@ async function getTransitsV3(subject, transitParams, headers, pass = {}) {
     longitude: apiSubject.birth_data?.longitude,
   });
 
+  console.error('[DEBUG] V3 PAYLOAD:', JSON.stringify(payload));
+
   try {
     const response = await apiCallWithRetry(
       API_ENDPOINTS.NATAL_TRANSITS,
@@ -941,10 +999,13 @@ async function getSynastryTransits(personA, personB, transitParams, headers, pas
 
   try {
     // Parallel fetch: terrain (synastry) + both transit streams
+    const streamAPromise = getTransitsV3(personA, transitParams, headers, pass);
+    const streamBPromise = getTransitsV3(personB, transitParams, headers, pass);
+
     const [terrainResult, streamAResult, streamBResult] = await Promise.all([
       callSynastry(personA, personB, headers, pass),
-      getTransitsV3(personA, transitParams, headers, pass),
-      getTransitsV3(personB, transitParams, headers, pass)
+      streamAPromise,
+      streamBPromise
     ]);
 
     logger.info('[SynastryTransits] Fetch completed:', {
@@ -1543,6 +1604,7 @@ module.exports = {
   geoResolve,
   getTransits,
   getTransitsV3,
+  getRelocationChart,
   computeComposite,
   computeCompositeTransits,
   rapidApiPing,

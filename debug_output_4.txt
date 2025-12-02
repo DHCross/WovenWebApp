@@ -1,0 +1,38 @@
+Resolved api-client path: /Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js
+[DEBUG] LOADING API-CLIENT.JS
+Starting Poetic Brain Handoff Debug...
+[DEBUG] Building headers with RAPIDAPI_KEY: 4088...eee3
+Fetching Synastry Transits...
+[INFO] [SynastryTransits] Fetching terrain + weather: {
+  personA: 'Person A',
+  personB: 'Person B',
+  startDate: '2025-12-02',
+  endDate: '2025-12-03'
+}
+[SynastryTransits] Calling getTransitsV3 for A...
+[INFO] [V3] Fetching natal-transits for Person A: {
+  startDate: '2025-12-02',
+  endDate: '2025-12-03',
+  latitude: 40.7128,
+  longitude: -74.006
+}
+[DEBUG] V3 PAYLOAD: {"subject":{"name":"Person A","birth_data":{"year":1990,"month":1,"day":1,"hour":12,"minute":0,"second":0,"latitude":40.7128,"longitude":-74.006,"timezone":"America/New_York"}},"date_range":{"start_date":{"year":2025,"month":12,"day":2},"end_date":{"year":2025,"month":12,"day":3}},"options":{"house_system":"P","zodiac_type":"Tropic","active_points":["Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto","Mean_Node","Chiron"],"precision":2}}
+[SynastryTransits] Calling getTransitsV3 for B...
+[INFO] [V3] Fetching natal-transits for Person B: {
+  startDate: '2025-12-02',
+  endDate: '2025-12-03',
+  latitude: 34.0522,
+  longitude: -118.2437
+}
+[DEBUG] V3 PAYLOAD: {"subject":{"name":"Person B","birth_data":{"year":1992,"month":5,"day":15,"hour":9,"minute":30,"second":0,"latitude":34.0522,"longitude":-118.2437,"timezone":"America/Los_Angeles"}},"date_range":{"start_date":{"year":2025,"month":12,"day":2},"end_date":{"year":2025,"month":12,"day":3}},"options":{"house_system":"P","zodiac_type":"Tropic","active_points":["Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto","Mean_Node","Chiron"],"precision":2}}
+[INFO] [V3] Natal-transits completed for Person A: { datesWithData: 2, totalAspects: 3 }
+[INFO] [V3] Natal-transits completed for Person B: { datesWithData: 2, totalAspects: 6 }
+[INFO] [SynastryTransits] Fetch completed: { terrainAspects: 91, streamADates: 2, streamBDates: 2 }
+Fetch Complete. Result Keys: [ 'synastry', 'transitsA', 'transitsB' ]
+
+--- Testing Poetic Brain Extraction ---
+Extracted Synastry Aspects: 91
+✅ SUCCESS: Synastry aspects found.
+
+Checking Synastry Object Structure:
+Keys: [ 'aspects', 'raw', 'assets' ]

@@ -1,0 +1,248 @@
+Resolved api-client path: /Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js
+[DEBUG] LOADING API-CLIENT.JS
+Starting Poetic Brain Handoff Debug...
+Fetching Synastry Transits...
+[INFO] [SynastryTransits] Fetching terrain + weather: {
+  personA: 'Person A',
+  personB: 'Person B',
+  startDate: '2025-12-02',
+  endDate: '2025-12-03'
+}
+[SynastryTransits] Calling getTransitsV3 for A...
+[INFO] [V3] Fetching natal-transits for Person A: {
+  startDate: '2025-12-02',
+  endDate: '2025-12-03',
+  latitude: 40.7128,
+  longitude: -74.006
+}
+[SynastryTransits] Calling getTransitsV3 for B...
+[INFO] [V3] Fetching natal-transits for Person B: {
+  startDate: '2025-12-02',
+  endDate: '2025-12-03',
+  latitude: 34.0522,
+  longitude: -118.2437
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Natal transits for Person B (2025-12-02 to 2025-12-03)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal-transits',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"subject\\":{\\"name\\":\\"Person B\\",\\"birth_data\\":{\\"year\\":1992,\\"month\\":5,\\"day\\":15,\\"hour\\":9,\\"minute\\":30,\\"second\\":0,\\"latitude\\":34.0522,\\"longitude\\":-118.2437,\\"timezone\\":\\"America/Los_Angeles\\"}},\\"date_range\\":{\\"start_date\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":2},\\"end_date\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":3}},\\"options\\":{\\"house_system\\":\\"P\\",\\"zodiac_type\\":\\"Tropic\\",\\"active_points\\":[\\"Sun\\",\\"Moon\\",\\"Mercury\\",\\"Venus\\",\\"Mars\\",\\"Jupiter\\",\\"Saturn\\",\\"Uranus\\",\\"Neptune\\",\\"Pluto\\",\\"Mean_Node\\",\\"Chiron\\"],\\"precision\\":2}}"}]}'
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Synastry: Person A & Person B',
+  url: 'https://api.astrology-api.io/api/v3/charts/synastry',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"subject1\\":{\\"name\\":\\"Person A\\",\\"birth_data\\":{\\"year\\":1990,\\"month\\":1,\\"day\\":1,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"latitude\\":40.7128,\\"longitude\\":-74.006,\\"timezone\\":\\"America/New_York\\"}},\\"subject2\\":{\\"name\\":\\"Person B\\",\\"birth_data\\":{\\"year\\":1992,\\"month\\":5,\\"day\\":15,\\"hour\\":9,\\"minute\\":30,\\"second\\":0,\\"latitude\\":34.0522,\\"longitude\\":-118.2437,\\"timezone\\":\\"America/Los_Angeles\\"}},\\"options\\":{\\"house_system\\":\\"P\\",\\"zodiac_type\\":\\"Tropic\\",\\"active_points\\":[\\"Sun\\",\\"Moon\\",\\"Mercury\\",\\"Venus\\",\\"Mars\\",\\"Jupiter\\",\\"Saturn\\",\\"Uranus\\",\\"Neptune\\",\\"Pluto\\",\\"Mean_Node\\",\\"Chiron\\"],\\"precision\\":2}}"}]}'
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Natal transits for Person A (2025-12-02 to 2025-12-03)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal-transits',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"subject\\":{\\"name\\":\\"Person A\\",\\"birth_data\\":{\\"year\\":1990,\\"month\\":1,\\"day\\":1,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"latitude\\":40.7128,\\"longitude\\":-74.006,\\"timezone\\":\\"America/New_York\\"}},\\"date_range\\":{\\"start_date\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":2},\\"end_date\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":3}},\\"options\\":{\\"house_system\\":\\"P\\",\\"zodiac_type\\":\\"Tropic\\",\\"active_points\\":[\\"Sun\\",\\"Moon\\",\\"Mercury\\",\\"Venus\\",\\"Mars\\",\\"Jupiter\\",\\"Saturn\\",\\"Uranus\\",\\"Neptune\\",\\"Pluto\\",\\"Mean_Node\\",\\"Chiron\\"],\\"precision\\":2}}"}]}'
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Natal transits for Person B (2025-12-02 to 2025-12-03)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal-transits',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"subject\\":{\\"name\\":\\"Person B\\",\\"birth_data\\":{\\"year\\":1992,\\"month\\":5,\\"day\\":15,\\"hour\\":9,\\"minute\\":30,\\"second\\":0,\\"latitude\\":34.0522,\\"longitude\\":-118.2437,\\"timezone\\":\\"America/Los_Angeles\\"}},\\"date_range\\":{\\"start_date\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":2},\\"end_date\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":3}},\\"options\\":{\\"house_system\\":\\"P\\",\\"zodiac_type\\":\\"Tropic\\",\\"active_points\\":[\\"Sun\\",\\"Moon\\",\\"Mercury\\",\\"Venus\\",\\"Mars\\",\\"Jupiter\\",\\"Saturn\\",\\"Uranus\\",\\"Neptune\\",\\"Pluto\\",\\"Mean_Node\\",\\"Chiron\\"],\\"precision\\":2}}"}]}'
+}
+[ERROR] Failed after 2 attempts: Client error 422 for Natal transits for Person B (2025-12-02 to 2025-12-03) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal-transits',
+  operation: 'Natal transits for Person B (2025-12-02 to 2025-12-03)',
+  code: 'CLIENT_ERROR',
+  status: 422
+}
+[ERROR] [V3] Natal-transits failed for Person B: Client error 422 for Natal transits for Person B (2025-12-02 to 2025-12-03)
+[INFO] [V3] Falling back to legacy getTransits for Person B
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Synastry: Person A & Person B',
+  url: 'https://api.astrology-api.io/api/v3/charts/synastry',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"subject1\\":{\\"name\\":\\"Person A\\",\\"birth_data\\":{\\"year\\":1990,\\"month\\":1,\\"day\\":1,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"latitude\\":40.7128,\\"longitude\\":-74.006,\\"timezone\\":\\"America/New_York\\"}},\\"subject2\\":{\\"name\\":\\"Person B\\",\\"birth_data\\":{\\"year\\":1992,\\"month\\":5,\\"day\\":15,\\"hour\\":9,\\"minute\\":30,\\"second\\":0,\\"latitude\\":34.0522,\\"longitude\\":-118.2437,\\"timezone\\":\\"America/Los_Angeles\\"}},\\"options\\":{\\"house_system\\":\\"P\\",\\"zodiac_type\\":\\"Tropic\\",\\"active_points\\":[\\"Sun\\",\\"Moon\\",\\"Mercury\\",\\"Venus\\",\\"Mars\\",\\"Jupiter\\",\\"Saturn\\",\\"Uranus\\",\\"Neptune\\",\\"Pluto\\",\\"Mean_Node\\",\\"Chiron\\"],\\"precision\\":2}}"}]}'
+}
+[ERROR] Failed after 2 attempts: Client error 422 for Synastry: Person A & Person B {
+  url: 'https://api.astrology-api.io/api/v3/charts/synastry',
+  operation: 'Synastry: Person A & Person B',
+  code: 'CLIENT_ERROR',
+  status: 422
+}
+[ERROR] [Synastry] Calculation failed: Client error 422 for Synastry: Person A & Person B
+[ERROR] [SynastryTransits] Failed: Synastry calculation failed: Client error 422 for Synastry: Person A & Person B
+Test Failed: Error: Synastry transits fetch failed: Synastry calculation failed: Client error 422 for Synastry: Person A & Person B
+    at getSynastryTransits (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:969:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async runTest (/Users/dancross/Documents/GitHub/WovenWebApp/scripts/debug-poetic-handoff.js:109:24)
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Transits for Person B on 2025-12-02',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"first_subject\\":{\\"name\\":\\"Person B\\",\\"birth_data\\":{\\"year\\":1992,\\"month\\":5,\\"day\\":15,\\"hour\\":9,\\"minute\\":30,\\"second\\":0,\\"latitude\\":34.0522,\\"longitude\\":-118.2437,\\"timezone\\":\\"America/Los_Angeles\\"}},\\"transit_subject\\":{\\"name\\":\\"Subject\\",\\"birth_data\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":2,\\"hour\\":12,\\"minute\\":0,\\"second\\":0}},\\"require_city\\":true,\\"suppress_geonames\\":false}"}]}'
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Natal transits for Person A (2025-12-02 to 2025-12-03)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal-transits',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"subject\\":{\\"name\\":\\"Person A\\",\\"birth_data\\":{\\"year\\":1990,\\"month\\":1,\\"day\\":1,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"latitude\\":40.7128,\\"longitude\\":-74.006,\\"timezone\\":\\"America/New_York\\"}},\\"date_range\\":{\\"start_date\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":2},\\"end_date\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":3}},\\"options\\":{\\"house_system\\":\\"P\\",\\"zodiac_type\\":\\"Tropic\\",\\"active_points\\":[\\"Sun\\",\\"Moon\\",\\"Mercury\\",\\"Venus\\",\\"Mars\\",\\"Jupiter\\",\\"Saturn\\",\\"Uranus\\",\\"Neptune\\",\\"Pluto\\",\\"Mean_Node\\",\\"Chiron\\"],\\"precision\\":2}}"}]}'
+}
+[ERROR] Failed after 2 attempts: Client error 422 for Natal transits for Person A (2025-12-02 to 2025-12-03) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal-transits',
+  operation: 'Natal transits for Person A (2025-12-02 to 2025-12-03)',
+  code: 'CLIENT_ERROR',
+  status: 422
+}
+[ERROR] [V3] Natal-transits failed for Person A: Client error 422 for Natal transits for Person A (2025-12-02 to 2025-12-03)
+[INFO] [V3] Falling back to legacy getTransits for Person A
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Transits for Person A on 2025-12-02',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"first_subject\\":{\\"name\\":\\"Person A\\",\\"birth_data\\":{\\"year\\":1990,\\"month\\":1,\\"day\\":1,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"latitude\\":40.7128,\\"longitude\\":-74.006,\\"timezone\\":\\"America/New_York\\"}},\\"transit_subject\\":{\\"name\\":\\"Subject\\",\\"birth_data\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":2,\\"hour\\":12,\\"minute\\":0,\\"second\\":0}},\\"require_city\\":true,\\"suppress_geonames\\":false}"}]}'
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Transits for Person A on 2025-12-03',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"first_subject\\":{\\"name\\":\\"Person A\\",\\"birth_data\\":{\\"year\\":1990,\\"month\\":1,\\"day\\":1,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"latitude\\":40.7128,\\"longitude\\":-74.006,\\"timezone\\":\\"America/New_York\\"}},\\"transit_subject\\":{\\"name\\":\\"Subject\\",\\"birth_data\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":3,\\"hour\\":12,\\"minute\\":0,\\"second\\":0}},\\"require_city\\":true,\\"suppress_geonames\\":false}"}]}'
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Transits for Person B on 2025-12-03',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"first_subject\\":{\\"name\\":\\"Person B\\",\\"birth_data\\":{\\"year\\":1992,\\"month\\":5,\\"day\\":15,\\"hour\\":9,\\"minute\\":30,\\"second\\":0,\\"latitude\\":34.0522,\\"longitude\\":-118.2437,\\"timezone\\":\\"America/Los_Angeles\\"}},\\"transit_subject\\":{\\"name\\":\\"Subject\\",\\"birth_data\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":3,\\"hour\\":12,\\"minute\\":0,\\"second\\":0}},\\"require_city\\":true,\\"suppress_geonames\\":false}"}]}'
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Transits for Person B on 2025-12-02',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"first_subject\\":{\\"name\\":\\"Person B\\",\\"birth_data\\":{\\"year\\":1992,\\"month\\":5,\\"day\\":15,\\"hour\\":9,\\"minute\\":30,\\"second\\":0,\\"latitude\\":34.0522,\\"longitude\\":-118.2437,\\"timezone\\":\\"America/Los_Angeles\\"}},\\"transit_subject\\":{\\"name\\":\\"Subject\\",\\"birth_data\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":2,\\"hour\\":12,\\"minute\\":0,\\"second\\":0}},\\"require_city\\":true,\\"suppress_geonames\\":false}"}]}'
+}
+[ERROR] Failed after 2 attempts: Client error 422 for Transits for Person B on 2025-12-02 {
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  operation: 'Transits for Person B on 2025-12-02',
+  code: 'CLIENT_ERROR',
+  status: 422
+}
+[WARN] Primary transit endpoint failed for 2025-12-02: Client error 422 for Transits for Person B on 2025-12-02
+[INFO] Formation switch: Trying alternate transit subject for 2025-12-02
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Formation switch for Person B on 2025-12-02',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"first_subject\\":{\\"name\\":\\"Person B\\",\\"birth_data\\":{\\"year\\":1992,\\"month\\":5,\\"day\\":15,\\"hour\\":9,\\"minute\\":30,\\"second\\":0,\\"latitude\\":34.0522,\\"longitude\\":-118.2437,\\"timezone\\":\\"America/Los_Angeles\\"}},\\"transit_subject\\":{\\"name\\":\\"Subject\\",\\"birth_data\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":2,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"city\\":\\"London\\",\\"country_code\\":\\"UK\\"}},\\"require_city\\":true,\\"suppress_geonames\\":false}"}]}'
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Transits for Person A on 2025-12-02',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"first_subject\\":{\\"name\\":\\"Person A\\",\\"birth_data\\":{\\"year\\":1990,\\"month\\":1,\\"day\\":1,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"latitude\\":40.7128,\\"longitude\\":-74.006,\\"timezone\\":\\"America/New_York\\"}},\\"transit_subject\\":{\\"name\\":\\"Subject\\",\\"birth_data\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":2,\\"hour\\":12,\\"minute\\":0,\\"second\\":0}},\\"require_city\\":true,\\"suppress_geonames\\":false}"}]}'
+}
+[ERROR] Failed after 2 attempts: Client error 422 for Transits for Person A on 2025-12-02 {
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  operation: 'Transits for Person A on 2025-12-02',
+  code: 'CLIENT_ERROR',
+  status: 422
+}
+[WARN] Primary transit endpoint failed for 2025-12-02: Client error 422 for Transits for Person A on 2025-12-02
+[INFO] Formation switch: Trying alternate transit subject for 2025-12-02
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Transits for Person A on 2025-12-03',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"first_subject\\":{\\"name\\":\\"Person A\\",\\"birth_data\\":{\\"year\\":1990,\\"month\\":1,\\"day\\":1,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"latitude\\":40.7128,\\"longitude\\":-74.006,\\"timezone\\":\\"America/New_York\\"}},\\"transit_subject\\":{\\"name\\":\\"Subject\\",\\"birth_data\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":3,\\"hour\\":12,\\"minute\\":0,\\"second\\":0}},\\"require_city\\":true,\\"suppress_geonames\\":false}"}]}'
+}
+[ERROR] Failed after 2 attempts: Client error 422 for Transits for Person A on 2025-12-03 {
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  operation: 'Transits for Person A on 2025-12-03',
+  code: 'CLIENT_ERROR',
+  status: 422
+}
+[WARN] Primary transit endpoint failed for 2025-12-03: Client error 422 for Transits for Person A on 2025-12-03
+[INFO] Formation switch: Trying alternate transit subject for 2025-12-03
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Transits for Person B on 2025-12-03',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"first_subject\\":{\\"name\\":\\"Person B\\",\\"birth_data\\":{\\"year\\":1992,\\"month\\":5,\\"day\\":15,\\"hour\\":9,\\"minute\\":30,\\"second\\":0,\\"latitude\\":34.0522,\\"longitude\\":-118.2437,\\"timezone\\":\\"America/Los_Angeles\\"}},\\"transit_subject\\":{\\"name\\":\\"Subject\\",\\"birth_data\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":3,\\"hour\\":12,\\"minute\\":0,\\"second\\":0}},\\"require_city\\":true,\\"suppress_geonames\\":false}"}]}'
+}
+[ERROR] Failed after 2 attempts: Client error 422 for Transits for Person B on 2025-12-03 {
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  operation: 'Transits for Person B on 2025-12-03',
+  code: 'CLIENT_ERROR',
+  status: 422
+}
+[WARN] Primary transit endpoint failed for 2025-12-03: Client error 422 for Transits for Person B on 2025-12-03
+[INFO] Formation switch: Trying alternate transit subject for 2025-12-03
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Formation switch for Person A on 2025-12-02',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"first_subject\\":{\\"name\\":\\"Person A\\",\\"birth_data\\":{\\"year\\":1990,\\"month\\":1,\\"day\\":1,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"latitude\\":40.7128,\\"longitude\\":-74.006,\\"timezone\\":\\"America/New_York\\"}},\\"transit_subject\\":{\\"name\\":\\"Subject\\",\\"birth_data\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":2,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"city\\":\\"London\\",\\"country_code\\":\\"UK\\"}},\\"require_city\\":true,\\"suppress_geonames\\":false}"}]}'
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Formation switch for Person A on 2025-12-03',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"first_subject\\":{\\"name\\":\\"Person A\\",\\"birth_data\\":{\\"year\\":1990,\\"month\\":1,\\"day\\":1,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"latitude\\":40.7128,\\"longitude\\":-74.006,\\"timezone\\":\\"America/New_York\\"}},\\"transit_subject\\":{\\"name\\":\\"Subject\\",\\"birth_data\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":3,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"city\\":\\"London\\",\\"country_code\\":\\"UK\\"}},\\"require_city\\":true,\\"suppress_geonames\\":false}"}]}'
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Formation switch for Person B on 2025-12-03',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"first_subject\\":{\\"name\\":\\"Person B\\",\\"birth_data\\":{\\"year\\":1992,\\"month\\":5,\\"day\\":15,\\"hour\\":9,\\"minute\\":30,\\"second\\":0,\\"latitude\\":34.0522,\\"longitude\\":-118.2437,\\"timezone\\":\\"America/Los_Angeles\\"}},\\"transit_subject\\":{\\"name\\":\\"Subject\\",\\"birth_data\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":3,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"city\\":\\"London\\",\\"country_code\\":\\"UK\\"}},\\"require_city\\":true,\\"suppress_geonames\\":false}"}]}'
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Formation switch for Person B on 2025-12-02',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"first_subject\\":{\\"name\\":\\"Person B\\",\\"birth_data\\":{\\"year\\":1992,\\"month\\":5,\\"day\\":15,\\"hour\\":9,\\"minute\\":30,\\"second\\":0,\\"latitude\\":34.0522,\\"longitude\\":-118.2437,\\"timezone\\":\\"America/Los_Angeles\\"}},\\"transit_subject\\":{\\"name\\":\\"Subject\\",\\"birth_data\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":2,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"city\\":\\"London\\",\\"country_code\\":\\"UK\\"}},\\"require_city\\":true,\\"suppress_geonames\\":false}"}]}'
+}
+[ERROR] Failed after 2 attempts: Client error 422 for Formation switch for Person B on 2025-12-02 {
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  operation: 'Formation switch for Person B on 2025-12-02',
+  code: 'CLIENT_ERROR',
+  status: 422
+}
+[WARN] Formation switch failed for 2025-12-02: Client error 422 for Formation switch for Person B on 2025-12-02
+[WARN] ✗ No aspects found for 2025-12-02 after 0 attempts (endpoints: formation-switch)
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Formation switch for Person A on 2025-12-02',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"first_subject\\":{\\"name\\":\\"Person A\\",\\"birth_data\\":{\\"year\\":1990,\\"month\\":1,\\"day\\":1,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"latitude\\":40.7128,\\"longitude\\":-74.006,\\"timezone\\":\\"America/New_York\\"}},\\"transit_subject\\":{\\"name\\":\\"Subject\\",\\"birth_data\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":2,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"city\\":\\"London\\",\\"country_code\\":\\"UK\\"}},\\"require_city\\":true,\\"suppress_geonames\\":false}"}]}'
+}
+[ERROR] Failed after 2 attempts: Client error 422 for Formation switch for Person A on 2025-12-02 {
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  operation: 'Formation switch for Person A on 2025-12-02',
+  code: 'CLIENT_ERROR',
+  status: 422
+}
+[WARN] Formation switch failed for 2025-12-02: Client error 422 for Formation switch for Person A on 2025-12-02
+[WARN] ✗ No aspects found for 2025-12-02 after 0 attempts (endpoints: formation-switch)
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Formation switch for Person A on 2025-12-03',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"first_subject\\":{\\"name\\":\\"Person A\\",\\"birth_data\\":{\\"year\\":1990,\\"month\\":1,\\"day\\":1,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"latitude\\":40.7128,\\"longitude\\":-74.006,\\"timezone\\":\\"America/New_York\\"}},\\"transit_subject\\":{\\"name\\":\\"Subject\\",\\"birth_data\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":3,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"city\\":\\"London\\",\\"country_code\\":\\"UK\\"}},\\"require_city\\":true,\\"suppress_geonames\\":false}"}]}'
+}
+[ERROR] Failed after 2 attempts: Client error 422 for Formation switch for Person A on 2025-12-03 {
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  operation: 'Formation switch for Person A on 2025-12-03',
+  code: 'CLIENT_ERROR',
+  status: 422
+}
+[WARN] Formation switch failed for 2025-12-03: Client error 422 for Formation switch for Person A on 2025-12-03
+[WARN] ✗ No aspects found for 2025-12-03 after 0 attempts (endpoints: formation-switch)
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Formation switch for Person B on 2025-12-03',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: '{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":"{\\"first_subject\\":{\\"name\\":\\"Person B\\",\\"birth_data\\":{\\"year\\":1992,\\"month\\":5,\\"day\\":15,\\"hour\\":9,\\"minute\\":30,\\"second\\":0,\\"latitude\\":34.0522,\\"longitude\\":-118.2437,\\"timezone\\":\\"America/Los_Angeles\\"}},\\"transit_subject\\":{\\"name\\":\\"Subject\\",\\"birth_data\\":{\\"year\\":2025,\\"month\\":12,\\"day\\":3,\\"hour\\":12,\\"minute\\":0,\\"second\\":0,\\"city\\":\\"London\\",\\"country_code\\":\\"UK\\"}},\\"require_city\\":true,\\"suppress_geonames\\":false}"}]}'
+}
+[ERROR] Failed after 2 attempts: Client error 422 for Formation switch for Person B on 2025-12-03 {
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  operation: 'Formation switch for Person B on 2025-12-03',
+  code: 'CLIENT_ERROR',
+  status: 422
+}
+[WARN] Formation switch failed for 2025-12-03: Client error 422 for Formation switch for Person B on 2025-12-03
+[WARN] ✗ No aspects found for 2025-12-03 after 0 attempts (endpoints: formation-switch)

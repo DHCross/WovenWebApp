@@ -1,0 +1,109 @@
+Fetching Relocated Transits (V3)...
+[INFO] [V3] Fetching natal-transits for Test Subject: {
+  startDate: '2025-10-18',
+  endDate: '2025-10-19',
+  latitude: 30.2027,
+  longitude: -85.6579
+}
+[DEBUG] V3 PAYLOAD: {"subject":{"name":"Test Subject","birth_data":{"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},"date_range":{"start_date":{"year":2025,"month":10,"day":18},"end_date":{"year":2025,"month":10,"day":19}},"options":{"house_system":"P","zodiac_type":"Tropic","active_points":["Sun","Moon"],"precision":2}}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Natal transits for Test Subject (2025-10-18 to 2025-10-19)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal-transits',
+  body: '{"detail":[{"type":"missing","loc":["body","subject","birth_data","year"],"msg":"Field required","input":{"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},{"type":"missing","loc":["body","subject","birth_data","month"],"msg":"Field required","input":{"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},{"type":"missing","loc":["body","subject","birth_data","day"],"msg":"Field required","input":{"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}}]}'
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Natal transits for Test Subject (2025-10-18 to 2025-10-19)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal-transits',
+  body: '{"detail":[{"type":"missing","loc":["body","subject","birth_data","year"],"msg":"Field required","input":{"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},{"type":"missing","loc":["body","subject","birth_data","month"],"msg":"Field required","input":{"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},{"type":"missing","loc":["body","subject","birth_data","day"],"msg":"Field required","input":{"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}}]}'
+}
+[ERROR] Failed after 2 attempts: Client error 422 for Natal transits for Test Subject (2025-10-18 to 2025-10-19) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal-transits',
+  operation: 'Natal transits for Test Subject (2025-10-18 to 2025-10-19)',
+  code: 'CLIENT_ERROR',
+  status: 422
+}
+[ERROR] [V3] Natal-transits failed for Test Subject: Client error 422 for Natal transits for Test Subject (2025-10-18 to 2025-10-19)
+[INFO] [V3] Falling back to legacy getTransits for Test Subject
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Transits for Test Subject on 2025-10-19',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: `{"detail":[{"type":"value_error","loc":["body"],"msg":"Value error, Subject is required. Provide 'subject' (recommended) or 'natal_subject' (legacy).","input":{"first_subject":{"name":"Test Subject","birth_data":{"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},"transit_subject":{"name":"Subject","birth_data":{"year":2025,"month":10,"day":19,"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},"house_system":"P","active_points":["Sun","Moon"],"suppress_geonames":true},"ctx":{"error":{}}}]}`
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Transits for Test Subject on 2025-10-18',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: `{"detail":[{"type":"value_error","loc":["body"],"msg":"Value error, Subject is required. Provide 'subject' (recommended) or 'natal_subject' (legacy).","input":{"first_subject":{"name":"Test Subject","birth_data":{"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},"transit_subject":{"name":"Subject","birth_data":{"year":2025,"month":10,"day":18,"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},"house_system":"P","active_points":["Sun","Moon"],"suppress_geonames":true},"ctx":{"error":{}}}]}`
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Transits for Test Subject on 2025-10-19',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: `{"detail":[{"type":"value_error","loc":["body"],"msg":"Value error, Subject is required. Provide 'subject' (recommended) or 'natal_subject' (legacy).","input":{"first_subject":{"name":"Test Subject","birth_data":{"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},"transit_subject":{"name":"Subject","birth_data":{"year":2025,"month":10,"day":19,"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},"house_system":"P","active_points":["Sun","Moon"],"suppress_geonames":true},"ctx":{"error":{}}}]}`
+}
+[ERROR] Failed after 2 attempts: Client error 422 for Transits for Test Subject on 2025-10-19 {
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  operation: 'Transits for Test Subject on 2025-10-19',
+  code: 'CLIENT_ERROR',
+  status: 422
+}
+[WARN] Primary transit endpoint failed for 2025-10-19: Client error 422 for Transits for Test Subject on 2025-10-19
+[INFO] Formation switch: Trying alternate transit subject for 2025-10-19
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Transits for Test Subject on 2025-10-18',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: `{"detail":[{"type":"value_error","loc":["body"],"msg":"Value error, Subject is required. Provide 'subject' (recommended) or 'natal_subject' (legacy).","input":{"first_subject":{"name":"Test Subject","birth_data":{"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},"transit_subject":{"name":"Subject","birth_data":{"year":2025,"month":10,"day":18,"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},"house_system":"P","active_points":["Sun","Moon"],"suppress_geonames":true},"ctx":{"error":{}}}]}`
+}
+[ERROR] Failed after 2 attempts: Client error 422 for Transits for Test Subject on 2025-10-18 {
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  operation: 'Transits for Test Subject on 2025-10-18',
+  code: 'CLIENT_ERROR',
+  status: 422
+}
+[WARN] Primary transit endpoint failed for 2025-10-18: Client error 422 for Transits for Test Subject on 2025-10-18
+[INFO] Formation switch: Trying alternate transit subject for 2025-10-18
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Formation switch for Test Subject on 2025-10-19',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: `{"detail":[{"type":"value_error","loc":["body"],"msg":"Value error, Subject is required. Provide 'subject' (recommended) or 'natal_subject' (legacy).","input":{"first_subject":{"name":"Test Subject","birth_data":{"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},"transit_subject":{"name":"Subject","birth_data":{"year":2025,"month":10,"day":19,"hour":12,"minute":0,"second":0,"city":"Panama City, FL","country_code":"UK"}},"house_system":"P","active_points":["Sun","Moon"],"suppress_geonames":true},"ctx":{"error":{}}}]}`
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Formation switch for Test Subject on 2025-10-18',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: `{"detail":[{"type":"value_error","loc":["body"],"msg":"Value error, Subject is required. Provide 'subject' (recommended) or 'natal_subject' (legacy).","input":{"first_subject":{"name":"Test Subject","birth_data":{"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},"transit_subject":{"name":"Subject","birth_data":{"year":2025,"month":10,"day":18,"hour":12,"minute":0,"second":0,"city":"Panama City, FL","country_code":"UK"}},"house_system":"P","active_points":["Sun","Moon"],"suppress_geonames":true},"ctx":{"error":{}}}]}`
+}
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Formation switch for Test Subject on 2025-10-19',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: `{"detail":[{"type":"value_error","loc":["body"],"msg":"Value error, Subject is required. Provide 'subject' (recommended) or 'natal_subject' (legacy).","input":{"first_subject":{"name":"Test Subject","birth_data":{"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},"transit_subject":{"name":"Subject","birth_data":{"year":2025,"month":10,"day":19,"hour":12,"minute":0,"second":0,"city":"Panama City, FL","country_code":"UK"}},"house_system":"P","active_points":["Sun","Moon"],"suppress_geonames":true},"ctx":{"error":{}}}]}`
+}
+[ERROR] Failed after 2 attempts: Client error 422 for Formation switch for Test Subject on 2025-10-19 {
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  operation: 'Formation switch for Test Subject on 2025-10-19',
+  code: 'CLIENT_ERROR',
+  status: 422
+}
+[WARN] Formation switch failed for 2025-10-19: Client error 422 for Formation switch for Test Subject on 2025-10-19
+[WARN] ✗ No aspects found for 2025-10-19 after 0 attempts (endpoints: formation-switch)
+[ERROR] Client error (non-retryable) {
+  status: 422,
+  operation: 'Formation switch for Test Subject on 2025-10-18',
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  body: `{"detail":[{"type":"value_error","loc":["body"],"msg":"Value error, Subject is required. Provide 'subject' (recommended) or 'natal_subject' (legacy).","input":{"first_subject":{"name":"Test Subject","birth_data":{"hour":12,"minute":0,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},"transit_subject":{"name":"Subject","birth_data":{"year":2025,"month":10,"day":18,"hour":12,"minute":0,"second":0,"city":"Panama City, FL","country_code":"UK"}},"house_system":"P","active_points":["Sun","Moon"],"suppress_geonames":true},"ctx":{"error":{}}}]}`
+}
+[ERROR] Failed after 2 attempts: Client error 422 for Formation switch for Test Subject on 2025-10-18 {
+  url: 'https://api.astrology-api.io/api/v3/charts/transit',
+  operation: 'Formation switch for Test Subject on 2025-10-18',
+  code: 'CLIENT_ERROR',
+  status: 422
+}
+[WARN] Formation switch failed for 2025-10-18: Client error 422 for Formation switch for Test Subject on 2025-10-18
+[WARN] ✗ No aspects found for 2025-10-18 after 0 attempts (endpoints: formation-switch)
+Found 0 dates with data.

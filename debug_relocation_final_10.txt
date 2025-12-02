@@ -1,0 +1,866 @@
+--- TEST 1: Static Relocated Chart ---
+[INFO] [V3] Fetching relocation chart (via swap) for Test Subject at Panama City, FL
+[INFO] [COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Relocation Chart (Swap) for Test Subject',
+  latitude: 30.2027,
+  longitude: -85.6579,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'Panama City, FL'
+}
+DEBUG: Result from getRelocationChart: {
+  "chart": {
+    "planetary_positions": [
+      {
+        "name": "Sun",
+        "sign": "Leo",
+        "degree": 1.69,
+        "absolute_longitude": 121.69,
+        "house": 9,
+        "is_retrograde": false,
+        "speed": 0.9553
+      },
+      {
+        "name": "Moon",
+        "sign": "Tau",
+        "degree": 22.57,
+        "absolute_longitude": 52.57,
+        "house": 7,
+        "is_retrograde": false,
+        "speed": 14.2148
+      }
+    ],
+    "house_cusps": [
+      {
+        "house": 1,
+        "sign": "Sco",
+        "degree": 8.08,
+        "absolute_longitude": 218.08,
+        "retrograde": null
+      },
+      {
+        "house": 2,
+        "sign": "Sag",
+        "degree": 7.16,
+        "absolute_longitude": 247.16,
+        "retrograde": null
+      },
+      {
+        "house": 3,
+        "sign": "Cap",
+        "degree": 8.61,
+        "absolute_longitude": 278.61,
+        "retrograde": null
+      },
+      {
+        "house": 4,
+        "sign": "Aqu",
+        "degree": 11.72,
+        "absolute_longitude": 311.72,
+        "retrograde": null
+      },
+      {
+        "house": 5,
+        "sign": "Pis",
+        "degree": 14.14,
+        "absolute_longitude": 344.14,
+        "retrograde": null
+      },
+      {
+        "house": 6,
+        "sign": "Ari",
+        "degree": 13.2,
+        "absolute_longitude": 13.2,
+        "retrograde": null
+      },
+      {
+        "house": 7,
+        "sign": "Tau",
+        "degree": 8.08,
+        "absolute_longitude": 38.08,
+        "retrograde": null
+      },
+      {
+        "house": 8,
+        "sign": "Gem",
+        "degree": 7.16,
+        "absolute_longitude": 67.16,
+        "retrograde": null
+      },
+      {
+        "house": 9,
+        "sign": "Can",
+        "degree": 8.61,
+        "absolute_longitude": 98.61,
+        "retrograde": null
+      },
+      {
+        "house": 10,
+        "sign": "Leo",
+        "degree": 11.72,
+        "absolute_longitude": 131.72,
+        "retrograde": null
+      },
+      {
+        "house": 11,
+        "sign": "Vir",
+        "degree": 14.14,
+        "absolute_longitude": 164.14,
+        "retrograde": null
+      },
+      {
+        "house": 12,
+        "sign": "Lib",
+        "degree": 13.2,
+        "absolute_longitude": 193.2,
+        "retrograde": null
+      }
+    ],
+    "aspects": [
+      {
+        "point1": "Sun",
+        "point2": "Mercury",
+        "aspect_type": "conjunction",
+        "orb": 7.112811107431412,
+        "peak_activations": null
+      },
+      {
+        "point1": "Sun",
+        "point2": "Jupiter",
+        "aspect_type": "opposition",
+        "orb": -6.255465635781093,
+        "peak_activations": null
+      },
+      {
+        "point1": "Sun",
+        "point2": "Neptune",
+        "aspect_type": "trine",
+        "orb": 3.109330010693668,
+        "peak_activations": null
+      },
+      {
+        "point1": "Sun",
+        "point2": "Pluto",
+        "aspect_type": "sextile",
+        "orb": 0.47142204313541924,
+        "peak_activations": null
+      },
+      {
+        "point1": "Moon",
+        "point2": "Mercury",
+        "aspect_type": "sextile",
+        "orb": 2.007538038743803,
+        "peak_activations": null
+      },
+      {
+        "point1": "Mercury",
+        "point2": "Mars",
+        "aspect_type": "square",
+        "orb": 3.9088321160695045,
+        "peak_activations": null
+      },
+      {
+        "point1": "Mercury",
+        "point2": "Chiron",
+        "aspect_type": "square",
+        "orb": 3.6744316088247757,
+        "peak_activations": null
+      },
+      {
+        "point1": "Venus",
+        "point2": "Mars",
+        "aspect_type": "trine",
+        "orb": 8.938857027424547,
+        "peak_activations": null
+      },
+      {
+        "point1": "Venus",
+        "point2": "Saturn",
+        "aspect_type": "sextile",
+        "orb": 0.5405282599589469,
+        "peak_activations": null
+      },
+      {
+        "point1": "Venus",
+        "point2": "Neptune",
+        "aspect_type": "square",
+        "orb": 5.192116206770038,
+        "peak_activations": null
+      },
+      {
+        "point1": "Venus",
+        "point2": "Mean_Node",
+        "aspect_type": "trine",
+        "orb": 6.798316956072796,
+        "peak_activations": null
+      },
+      {
+        "point1": "Venus",
+        "point2": "Chiron",
+        "aspect_type": "trine",
+        "orb": 8.704456520179804,
+        "peak_activations": null
+      },
+      {
+        "point1": "Venus",
+        "point2": "Mean_Lilith",
+        "aspect_type": "trine",
+        "orb": -2.012494879944626,
+        "peak_activations": null
+      },
+      {
+        "point1": "Mars",
+        "point2": "Jupiter",
+        "aspect_type": "quintile",
+        "orb": 0.7228911407179908,
+        "peak_activations": null
+      },
+      {
+        "point1": "Mars",
+        "point2": "Uranus",
+        "aspect_type": "opposition",
+        "orb": -1.3972715820817427,
+        "peak_activations": null
+      },
+      {
+        "point1": "Mars",
+        "point2": "Chiron",
+        "aspect_type": "conjunction",
+        "orb": 0.23440050724474304,
+        "peak_activations": null
+      },
+      {
+        "point1": "Mars",
+        "point2": "Mean_Lilith",
+        "aspect_type": "trine",
+        "orb": -6.926362147479921,
+        "peak_activations": null
+      },
+      {
+        "point1": "Jupiter",
+        "point2": "Neptune",
+        "aspect_type": "sextile",
+        "orb": 3.1461356250874246,
+        "peak_activations": null
+      },
+      {
+        "point1": "Jupiter",
+        "point2": "Pluto",
+        "aspect_type": "trine",
+        "orb": 5.7840435926456735,
+        "peak_activations": null
+      },
+      {
+        "point1": "Jupiter",
+        "point2": "Chiron",
+        "aspect_type": "quintile",
+        "orb": 0.957291647962677,
+        "peak_activations": null
+      },
+      {
+        "point1": "Jupiter",
+        "point2": "Ascendant",
+        "aspect_type": "square",
+        "orb": -0.12572500578190215,
+        "peak_activations": null
+      },
+      {
+        "point1": "Saturn",
+        "point2": "Pluto",
+        "aspect_type": "square",
+        "orb": 3.0947364991707786,
+        "peak_activations": null
+      },
+      {
+        "point1": "Saturn",
+        "point2": "Mean_Node",
+        "aspect_type": "opposition",
+        "orb": -7.338845216031757,
+        "peak_activations": null
+      },
+      {
+        "point1": "Saturn",
+        "point2": "Mean_Lilith",
+        "aspect_type": "opposition",
+        "orb": -1.4719666199856647,
+        "peak_activations": null
+      },
+      {
+        "point1": "Saturn",
+        "point2": "Mean_South_Node",
+        "aspect_type": "conjunction",
+        "orb": 7.338845216031757,
+        "peak_activations": null
+      },
+      {
+        "point1": "Uranus",
+        "point2": "Chiron",
+        "aspect_type": "opposition",
+        "orb": -1.6316720893264858,
+        "peak_activations": null
+      },
+      {
+        "point1": "Neptune",
+        "point2": "Pluto",
+        "aspect_type": "sextile",
+        "orb": 2.637907967558249,
+        "peak_activations": null
+      },
+      {
+        "point1": "Pluto",
+        "point2": "Mean_Node",
+        "aspect_type": "square",
+        "orb": 4.244108716860978,
+        "peak_activations": null
+      },
+      {
+        "point1": "Pluto",
+        "point2": "Mean_Lilith",
+        "aspect_type": "square",
+        "orb": -4.566703119156443,
+        "peak_activations": null
+      },
+      {
+        "point1": "Pluto",
+        "point2": "Mean_South_Node",
+        "aspect_type": "square",
+        "orb": -4.244108716860978,
+        "peak_activations": null
+      },
+      {
+        "point1": "Mean_Node",
+        "point2": "Mean_Lilith",
+        "aspect_type": "conjunction",
+        "orb": 8.810811836017422,
+        "peak_activations": null
+      },
+      {
+        "point1": "Chiron",
+        "point2": "Mean_Lilith",
+        "aspect_type": "trine",
+        "orb": -6.691961640235178,
+        "peak_activations": null
+      },
+      {
+        "point1": "Mean_Lilith",
+        "point2": "Mean_South_Node",
+        "aspect_type": "opposition",
+        "orb": -8.810811836017422,
+        "peak_activations": null
+      }
+    ],
+    "fixed_stars": null
+  },
+  "person": {
+    "name": "Test Subject",
+    "year": 1973,
+    "month": 7,
+    "day": 24,
+    "hour": 14,
+    "minute": 30,
+    "city": "Unknown",
+    "nation": "--",
+    "lng": -85.6579,
+    "lat": 30.2027,
+    "tz_str": "America/New_York",
+    "zodiac_type": "Tropic",
+    "sidereal_mode": null,
+    "houses_system_identifier": "P",
+    "houses_system_name": "Placidus",
+    "perspective_type": "Apparent Geocentric",
+    "iso_formatted_local_datetime": "1973-07-24T14:30:00-04:00",
+    "iso_formatted_utc_datetime": "1973-07-24T18:30:00+00:00",
+    "julian_day": 2441888.2708333335,
+    "utc_time": 18.5,
+    "local_time": 14.5,
+    "sun": {
+      "name": "Sun",
+      "quality": "Fixed",
+      "element": "Fire",
+      "sign": "Leo",
+      "sign_num": 4,
+      "position": 1.6942815441230863,
+      "abs_pos": 121.69428154412309,
+      "emoji": "♌️",
+      "point_type": "Planet",
+      "house": "Ninth_House",
+      "retrograde": false
+    },
+    "moon": {
+      "name": "Moon",
+      "quality": "Fixed",
+      "element": "Earth",
+      "sign": "Tau",
+      "sign_num": 1,
+      "position": 22.57393239794788,
+      "abs_pos": 52.57393239794788,
+      "emoji": "♉️",
+      "point_type": "Planet",
+      "house": "Seventh_House",
+      "retrograde": false
+    },
+    "mercury": {
+      "name": "Mercury",
+      "quality": "Cardinal",
+      "element": "Water",
+      "sign": "Can",
+      "sign_num": 3,
+      "position": 24.581470436691674,
+      "abs_pos": 114.58147043669167,
+      "emoji": "♋️",
+      "point_type": "Planet",
+      "house": "Ninth_House",
+      "retrograde": true
+    },
+    "venus": {
+      "name": "Venus",
+      "quality": "Fixed",
+      "element": "Fire",
+      "sign": "Leo",
+      "sign_num": 4,
+      "position": 29.611495348046702,
+      "abs_pos": 149.6114953480467,
+      "emoji": "♌️",
+      "point_type": "Planet",
+      "house": "Tenth_House",
+      "retrograde": false
+    },
+    "mars": {
+      "name": "Mars",
+      "quality": "Cardinal",
+      "element": "Fire",
+      "sign": "Ari",
+      "sign_num": 0,
+      "position": 20.672638320622166,
+      "abs_pos": 20.672638320622166,
+      "emoji": "♈️",
+      "point_type": "Planet",
+      "house": "Sixth_House",
+      "retrograde": false
+    },
+    "jupiter": {
+      "name": "Jupiter",
+      "quality": "Fixed",
+      "element": "Air",
+      "sign": "Aqu",
+      "sign_num": 10,
+      "position": 7.949747179904193,
+      "abs_pos": 307.9497471799042,
+      "emoji": "♒️",
+      "point_type": "Planet",
+      "house": "Third_House",
+      "retrograde": true
+    },
+    "saturn": {
+      "name": "Saturn",
+      "quality": "Mutable",
+      "element": "Air",
+      "sign": "Gem",
+      "sign_num": 2,
+      "position": 29.070967088087755,
+      "abs_pos": 89.07096708808776,
+      "emoji": "♊️",
+      "point_type": "Planet",
+      "house": "Eighth_House",
+      "retrograde": false
+    },
+    "uranus": {
+      "name": "Uranus",
+      "quality": "Cardinal",
+      "element": "Air",
+      "sign": "Lib",
+      "sign_num": 6,
+      "position": 19.275366738540413,
+      "abs_pos": 199.2753667385404,
+      "emoji": "♎️",
+      "point_type": "Planet",
+      "house": "Twelfth_House",
+      "retrograde": false
+    },
+    "neptune": {
+      "name": "Neptune",
+      "quality": "Mutable",
+      "element": "Fire",
+      "sign": "Sag",
+      "sign_num": 8,
+      "position": 4.803611554816769,
+      "abs_pos": 244.80361155481677,
+      "emoji": "♐️",
+      "point_type": "Planet",
+      "house": "First_House",
+      "retrograde": true
+    },
+    "pluto": {
+      "name": "Pluto",
+      "quality": "Cardinal",
+      "element": "Air",
+      "sign": "Lib",
+      "sign_num": 6,
+      "position": 2.1657035872585197,
+      "abs_pos": 182.16570358725852,
+      "emoji": "♎️",
+      "point_type": "Planet",
+      "house": "Eleventh_House",
+      "retrograde": false
+    },
+    "ascendant": {
+      "name": "Ascendant",
+      "quality": "Fixed",
+      "element": "Water",
+      "sign": "Sco",
+      "sign_num": 7,
+      "position": 8.075472185686095,
+      "abs_pos": 218.0754721856861,
+      "emoji": "♏️",
+      "point_type": "AxialCusps",
+      "house": "First_House",
+      "retrograde": false
+    },
+    "descendant": {
+      "name": "Descendant",
+      "quality": "Fixed",
+      "element": "Earth",
+      "sign": "Tau",
+      "sign_num": 1,
+      "position": 8.075472185686067,
+      "abs_pos": 38.07547218568607,
+      "emoji": "♉️",
+      "point_type": "AxialCusps",
+      "house": "Seventh_House",
+      "retrograde": false
+    },
+    "medium_coeli": {
+      "name": "Medium_Coeli",
+      "quality": "Fixed",
+      "element": "Fire",
+      "sign": "Leo",
+      "sign_num": 4,
+      "position": 11.716735016246304,
+      "abs_pos": 131.7167350162463,
+      "emoji": "♌️",
+      "point_type": "AxialCusps",
+      "house": "Tenth_House",
+      "retrograde": false
+    },
+    "imum_coeli": {
+      "name": "Imum_Coeli",
+      "quality": "Fixed",
+      "element": "Air",
+      "sign": "Aqu",
+      "sign_num": 10,
+      "position": 11.716735016246275,
+      "abs_pos": 311.7167350162463,
+      "emoji": "♒️",
+      "point_type": "AxialCusps",
+      "house": "Fourth_House",
+      "retrograde": false
+    },
+    "chiron": {
+      "name": "Chiron",
+      "quality": "Cardinal",
+      "element": "Fire",
+      "sign": "Ari",
+      "sign_num": 0,
+      "position": 20.907038827866895,
+      "abs_pos": 20.907038827866895,
+      "emoji": "♈️",
+      "point_type": "Planet",
+      "house": "Sixth_House",
+      "retrograde": true
+    },
+    "mean_lilith": {
+      "name": "Mean_Lilith",
+      "quality": "Mutable",
+      "element": "Fire",
+      "sign": "Sag",
+      "sign_num": 8,
+      "position": 27.599000468102076,
+      "abs_pos": 267.5990004681021,
+      "emoji": "♐️",
+      "point_type": "Planet",
+      "house": "Second_House",
+      "retrograde": false
+    },
+    "first_house": {
+      "name": "First_House",
+      "quality": "Fixed",
+      "element": "Water",
+      "sign": "Sco",
+      "sign_num": 7,
+      "position": 8.075472185686095,
+      "abs_pos": 218.0754721856861,
+      "emoji": "♏️",
+      "point_type": "House",
+      "house": null,
+      "retrograde": null
+    },
+    "second_house": {
+      "name": "Second_House",
+      "quality": "Mutable",
+      "element": "Fire",
+      "sign": "Sag",
+      "sign_num": 8,
+      "position": 7.156216865360705,
+      "abs_pos": 247.1562168653607,
+      "emoji": "♐️",
+      "point_type": "House",
+      "house": null,
+      "retrograde": null
+    },
+    "third_house": {
+      "name": "Third_House",
+      "quality": "Cardinal",
+      "element": "Earth",
+      "sign": "Cap",
+      "sign_num": 9,
+      "position": 8.609404957676247,
+      "abs_pos": 278.60940495767625,
+      "emoji": "♑️",
+      "point_type": "House",
+      "house": null,
+      "retrograde": null
+    },
+    "fourth_house": {
+      "name": "Fourth_House",
+      "quality": "Fixed",
+      "element": "Air",
+      "sign": "Aqu",
+      "sign_num": 10,
+      "position": 11.716735016246275,
+      "abs_pos": 311.7167350162463,
+      "emoji": "♒️",
+      "point_type": "House",
+      "house": null,
+      "retrograde": null
+    },
+    "fifth_house": {
+      "name": "Fifth_House",
+      "quality": "Mutable",
+      "element": "Water",
+      "sign": "Pis",
+      "sign_num": 11,
+      "position": 14.143535148507453,
+      "abs_pos": 344.14353514850745,
+      "emoji": "♓️",
+      "point_type": "House",
+      "house": null,
+      "retrograde": null
+    },
+    "sixth_house": {
+      "name": "Sixth_House",
+      "quality": "Cardinal",
+      "element": "Fire",
+      "sign": "Ari",
+      "sign_num": 0,
+      "position": 13.204002683396425,
+      "abs_pos": 13.204002683396425,
+      "emoji": "♈️",
+      "point_type": "House",
+      "house": null,
+      "retrograde": null
+    },
+    "seventh_house": {
+      "name": "Seventh_House",
+      "quality": "Fixed",
+      "element": "Earth",
+      "sign": "Tau",
+      "sign_num": 1,
+      "position": 8.075472185686067,
+      "abs_pos": 38.07547218568607,
+      "emoji": "♉️",
+      "point_type": "House",
+      "house": null,
+      "retrograde": null
+    },
+    "eighth_house": {
+      "name": "Eighth_House",
+      "quality": "Mutable",
+      "element": "Air",
+      "sign": "Gem",
+      "sign_num": 2,
+      "position": 7.156216865360705,
+      "abs_pos": 67.1562168653607,
+      "emoji": "♊️",
+      "point_type": "House",
+      "house": null,
+      "retrograde": null
+    },
+    "ninth_house": {
+      "name": "Ninth_House",
+      "quality": "Cardinal",
+      "element": "Water",
+      "sign": "Can",
+      "sign_num": 3,
+      "position": 8.609404957676247,
+      "abs_pos": 98.60940495767625,
+      "emoji": "♋️",
+      "point_type": "House",
+      "house": null,
+      "retrograde": null
+    },
+    "tenth_house": {
+      "name": "Tenth_House",
+      "quality": "Fixed",
+      "element": "Fire",
+      "sign": "Leo",
+      "sign_num": 4,
+      "position": 11.716735016246304,
+      "abs_pos": 131.7167350162463,
+      "emoji": "♌️",
+      "point_type": "House",
+      "house": null,
+      "retrograde": null
+    },
+    "eleventh_house": {
+      "name": "Eleventh_House",
+      "quality": "Mutable",
+      "element": "Earth",
+      "sign": "Vir",
+      "sign_num": 5,
+      "position": 14.143535148507482,
+      "abs_pos": 164.14353514850748,
+      "emoji": "♍️",
+      "point_type": "House",
+      "house": null,
+      "retrograde": null
+    },
+    "twelfth_house": {
+      "name": "Twelfth_House",
+      "quality": "Cardinal",
+      "element": "Air",
+      "sign": "Lib",
+      "sign_num": 6,
+      "position": 13.204002683396425,
+      "abs_pos": 193.20400268339642,
+      "emoji": "♎️",
+      "point_type": "House",
+      "house": null,
+      "retrograde": null
+    },
+    "mean_node": {
+      "name": "Mean_Node",
+      "quality": "Cardinal",
+      "element": "Earth",
+      "sign": "Cap",
+      "sign_num": 9,
+      "position": 6.409812304119498,
+      "abs_pos": 276.4098123041195,
+      "emoji": "♑️",
+      "point_type": "Planet",
+      "house": "Second_House",
+      "retrograde": true
+    },
+    "true_node": {
+      "name": "True_Node",
+      "quality": "Cardinal",
+      "element": "Earth",
+      "sign": "Cap",
+      "sign_num": 9,
+      "position": 7.478446983226831,
+      "abs_pos": 277.47844698322683,
+      "emoji": "♑️",
+      "point_type": "Planet",
+      "house": "Second_House",
+      "retrograde": false
+    },
+    "mean_south_node": {
+      "name": "Mean_South_Node",
+      "quality": "Cardinal",
+      "element": "Water",
+      "sign": "Can",
+      "sign_num": 3,
+      "position": 6.409812304119498,
+      "abs_pos": 96.4098123041195,
+      "emoji": "♋️",
+      "point_type": "Planet",
+      "house": "Eighth_House",
+      "retrograde": true
+    },
+    "true_south_node": {
+      "name": "True_South_Node",
+      "quality": "Cardinal",
+      "element": "Water",
+      "sign": "Can",
+      "sign_num": 3,
+      "position": 7.478446983226831,
+      "abs_pos": 97.47844698322683,
+      "emoji": "♋️",
+      "point_type": "Planet",
+      "house": "Eighth_House",
+      "retrograde": false
+    },
+    "planets_names_list": [
+      "Sun",
+      "Moon",
+      "Mercury",
+      "Venus",
+      "Mars",
+      "Jupiter",
+      "Saturn",
+      "Uranus",
+      "Neptune",
+      "Pluto",
+      "Mean_Node",
+      "True_Node",
+      "Mean_South_Node",
+      "True_South_Node",
+      "Chiron",
+      "Mean_Lilith"
+    ],
+    "axial_cusps_names_list": [
+      "Ascendant",
+      "Descendant",
+      "Medium_Coeli",
+      "Imum_Coeli"
+    ],
+    "houses_names_list": [
+      "First_House",
+      "Second_House",
+      "Third_House",
+      "Fourth_House",
+      "Fifth_House",
+      "Sixth_House",
+      "Seventh_House",
+      "Eighth_House",
+      "Ninth_House",
+      "Tenth_House",
+      "Eleventh_House",
+      "Twelfth_House"
+    ],
+    "lunar_phase": {
+      "degrees_between_s_m": 290.8796508538248,
+      "moon_phase": 23,
+      "sun_phase": 22,
+      "moon_emoji": "🌘",
+      "moon_phase_name": "Waning Crescent"
+    }
+  }
+}
+✅ Relocation chart fetched successfully.
+Ascendant: undefined
+House Cusps: [{"house":1,"sign":"Sco","degree":8.08,"absolute_longitude":218.08,"retrograde":null},{"house":2,"sign":"Sag","degree":7.16,"absolute_longitude":247.16,"retrograde":null},{"house":3,"sign":"Cap","degree":8.61,"absolute_longitude":278.61,"retrograde":null},{"house":4,"sign":"Aqu","degree":11.72,"absolute_longitude":311.72,"retrograde":null},{"house":5,"sign":"Pis","degree":14.14,"absolute_longitude":344.14,"retrograde":null},{"house":6,"sign":"Ari","degree":13.2,"absolute_longitude":13.2,"retrograde":null},{"house":7,"sign":"Tau","degree":8.08,"absolute_longitude":38.08,"retrograde":null},{"house":8,"sign":"Gem","degree":7.16,"absolute_longitude":67.16,"retrograde":null},{"house":9,"sign":"Can","degree":8.61,"absolute_longitude":98.61,"retrograde":null},{"house":10,"sign":"Leo","degree":11.72,"absolute_longitude":131.72,"retrograde":null},{"house":11,"sign":"Vir","degree":14.14,"absolute_longitude":164.14,"retrograde":null},{"house":12,"sign":"Lib","degree":13.2,"absolute_longitude":193.2,"retrograde":null}]
+
+--- TEST 2: Relocated Transits (Coordinate Swap) ---
+[INFO] [V3] Fetching natal-transits for Test Subject: {
+  startDate: '2025-10-18',
+  endDate: '2025-10-19',
+  latitude: 30.2027,
+  longitude: -85.6579
+}
+[DEBUG] V3 PAYLOAD: {"subject":{"name":"Test Subject","birth_data":{"year":1973,"month":7,"day":24,"hour":14,"minute":30,"second":0,"latitude":30.2027,"longitude":-85.6579,"timezone":"America/Chicago"}},"date_range":{"start_date":{"year":2025,"month":10,"day":18},"end_date":{"year":2025,"month":10,"day":19}},"options":{"house_system":"P","zodiac_type":"Tropic","active_points":["Sun","Moon"],"precision":2}}
+[INFO] [V3] Natal-transits completed for Test Subject: { datesWithData: 2, totalAspects: 18 }
+Found 2 dates with data.
+First date (2025-10-18) has 7 items.
+First item sample: {
+  "date": "2025-10-18",
+  "exact_time": null,
+  "transiting_planet": "Venus",
+  "aspect_type": "square",
+  "stationed_planet": "Mean_Node",
+  "orb": 0.41923199632981323,
+  "aspect_direction": "separating",
+  "transiting_speed": 1.2437871948696966,
+  "transiting_house": 9,
+  "natal_house": 2
+}
+✅ House data FOUND in V3 response (Coordinate Swap successful)
