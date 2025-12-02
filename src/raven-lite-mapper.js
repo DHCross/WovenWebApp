@@ -87,7 +87,7 @@ function applyRelocationDirective(natalChart, relocationContext) {
     return natalChart;
   }
 
-  // Note: Relocation is now handled natively by AstrologerAPI
+  // Note: Relocation is now handled natively by AstroAPI v3
   // When fetchNatalChartComplete is called with relocated coordinates,
   // the API returns a chart with relocated houses. This function is
   // kept for backward compatibility but just returns the chart as-is.

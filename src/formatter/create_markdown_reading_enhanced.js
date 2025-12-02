@@ -125,7 +125,7 @@ function createMarkdownReadingEnhanced(inputJsonPath) {
   markdownContent += `**Math Brain Version**: ${run_metadata?.math_brain_version || 'unknown'}\n`;
   markdownContent += `**House System**: ${run_metadata?.house_system || 'Placidus'}\n`;
   markdownContent += `**Orbs Profile**: ${run_metadata?.orbs_profile || 'wm-spec-2025-09'}\n`;
-  markdownContent += `**Ephemeris Source**: ${run_metadata?.ephemeris_source || 'astrologer-api'}\n`;
+  markdownContent += `**Ephemeris Source**: ${run_metadata?.ephemeris_source || 'astroapi-v3'}\n`;
   markdownContent += `**Relocation Mode**: ${run_metadata?.relocation_mode || 'none'}\n\n`;
 
   if (person_a?.birth_data) {

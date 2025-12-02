@@ -1,14 +1,14 @@
 /* eslint-disable no-console */
 /**
  * City Resolution Module
- * Handles city geocoding and timezone resolution via the Astrologer API
+ * Handles city geocoding and timezone resolution via the AstroAPI v3
  * 
  * This module was extracted from lib/server/astrology-mathbrain.js to enable
  * standalone testing and modular refactoring of the legacy monolithic function.
  */
 
 const MATH_BRAIN_VERSION = '0.2.1';
-const EPHEMERIS_SOURCE = 'AstrologerAPI-v4';
+const EPHEMERIS_SOURCE = 'AstroAPI-v3';
 const CALIBRATION_BOUNDARY = '2025-09-05';
 
 const { logger } = require('./time-and-coords.js');

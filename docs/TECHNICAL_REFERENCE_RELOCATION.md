@@ -35,29 +35,35 @@ Chart relocation (also called "local space astrology" or "astrocartography") adj
 
 ### API Usage
 
-The AstrologerAPI's `/api/v4/birth-chart` endpoint calculates houses based on the coordinates provided:
+The AstroAPI v3's `/api/v3/data/house-cusps` endpoint calculates houses based on the coordinates provided:
 
 ```javascript
-const natalChart = await fetch('https://astrologer.p.rapidapi.com/api/v4/birth-chart', {
+const natalChart = await fetch('https://astroapi-1.p.rapidapi.com/api/v3/data/house-cusps', {
   method: 'POST',
   body: JSON.stringify({
-    year: 1973,
-    month: 7,
-    day: 24,
-    hour: 14,
-    minute: 30,
-    latitude: 40.0259,   // Birth location
-    longitude: -75.3138,
-    timezone: 'America/New_York'
+    subject: {
+      birth_data: {
+        year: 1973,
+        month: 7,
+        day: 24,
+        hour: 14,
+        minute: 30,
+        latitude: 40.0259,   // Birth location
+        longitude: -75.3138,
+        timezone: 'America/New_York'
+      }
+    }
   })
 });
 
-const relocatedChart = await fetch('https://astrologer.p.rapidapi.com/api/v4/birth-chart', {
+const relocatedChart = await fetch('https://astroapi-1.p.rapidapi.com/api/v3/data/house-cusps', {
   method: 'POST',
   body: JSON.stringify({
-    year: 1973,      // Same birth time
-    month: 7,
-    day: 24,
+    subject: {
+      birth_data: {
+        year: 1973,      // Same birth time
+        month: 7,
+        day: 24,
     hour: 14,
     minute: 30,
     latitude: 30.2027,   // Different location
@@ -228,7 +234,7 @@ To verify relocation was truly applied (per Raven Calder's audit criteria):
 
 ## References
 
-- [AstrologerAPI Documentation](https://rapidapi.com/psilo/api/astrologer)
+- [AstroAPI v3 Documentation](https://rapidapi.com/astrology-api/api/astrology-api)
 - [Relocation Astrology Principles](https://www.astro.com/astrology/in_acg_e.htm)
 - Internal: `lib/server/astrology-mathbrain.js` (lines 2785-2842, 3320-3395)
 - Tests: `test/both-local-relocation.test.js`

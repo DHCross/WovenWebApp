@@ -185,7 +185,7 @@ Expand the Resonant Summary into its component layers. Use subheadings and bulle
 - **Chart Source:** [API, self-report, registry]
 - **House System:** [Placidus/Equal/Whole Sign]
 - **Orbs Profile:** [wm-spec-2025-11, or standard]
-- **Ephemeris:** [AstrologerAPI v4, or other]
+- **Ephemeris:** [AstroAPI v3, or other]
 - **Relocation Mode:** [Birthplace/A_local/B_local/etc, if applicable]
 - **Transits Included:** [Yes/No; if yes, date range]
 - **Location Consent:** [Yes/No/Unknown]
@@ -271,7 +271,7 @@ Expand the Resonant Summary into its component layers. Use subheadings and bulle
     "schema_version": "WM-Chart-1.3-lite"
   },
   "computational_context": {
-    "ephemeris_source": "AstrologerAPI-v4",
+    "ephemeris_source": "AstroAPI-v3",
     "house_system": "Placidus",
     "zodiac_type": "Tropical",
     "orbs_profile": "wm-tight-2025-11-v5",
@@ -526,7 +526,7 @@ Name both people (or anonymized IDs). Describe their individual baseline tones i
 **Technical:**
 - Chart source: [API, self-report, registry]
 - House system: [Placidus / Equal / Whole Sign]
-- Ephemeris: [AstrologerAPI v4, etc.]
+- Ephemeris: [AstroAPI v3, etc.]
 - Relocation mode: [Birthplace / A_local / Both_local / etc.]
 - Transits included: [Yes/No; range if yes]
 
@@ -591,12 +591,12 @@ Name both people (or anonymized IDs). Describe their individual baseline tones i
   "person_a": {
     "birth_time_precision": "exact",
     "location_precision": "exact",
-    "chart_source": "AstrologerAPI"
+    "chart_source": "AstroAPI-v3"
   },
   "person_b": {
     "birth_time_precision": "rounded",
     "location_precision": "exact",
-    "chart_source": "AstrologerAPI"
+    "chart_source": "AstroAPI-v3"
   },
   "provenance_stamps": {
     "persona_excerpt": "Raven Calder Corpus v9.3.25",
@@ -779,10 +779,10 @@ namespace WovenMapV6 {
     source: string;                 // "Math Brain API", "Poetic Brain", etc.
     report_type: ReportType;
     api_version: string;            // "3.2.7"
-    chart_source: string;           // "AstrologerAPI-v4"
+    chart_source: string;           // "AstroAPI-v3"
     house_system: HouseSystem;
     orbs_profile: string;           // "wm-tight-2025-11-v5"
-    ephemeris_source: string;       // "AstrologerAPI", "Swiss Ephemeris", etc.
+    ephemeris_source: string;       // "AstroAPI-v3", "Swiss Ephemeris", etc.
     zodiac_type: ZodiacType;
     seismograph_version: string;    // "v5.0"
     balance_calibration_version: string; // "v5.0"

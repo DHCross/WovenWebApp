@@ -22,7 +22,7 @@ Raven Calder is an astrological analysis system that translates mathematical pre
 ### Prerequisites
 - Node.js 18+
 - npm or yarn
-- RapidAPI key for Astrologer API
+- RapidAPI key for AstroAPI v3
 - (Optional) GeoNames username for city lookups
 
 ### Installation

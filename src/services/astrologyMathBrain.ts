@@ -65,8 +65,8 @@ export interface AstrologyResponseError {
 }
 export type AstrologyResponse = AstrologyResponseSuccess | AstrologyResponseError;
 
-// Upstream invocation (RapidAPI Astrologer)
-const UPSTREAM_URL = 'https://astrologer.p.rapidapi.com/api/v2/natal-chart';
+// Upstream invocation (RapidAPI AstroAPI v3)
+const UPSTREAM_URL = 'https://api.astrology-api.io/api/v3/charts/natal';
 
 type ZodiacVariant = 'Tropic' | 'Sidereal' | null;
 
@@ -115,20 +115,40 @@ export async function computeAstrology(req: AstrologyRequest): Promise<Astrology
   }
   const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
   if (!RAPIDAPI_KEY) {
-    return { ok: false, status: 500, error: 'Missing RAPIDAPI_KEY' };
+    return { ok: false, status: 503, error: 'Missing RAPIDAPI_KEY' };
   }
   const { includeSidereal = false, default_sidereal_mode, ...baseRequest } = parse.data;
 
   const callUpstream = async (payload: Record<string, any>): Promise<AstrologyResponse> => {
     try {
+      // Transform payload to AstroAPI v3 format
+      const transformedPayload = {
+        subject: {
+          birth_data: {
+            year: payload.personA.year,
+            month: payload.personA.month,
+            day: payload.personA.day,
+            hour: payload.personA.hour || 12,
+            minute: payload.personA.minute || 0,
+            latitude: payload.personA.latitude,
+            longitude: payload.personA.longitude,
+            timezone: payload.personA.timezone || 'UTC'
+          }
+        },
+        options: {
+          house_system: payload.houses_system_identifier || 'P',
+          zodiac_type: payload.personA.zodiac_type || 'Tropic'
+        }
+      };
+
       const upstream = await fetch(UPSTREAM_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-RapidAPI-Key': RAPIDAPI_KEY,
-          'X-RapidAPI-Host': 'astrologer.p.rapidapi.com'
+          'X-RapidAPI-Host': 'best-astrology-api.p.rapidapi.com'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(transformedPayload)
       });
       if (!upstream.ok) {
         const text = await upstream.text();

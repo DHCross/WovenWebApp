@@ -118,7 +118,7 @@ describe('trimPayloadForPoeticBrain', () => {
     },
     provenance: {
       math_brain_version: '3.2.7',
-      ephemeris_source: 'AstrologerAPI-v4',
+      ephemeris_source: 'AstroAPI-v3',
       house_system: 'Placidus',
       orbs_profile: 'default_v5',
       timezone: 'America/Chicago',

@@ -661,6 +661,14 @@ export function validateApiRequest(
       'personA'
     ));
   }
+
+  // API-level strict checks for birth data and location for personA/personB
+  const personAErrors = validateSubjectFields(p.personA as Record<string, unknown> | undefined, 'personA');
+  if (personAErrors.length) errors.push(...personAErrors);
+  if (p.personB) {
+    const personBErrors = validateSubjectFields(p.personB as Record<string, unknown> | undefined, 'personB');
+    if (personBErrors.length) errors.push(...personBErrors);
+  }
   
   // -------------------------------------------------------------------------
   // Validate translocation mode
@@ -789,6 +797,29 @@ export function validateApiRequest(
     explicitDowngradeMode,
     summary: summaryParts.length > 0 ? summaryParts.join(', ') : 'Valid',
   };
+}
+
+// ---------------------------------------------------------------------------
+// Additional API-level subject checks (numeric & location validation)
+// ---------------------------------------------------------------------------
+function validateSubjectFields(subject: Record<string, unknown> | undefined, pathPrefix = 'personA') {
+  if (!subject) return [];
+  const errors: ValidationIssue[] = [];
+  const numericFields = ['year', 'month', 'day', 'hour', 'minute'];
+  const missingNumeric = numericFields.filter(k => subject[k] === undefined || subject[k] === null || subject[k] === '');
+  if (missingNumeric.length) {
+    errors.push(createIssue('MISSING_BIRTH_DATE_FIELDS', `Missing birth date/time fields: ${missingNumeric.join(', ')}`, 'error', `${pathPrefix}`));
+  }
+  const invalidNumeric = numericFields.filter(k => !Number.isFinite(Number(subject[k] as any)));
+  if (invalidNumeric.length) {
+    errors.push(createIssue('INVALID_BIRTH_DATE_NUMERIC', `Invalid birth date/time values: ${invalidNumeric.join(', ')}`, 'error', `${pathPrefix}`));
+  }
+  const hasCoords = typeof subject.latitude === 'number' && typeof subject.longitude === 'number' && !!subject.timezone;
+  const hasCity = !!subject.city && !!subject.nation;
+  if (!hasCoords && !hasCity) {
+    errors.push(createIssue('MISSING_BIRTH_LOCATION', 'Missing birth location: need (latitude+longitude+timezone) OR (city+nation)', 'error', `${pathPrefix}`));
+  }
+  return errors;
 }
 
 /**

@@ -9,7 +9,13 @@ const { normalizeTimezone, logger, parseCoordinates } = require('./utils/time-an
 function validateSubjectLean(s = {}) {
   const req = ['year','month','day','hour','minute','latitude','longitude'];
   const missing = req.filter(k => s[k] === undefined || s[k] === null || s[k] === '');
-  return { isValid: missing.length === 0, message: missing.length ? `Missing: ${missing.join(', ')}` : 'ok' };
+  // Additionally assert numeric finiteness for numeric fields
+  const numericFields = ['year','month','day','hour','minute','latitude','longitude'];
+  const nonNumeric = numericFields.filter(k => !(Number.isFinite(Number(s[k]))));
+  const issues = [];
+  if (missing.length) issues.push(`Missing: ${missing.join(', ')}`);
+  if (nonNumeric.length) issues.push(`Invalid numeric values: ${nonNumeric.join(', ')}`);
+  return { isValid: issues.length === 0, message: issues.length ? issues.join('; ') : 'ok' };
 }
 
 /**
@@ -28,6 +34,10 @@ function validateSubject(subject) {
   
   if (baseMissing.length) return { isValid: false, message: `Missing base fields: ${baseMissing.join(', ')}` };
   if (!hasCoords && !hasCity) return { isValid: false, message: 'Missing location: need (latitude+longitude+timezone) OR (city+nation)' };
+  // Validate numeric ocurrence: ensure numeric fields are finite numbers
+  const numericFields = ['year','month','day','hour','minute','latitude','longitude'];
+  const invalidNumeric = numericFields.filter(k => !Number.isFinite(Number(subject[k])));
+  if (invalidNumeric.length) return { isValid: false, message: `Invalid numeric fields: ${invalidNumeric.join(', ')}` };
   return { isValid: true, message: 'ok' };
 }
 

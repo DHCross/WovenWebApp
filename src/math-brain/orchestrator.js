@@ -12,7 +12,7 @@
  * uses these exports to keep dependencies clean and modular.
  *
  * CORPUS PROVENANCE:
- * @data_source AstrologerAPI v4
+ * @data_source AstroAPI v3
  * @math_brain_version 3.2.7
  * @renderer_version mirror_renderer 4.1
  * @semantic_profile technical

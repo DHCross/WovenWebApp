@@ -84,7 +84,7 @@ This is a **mock Solo reading output** as the system would export it, demonstrat
     "source": "Math Brain API",
     "report_type": "solo_mirror",
     "api_version": "3.2.7",
-    "chart_source": "AstrologerAPI-v4",
+    "chart_source": "AstroAPI-v3",
     "subject_name": "Dan",
     "subject_birth_date": "1985-06-15",
     "subject_birth_time": "14:23:00",

@@ -5,7 +5,7 @@
 **Raven Calder / Woven Map** — An astrological analysis system that translates mathematical geometry into human-readable symbolic weather reports. Uses **FIELD → MAP → VOICE** translation protocol.
 
 **Stack:** Next.js 14 App Router, React 18, TypeScript, Tailwind CSS, Netlify Functions  
-**Key APIs:** RapidAPI Astrologer (Kerykeion-powered), Auth0 SPA, Perplexity (Poetic Brain)
+**Key APIs:** RapidAPI AstroAPI v3, Auth0 SPA, Perplexity (Poetic Brain)
 
 ## Architecture: Two Brains, Loosely Coupled
 
@@ -87,7 +87,7 @@ npm run validate:fieldmap # Schema validation
 
 ### Environment Variables
 ```env
-RAPIDAPI_KEY=required      # Astrologer API
+RAPIDAPI_KEY=required      # AstroAPI v3
 MB_MOCK=true               # Use mock data in dev (set false for real API)
 GEONAMES_USERNAME=optional # Stabilizes city resolution
 AUTH0_DOMAIN=no-protocol   # e.g., tenant.us.auth0.com (no https://)

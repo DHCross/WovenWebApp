@@ -90,8 +90,8 @@ export function useSnapshot() {
         const birthLng = subject.longitude ?? subject.birth_longitude ?? subject.lng ?? subject.lon;
         const birthTz = subject.timezone ?? subject.birth_timezone ?? subject.tz;
 
-        if (typeof birthLat !== 'number' || typeof birthLng !== 'number') {
-          console.warn(`[Snapshot] Subject "${label}" missing birth coordinates:`, { birthLat, birthLng, subject });
+        if (typeof birthLat !== 'number' || typeof birthLng !== 'number' || !Number.isFinite(birthLat) || !Number.isFinite(birthLng)) {
+          console.warn(`[Snapshot] Subject "${label}" missing or invalid birth coordinates:`, { birthLat, birthLng, subject });
         }
 
         return {
@@ -113,8 +113,24 @@ export function useSnapshot() {
         };
       };
 
+      // Client-side validation for subject data - ensure numeric and required fields present
+      const validateSubjectForSnapshot = (s: any) => {
+        if (!s) return { valid: false, message: 'Subject data missing' };
+        const requiredNumeric = ['year','month','day','hour','minute'];
+        const missingNumeric = requiredNumeric.filter(k => s[k] === undefined || s[k] === null || s[k] === '' || !Number.isFinite(Number(s[k])));
+        const hasCoords = typeof s.latitude === 'number' && typeof s.longitude === 'number' && s.timezone;
+        const hasCity = !!s.city && !!s.nation;
+        if (missingNumeric.length) return { valid: false, message: `Missing/invalid date/time fields: ${missingNumeric.join(', ')}` };
+        if (!hasCoords && !hasCity) return { valid: false, message: 'Missing location: provide latitude/longitude/timezone or city & nation' };
+        return { valid: true, message: 'ok' };
+      };
+
       const personALabel = personA?.name || 'Person A';
       const normalizedPersonA = ensureSubject(personA, personALabel);
+      const personAValidation = validateSubjectForSnapshot(normalizedPersonA);
+      if (!personAValidation.valid) {
+        throw new Error(`Person A invalid for snapshot: ${personAValidation.message}`);
+      }
 
       // Build payload matching the format page.tsx uses
       // Convert mode to proper API mode (snapshots always use transits)
@@ -168,7 +184,12 @@ export function useSnapshot() {
       // Add Person B if provided
       if (isRelational) {
         const personBLabel = personB?.name || 'Person B';
-        payload.personB = ensureSubject(personB, personBLabel);
+        const normalizedPersonB = ensureSubject(personB, personBLabel);
+        const personBValidation = validateSubjectForSnapshot(normalizedPersonB);
+        if (!personBValidation.valid) {
+          throw new Error(`Person B invalid for snapshot: ${personBValidation.message}`);
+        }
+        payload.personB = normalizedPersonB;
 
         // Required: relationship_context for synastry/relational modes
         payload.relationship_context = {
