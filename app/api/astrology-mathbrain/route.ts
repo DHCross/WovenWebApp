@@ -99,10 +99,9 @@ export async function POST(request: Request) {
 
     // 2. Fetch Natal Geometry (Parallel)
     const fetchChartData = async (name: string, data: BirthData, settings: any) => {
-      // FIX: Construct exact V3 payload structure
       const payload = {
         subject: buildSubjectPayload(name, data),
-        options: settings // V3 uses 'options', not 'settings'
+        options: settings
       };
 
       const [positionsRes, housesRes] = await Promise.all([
@@ -110,8 +109,33 @@ export async function POST(request: Request) {
         callApi('/data/house-cusps', payload, apiKey)
       ]);
 
-      // Handle V3 response structure (data array vs direct object)
-      const rawPositions = Array.isArray(positionsRes.data) ? positionsRes.data : [];
+      // --- ROBUST PARSING LOGIC START ---
+
+      // Parse Positions: Handle Array directly, { data: [...] }, or { data: { planets: [...] } }
+      let rawPositions: any[] = [];
+      if (Array.isArray(positionsRes)) {
+        rawPositions = positionsRes;
+      } else if (Array.isArray(positionsRes.data)) {
+        rawPositions = positionsRes.data;
+      } else if (positionsRes.data && Array.isArray(positionsRes.data.planets)) {
+        rawPositions = positionsRes.data.planets;
+      } else {
+        console.warn('[API Warning] Unexpected positions format:', JSON.stringify(positionsRes).slice(0, 200));
+      }
+
+      // Parse House Cusps: Handle Array directly or { data: [...] } or { data: { cusps: [...] } }
+      let rawHouses: any[] = [];
+      if (Array.isArray(housesRes)) {
+        rawHouses = housesRes;
+      } else if (Array.isArray(housesRes.data)) {
+        rawHouses = housesRes.data;
+      } else if (housesRes.data && Array.isArray(housesRes.data.cusps)) {
+        rawHouses = housesRes.data.cusps;
+      } else {
+        console.warn('[API Warning] Unexpected houses format:', JSON.stringify(housesRes).slice(0, 200));
+      }
+
+      // --- ROBUST PARSING LOGIC END ---
 
       // Convert array to Dictionary for Math Brain compatibility
       const positionsMap: Record<string, any> = {};
@@ -121,10 +145,10 @@ export async function POST(request: Request) {
         const key = p.name || p.id;
         if (key) {
           positionsMap[key] = {
-            sign: p.sign,
-            deg: p.norm_degree || p.longitude,
-            house: p.house_number,
-            retro: p.is_retrograde
+            sign: p.sign || p.sign_id,
+            deg: typeof p.norm_degree === 'number' ? p.norm_degree : (p.longitude || 0),
+            house: p.house_number || p.house,
+            retro: !!p.is_retrograde
           };
 
           // Capture Angles for legacy compatibility
@@ -132,9 +156,6 @@ export async function POST(request: Request) {
           if (key === 'Midheaven' || key === 'MC' || key === 'Medium_Coeli') anglesMap['MC'] = positionsMap[key];
         }
       });
-
-      // Parse House Cusps
-      const rawHouses = Array.isArray(housesRes.data) ? housesRes.data : [];
 
       return {
         positions: positionsMap,
@@ -147,7 +168,7 @@ export async function POST(request: Request) {
     const settings = {
       zodiac_type: body.personA.zodiac_type || 'Tropic',
       house_system: 'P', // Placidus
-      active_points: ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Ascendant', 'Medium_Coeli', 'Mean_Node', 'Chiron']
+      active_points: ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Ascendant', 'MC', 'North Node', 'Chiron']
     };
 
     const [chartA, chartB] = await Promise.all([
@@ -163,10 +184,8 @@ export async function POST(request: Request) {
       const { latitude, longitude } = body.translocation.coords;
       const method = body.translocation.method;
 
-      // Re-use fetch with mutated location for relocation
       const fetchRelocated = async (name: string, birth: BirthData) => {
         const relocatedBirthData = { ...birth, latitude, longitude };
-        // Note: We keep birth time/timezone but change coordinates
         return fetchChartData(name, relocatedBirthData, settings);
       };
 
@@ -203,7 +222,7 @@ export async function POST(request: Request) {
       },
 
       provenance: {
-        math_brain_version: '3.2.2-geometry-fix',
+        math_brain_version: '3.2.3-robust-parsing',
         build_ts: new Date().toISOString(),
         house_system: 'Placidus',
         orbs_profile: 'wm-tight-2025-11-v5',
