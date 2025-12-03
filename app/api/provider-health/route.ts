@@ -25,7 +25,13 @@ async function tryNetlifyAstrologyHealth(origin: string): Promise<ProviderStatus
     const data = await res.json().catch(() => null) as any;
     const configured = Boolean(data?.rapidapi?.configured);
     const ok = configured && (data?.rapidapi?.ping?.ok !== false);
-    const msg = configured ? undefined : 'RAPIDAPI_KEY not configured';
+    let msg = configured ? undefined : 'RAPIDAPI_KEY not configured';
+    if (configured && !ok) {
+      const ping = data?.rapidapi?.ping;
+      const err = ping?.error;
+      const status = ping?.status;
+      msg = `Service unreachable: ${err || (status ? `HTTP ${status}` : 'Unknown error')}`;
+    }
     return { ok, configured, message: msg };
   } catch {
     clearTimeout(to);

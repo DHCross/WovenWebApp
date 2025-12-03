@@ -1929,8 +1929,19 @@ export default function MathBrainPage() {
         if (typeof window === 'undefined') return;
         await ensureSdk();
 
-        const res = await fetch('/api/auth-config', { cache: 'no-store' });
-        if (!res.ok) throw new Error('Auth config fetch failed');
+        let res;
+        let fetchError;
+        for (let i = 0; i < 3; i++) {
+          try {
+            res = await fetch('/api/auth-config', { cache: 'no-store' });
+            if (res.ok) break;
+          } catch (e) {
+            fetchError = e;
+            await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
+          }
+        }
+        if (!res || !res.ok) throw new Error(fetchError ? `Auth config fetch failed: ${fetchError.message}` : 'Auth config fetch failed');
+
         const cfg = await res.json();
         const domain = normalizeAuth0Domain(cfg?.domain);
         const clientId = normalizeAuth0ClientId(cfg?.clientId);
