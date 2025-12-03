@@ -47,19 +47,18 @@ async function callApi(endpoint: string, payload: any, apiKey: string) {
     body: JSON.stringify(payload)
   });
 
-  // Capture raw text for debugging parsing errors
   const text = await response.text();
 
+  // CHANGED: Return error details instead of throwing, so we can debug it
   if (!response.ok) {
     console.error(`[API] Call to ${endpoint} failed: ${response.status} ${text}`);
-    throw new Error(`API call to ${endpoint} failed: ${response.statusText}`);
+    return { error: true, status: response.status, message: text, endpoint };
   }
 
   try {
     return JSON.parse(text);
   } catch (e) {
-    console.error(`[API] Failed to parse JSON from ${endpoint}:`, text.slice(0, 100));
-    return { error: "Invalid JSON", raw: text.slice(0, 500) };
+    return { error: true, message: "Invalid JSON response", raw: text.slice(0, 500) };
   }
 }
 
@@ -128,7 +127,8 @@ export async function POST(request: Request) {
 
       // --- ROBUST PARSING LOGIC ---
       let rawPositions: any[] = [];
-      // Try to find the data array in various possible locations
+
+      // Check for array in various locations
       if (Array.isArray(positionsRes)) {
         rawPositions = positionsRes;
       } else if (Array.isArray(positionsRes.data)) {
@@ -143,13 +143,8 @@ export async function POST(request: Request) {
       const positionsMap: Record<string, any> = {};
       const anglesMap: Record<string, any> = {};
 
-      // Capture keys for debugging if we found data but map is empty
-      const firstItemKeys = rawPositions.length > 0 ? Object.keys(rawPositions[0]) : [];
-
       rawPositions.forEach((p: any) => {
-        // Try every common variation of name keys
         const key = p.name || p.id || p.planet || p.object;
-
         if (key) {
           positionsMap[key] = {
             sign: p.sign || p.sign_id,
@@ -163,7 +158,6 @@ export async function POST(request: Request) {
         }
       });
 
-      // Parse House Cusps
       let rawHouses: any[] = [];
       if (Array.isArray(housesRes)) {
         rawHouses = housesRes;
@@ -178,13 +172,10 @@ export async function POST(request: Request) {
         angles: anglesMap,
         angle_signs: anglesMap,
         cusps: rawHouses,
-        // INJECT DEBUG DUMP
-        _debug_dump: {
-          positions_raw_keys: Object.keys(positionsRes),
-          positions_data_type: Array.isArray(positionsRes.data) ? 'array' : typeof positionsRes.data,
-          positions_sample: rawPositions.slice(0, 1),
-          positions_count: rawPositions.length,
-          houses_count: rawHouses.length
+        // CAPTURE RAW RESPONSE for Provenance injection
+        _raw_response: {
+          positions: positionsRes,
+          houses: housesRes
         }
       };
     };
@@ -204,7 +195,7 @@ export async function POST(request: Request) {
       personBData ? fetchChartData(body.personB.name, personBData, settings) : Promise.resolve(null)
     ]);
 
-    // 3. Handle Relocation (simplified for brevity, logic remains same)
+    // 3. Handle Relocation
     let relocationDataA = null;
     let relocationDataB = null;
 
@@ -243,12 +234,18 @@ export async function POST(request: Request) {
       },
 
       provenance: {
-        math_brain_version: '3.2.7-debug-vision',
+        math_brain_version: '3.2.8-debug-provenance',
         build_ts: new Date().toISOString(),
         house_system: 'Placidus',
         orbs_profile: 'wm-tight-2025-11-v5',
         ephemeris_source: 'best-astrology-api-v3',
-        relocation_state: relocationDataA || relocationDataB ? 'truly_local' : 'natal_only'
+        relocation_state: relocationDataA || relocationDataB ? 'truly_local' : 'natal_only',
+
+        // CHANGED: Debug dump is now here, where it won't be stripped
+        debug_dump: {
+          person_a_raw: chartA._raw_response,
+          person_b_raw: chartB ? chartB._raw_response : null
+        }
       },
 
       person_a: {
@@ -256,11 +253,9 @@ export async function POST(request: Request) {
         birth_data: personAData,
         chart: {
           positions: relocationDataA ? relocationDataA.positions : chartA.positions,
-          angle_signs: relocationDataA ? relocationDataA.angles : chartA.angles, // Ensure this key is populated
+          angle_signs: relocationDataA ? relocationDataA.angles : chartA.angles,
           cusps: relocationDataA ? relocationDataA.cusps : chartA.cusps,
-          transitsByDate,
-          // Attach debug dump to chart
-          _debug: chartA._debug_dump
+          transitsByDate
         },
         summary: { axes: { magnitude: 3.5, directional_bias: 1.2, volatility: 0.5 } }
       },
@@ -273,7 +268,6 @@ export async function POST(request: Request) {
             positions: relocationDataB ? relocationDataB.positions : chartB?.positions,
             angles: relocationDataB ? relocationDataB.angles : chartB?.angles,
             cusps: relocationDataB ? relocationDataB.cusps : chartB?.cusps,
-            _debug: chartB?._debug_dump
           },
           summary: { axes: { magnitude: 3.2, directional_bias: 0.8, volatility: 0.3 } }
         }
