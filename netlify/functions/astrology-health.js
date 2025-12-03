@@ -6,7 +6,7 @@
  * NOTE: Keep the metadata constants in sync with lib/server/astrology-mathbrain.js.
  */
 
-const API_NOW_ENDPOINT = 'https://best-astrology-api.p.rapidapi.com/v3/data/now';
+
 const MATH_BRAIN_VERSION = '0.2.1';            // Keep in sync with core module
 const EPHEMERIS_SOURCE = 'AstrologerAPI-v3';   // Updated to v3
 const CALIBRATION_BOUNDARY = '2025-09-05';     // Keep in sync with core module
@@ -26,6 +26,8 @@ function buildRapidApiHeaders() {
   };
 }
 
+const API_PING_ENDPOINT = 'https://best-astrology-api.p.rapidapi.com/v3/data/positions';
+
 async function rapidApiPing(shouldPing) {
   if (!shouldPing || !process.env.RAPIDAPI_KEY) {
     return null;
@@ -34,14 +36,51 @@ async function rapidApiPing(shouldPing) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 3500);
 
+  const payload = {
+    subject: {
+      name: "Health Check",
+      birth_data: {
+        year: 2000,
+        month: 1,
+        day: 1,
+        hour: 12,
+        minute: 0,
+        latitude: 0,
+        longitude: 0,
+        timezone: "UTC"
+      }
+    },
+    options: {
+      house_system: "P",
+      zodiac_type: "Tropic"
+    }
+  };
+
   try {
-    const response = await fetch(API_NOW_ENDPOINT, {
-      method: 'GET',
+    const response = await fetch(API_PING_ENDPOINT, {
+      method: 'POST',
       headers: buildRapidApiHeaders(),
+      body: JSON.stringify(payload),
       signal: controller.signal
     });
     clearTimeout(timeout);
-    return { ok: response.ok, status: response.status };
+
+    // If response is not OK, try to read the error body
+    let errorMsg = undefined;
+    if (!response.ok) {
+      try {
+        const errBody = await response.json();
+        errorMsg = errBody.message || errBody.error || response.statusText;
+      } catch {
+        errorMsg = response.statusText;
+      }
+    }
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      error: errorMsg
+    };
   } catch (error) {
     clearTimeout(timeout);
     return {
