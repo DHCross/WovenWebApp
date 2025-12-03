@@ -1,116 +1,245 @@
 import { NextResponse } from 'next/server';
 
+// --- Types & Interfaces ---
+
+interface BirthData {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+  city?: string;
+  country_code?: string;
+}
+
+interface PersonInput {
+  name: string;
+  year: number | string;
+  month: number | string;
+  day: number | string;
+  hour: number | string;
+  minute: number | string;
+  latitude: number | string;
+  longitude: number | string;
+  timezone: string;
+  city?: string;
+  nation?: string;
+  zodiac_type?: string;
+}
+
+// --- Helper Functions ---
+
+const API_HOST = 'best-astrology-api.p.rapidapi.com';
+const API_BASE = 'https://api.astrology-api.io/api/v3';
+
+async function callApi(endpoint: string, payload: any, apiKey: string) {
+  const url = `${API_BASE}${endpoint}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-rapidapi-key': apiKey,
+      'x-rapidapi-host': API_HOST
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    console.error(`[API] Call to ${endpoint} failed: ${response.status} ${text}`);
+    throw new Error(`API call to ${endpoint} failed: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+function normalizePerson(p: PersonInput): BirthData {
+  return {
+    year: Number(p.year),
+    month: Number(p.month),
+    day: Number(p.day),
+    hour: Number(p.hour),
+    minute: Number(p.minute),
+    latitude: Number(p.latitude),
+    longitude: Number(p.longitude),
+    timezone: p.timezone,
+    city: p.city,
+    country_code: p.nation || 'US'
+  };
+}
+
+function buildSubjectPayload(name: string, data: BirthData) {
+  return {
+    name,
+    birth_data: { ...data }
+  };
+}
+
+// --- Main Route Handler ---
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-
-    if (!body.personA) {
-      return NextResponse.json(
-        { success: false, error: 'Missing Person A data' },
-        { status: 400 }
-      );
-    }
-
-    // 1. Construct Subject V3 Payload for the external API
-    const subject = {
-      name: body.personA.name,
-      birth_data: {
-        year: Number(body.personA.year),
-        month: Number(body.personA.month),
-        day: Number(body.personA.day),
-        hour: Number(body.personA.hour),
-        minute: Number(body.personA.minute),
-        latitude: Number(body.personA.latitude),
-        longitude: Number(body.personA.longitude),
-        timezone: body.personA.timezone,
-        city: body.personA.city,
-        country_code: body.personA.nation || 'US' // Fallback
-      }
-    };
-
-    // 2. Prepare External API Request (Natal Positions)
-    // We use the natal birth date for the "now" calculation to get the natal chart
-    const apiPayload = {
-      subject: subject,
-      date: {
-        year: subject.birth_data.year,
-        month: subject.birth_data.month,
-        day: subject.birth_data.day
-      },
-      time: {
-        hour: subject.birth_data.hour,
-        minute: subject.birth_data.minute
-      },
-      location: {
-        latitude: subject.birth_data.latitude,
-        longitude: subject.birth_data.longitude
-      },
-      settings: {
-        zodiac: body.personA.zodiac_type || 'Tropic',
-        house_system: 'P' // Placidus
-      }
-    };
-
-    // 3. Call External API
     const apiKey = process.env.RAPIDAPI_KEY;
-    const apiHost = 'best-astrology-api.p.rapidapi.com'; // CORRECTED HOST
-    const apiUrl = `https://api.astrology-api.io/api/v3/data/positions`; // VALID ENDPOINT
 
     if (!apiKey) {
-      console.warn('Missing RAPIDAPI_KEY env var; falling back to mock data.');
-      // Fallback logic could go here, or just throw
+      return NextResponse.json({ success: false, error: 'Server configuration error: Missing API Key' }, { status: 500 });
     }
 
-    const apiResponse = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-rapidapi-key': apiKey || '',
-        'x-rapidapi-host': apiHost
-      },
-      body: JSON.stringify(apiPayload)
-    });
-
-    if (!apiResponse.ok) {
-      const errText = await apiResponse.text();
-      console.error('[API] External Astrology API Failed:', apiResponse.status, errText);
-      throw new Error(`External API error: ${apiResponse.statusText}`);
+    if (!body.personA) {
+      return NextResponse.json({ success: false, error: 'Missing Person A data' }, { status: 400 });
     }
 
-    const externalData = await apiResponse.json();
+    // 1. Prepare Subjects
+    const personAData = normalizePerson(body.personA);
+    const personBData = body.personB ? normalizePerson(body.personB) : null;
 
-    // 4. Generate Transits (Mock or Real)
-    // For now, to ensure the page loads, we keep the mock transits generator 
-    // but we could extend this to call the API for each day if needed.
+    // 2. Fetch Natal Geometry (Parallel)
+    // We need Positions AND House Cusps for a complete chart
+    const fetchChartData = async (name: string, data: BirthData, settings: any) => {
+      const subject = buildSubjectPayload(name, data);
+      const commonPayload = {
+        subject,
+        date: { year: data.year, month: data.month, day: data.day },
+        time: { hour: data.hour, minute: data.minute },
+        location: { latitude: data.latitude, longitude: data.longitude },
+        settings
+      };
+
+      const [positions, houses] = await Promise.all([
+        callApi('/data/positions', commonPayload, apiKey),
+        callApi('/data/house-cusps', commonPayload, apiKey)
+      ]);
+
+      return {
+        positions: positions.data?.planets || {},
+        angles: positions.data?.angles || {},
+        cusps: houses.data?.cusps || []
+      };
+    };
+
+    const settings = {
+      zodiac: body.personA.zodiac_type || 'Tropic',
+      house_system: 'P' // Placidus
+    };
+
+    const [chartA, chartB] = await Promise.all([
+      fetchChartData(body.personA.name, personAData, settings),
+      personBData ? fetchChartData(body.personB.name, personBData, settings) : Promise.resolve(null)
+    ]);
+
+    // 3. Handle Relocation
+    // Check if relocation is requested and applies
+    let relocationDataA = null;
+    let relocationDataB = null;
+
+    if (body.translocation && body.translocation.applies && body.translocation.coords) {
+      const { latitude, longitude } = body.translocation.coords;
+      const method = body.translocation.method; // 'A_local', 'B_local', 'Both_local', etc.
+
+      const fetchRelocated = async (name: string, birth: BirthData) => {
+        // Relocation = Birth Time + Relocated Coords
+        const subject = buildSubjectPayload(name, birth);
+        const payload = {
+          subject,
+          date: { year: birth.year, month: birth.month, day: birth.day },
+          time: { hour: birth.hour, minute: birth.minute },
+          location: { latitude, longitude }, // RELOCATED COORDS
+          settings
+        };
+        const [positions, houses] = await Promise.all([
+          callApi('/data/positions', payload, apiKey),
+          callApi('/data/house-cusps', payload, apiKey)
+        ]);
+        return {
+          positions: positions.data?.planets || {},
+          angles: positions.data?.angles || {},
+          cusps: houses.data?.cusps || []
+        };
+      };
+
+      if (method === 'A_local' || method === 'Both_local') {
+        relocationDataA = await fetchRelocated(body.personA.name, personAData);
+      }
+      if (personBData && (method === 'B_local' || method === 'Both_local')) {
+        relocationDataB = await fetchRelocated(body.personB.name, personBData);
+      }
+    }
+
+    // 4. Generate Transits (Mock for now, as per plan to focus on structure first)
+    // In a full implementation, we would fetch transits from /charts/natal-transits
     const transitsByDate = generateMockTransits(body.window?.start, body.window?.end);
 
-    // 5. Construct Final Response
-    return NextResponse.json({
+    // 5. Construct Response (mirror-symbolic-weather-v1 compliant)
+    const response = {
+      _format: 'mirror-symbolic-weather-v1',
+      _natal_sections: 1,
+      _required_sections: personBData ? ['person_a', 'person_b'] : ['person_a'],
+
       success: true,
       sessionId: `session-${Date.now()}`,
+
+      mirror_contract: {
+        report_kind: personBData ? 'Relational Balance Meter' : 'Solo Balance Meter',
+        is_relational: !!personBData,
+        relationship_type: body.relationship_context?.type || (personBData ? 'Partner' : undefined),
+        intimacy_tier: body.relationship_context?.intimacy_tier,
+        contact_state: 'ACTIVE'
+      },
+
       provenance: {
-        math_brain_version: '3.1.5-live',
+        math_brain_version: '3.2.0-relocation-fix',
         build_ts: new Date().toISOString(),
         house_system: 'Placidus',
         orbs_profile: 'wm-tight-2025-11-v5',
-        ephemeris_source: 'best-astrology-api-v3', // Updated source
+        ephemeris_source: 'best-astrology-api-v3',
+        relocation_state: relocationDataA || relocationDataB ? 'truly_local' : 'natal_only'
       },
+
       person_a: {
         name: body.personA.name,
-        details: body.personA,
+        birth_data: personAData,
         chart: {
-          transitsByDate,
-          // Use real data from external API for points if available, else fallback
-          points: externalData.data?.planets || { Sun: { sign: 'Aries', degree: 0 } }
+          // If relocated, we could swap these or provide them in a separate block.
+          // For now, let's put the EFFECTIVE geometry here (Relocated if applied, else Natal)
+          // But usually 'chart' implies natal. Let's stick to Natal here and add 'relocation' block if needed.
+          // Wait, the user wants "truly local". So if relocated, this SHOULD be the relocated chart?
+          // The prompt said: "Store these in person_X.chart... Ensure that when relocation is on, these differ from natal."
+          // So yes, we overwrite if relocated.
+          positions: relocationDataA ? relocationDataA.positions : chartA.positions,
+          angles: relocationDataA ? relocationDataA.angles : chartA.angles,
+          cusps: relocationDataA ? relocationDataA.cusps : chartA.cusps,
+
+          // Keep original natal for reference if needed?
+          natal_base: relocationDataA ? { positions: chartA.positions, angles: chartA.angles, cusps: chartA.cusps } : undefined,
+
+          transitsByDate // Attached to Person A for now as per previous structure
         },
         summary: {
-          axes: {
-            magnitude: 3.5, // Example calculated metrics
-            directional_bias: 1.2,
-            volatility: 0.5
-          }
+          // Mock summary stats for the balance meter
+          axes: { magnitude: 3.5, directional_bias: 1.2, volatility: 0.5 }
         }
       },
+
+      ...(personBData && {
+        person_b: {
+          name: body.personB.name,
+          birth_data: personBData,
+          chart: {
+            positions: relocationDataB ? relocationDataB.positions : chartB?.positions,
+            angles: relocationDataB ? relocationDataB.angles : chartB?.angles,
+            cusps: relocationDataB ? relocationDataB.cusps : chartB?.cusps,
+            natal_base: relocationDataB ? { positions: chartB?.positions, angles: chartB?.angles, cusps: chartB?.cusps } : undefined
+          },
+          summary: {
+            axes: { magnitude: 3.2, directional_bias: 0.8, volatility: 0.3 }
+          }
+        }
+      }),
+
       balance_meter: {
         magnitude: 3.5,
         directional_bias: 1.2,
@@ -119,11 +248,15 @@ export async function POST(request: Request) {
         valence_label: 'Flow',
         volatility_label: 'Stable'
       },
+
       context: {
         mode: body.mode,
-        period: body.window
+        period: body.window,
+        relocation: body.translocation
       }
-    });
+    };
+
+    return NextResponse.json(response);
 
   } catch (error) {
     console.error('[API] Handler Error:', error);
@@ -134,7 +267,7 @@ export async function POST(request: Request) {
   }
 }
 
-// Keep mock generator for transits to ensure graph rendering works immediately
+// Mock generator for transits (Placeholder for future API integration)
 function generateMockTransits(start: string, end: string) {
   if (!start || !end) return {};
   const transits: Record<string, any> = {};
@@ -146,9 +279,9 @@ function generateMockTransits(start: string, end: string) {
     transits[dateStr] = {
       date: dateStr,
       seismograph: {
-        magnitude: 1 + Math.random() * 3,
-        directional_bias: (Math.random() * 6) - 3,
-        volatility: Math.random() * 2
+        magnitude: Number((1 + Math.random() * 3).toFixed(1)),
+        directional_bias: Number(((Math.random() * 6) - 3).toFixed(1)),
+        volatility: Number((Math.random() * 2).toFixed(1))
       },
       drivers: ['Sun trine Moon', 'Mercury square Saturn']
     };

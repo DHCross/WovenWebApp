@@ -1,0 +1,127 @@
+{
+  "_format": "mirror-symbolic-weather-v1",
+  "_version": "1.0",
+  "_contains_transits": true,
+  "_contains_weather_data": true,
+  "_range_dates": [
+    "2025-12-03",
+    "2025-12-06"
+  ],
+  "_transit_days": 4,
+  "_natal_sections": 1,
+  "_required_sections": [
+    "person_a"
+  ],
+  "generated_at": "2025-12-03T04:58:31.884Z",
+  "_natal_section": {
+    "mirror_source": "integrated",
+    "note": "Natal geometry integrated with symbolic weather in single file"
+  },
+  "person_a": {
+    "name": "Dan Cross",
+    "birth_data": {
+      "name": "Dan Cross",
+      "year": 1973,
+      "month": 7,
+      "day": 24,
+      "hour": 14,
+      "minute": 30,
+      "city": "Bryn Mawr",
+      "state": "PA",
+      "latitude": 40.016666666666666,
+      "longitude": -75.3,
+      "timezone": "US/Eastern",
+      "nation": "US",
+      "zodiac_type": "Tropic"
+    },
+    "chart": {
+      "angle_signs": {},
+      "positions": {},
+      "transitsByDate": {
+        "2025-12-03": {
+          "seismograph": {
+            "magnitude": 3.71,
+            "directional_bias": 1.2,
+            "volatility": 2
+          }
+        },
+        "2025-12-04": {
+          "seismograph": {
+            "magnitude": 3.41,
+            "directional_bias": 2.9,
+            "volatility": 1.1
+          }
+        },
+        "2025-12-05": {
+          "seismograph": {
+            "magnitude": 2.02,
+            "directional_bias": 1.7,
+            "volatility": 0.3
+          }
+        },
+        "2025-12-06": {
+          "seismograph": {
+            "magnitude": 3.36,
+            "directional_bias": 1.2,
+            "volatility": 0.7
+          }
+        }
+      }
+    }
+  },
+  "report_kind": "Relational Balance Meter",
+  "mirror_contract": {
+    "report_kind": "Relational Balance Meter",
+    "is_relational": false,
+    "intimacy_tier": null,
+    "relationship_type": null,
+    "contact_state": "ACTIVE"
+  },
+  "balance_meter_frontstage": {
+    "magnitude": 3.5,
+    "directional_bias": 1.2,
+    "volatility": 0.5,
+    "coherence": 2.5,
+    "magnitude_label": "Active",
+    "directional_bias_label": "Mild Outward",
+    "volatility_label": "Low"
+  },
+  "daily_readings": [
+    {
+      "date": "2025-12-03",
+      "magnitude": 3.71,
+      "directional_bias": 1.2,
+      "volatility": 2,
+      "coherence": 3
+    },
+    {
+      "date": "2025-12-04",
+      "magnitude": 3.41,
+      "directional_bias": 2.9,
+      "volatility": 1.1,
+      "coherence": 3.9
+    },
+    {
+      "date": "2025-12-05",
+      "magnitude": 2.02,
+      "directional_bias": 1.7,
+      "volatility": 0.3,
+      "coherence": 3.5
+    },
+    {
+      "date": "2025-12-06",
+      "magnitude": 3.36,
+      "directional_bias": 1.2,
+      "volatility": 0.7,
+      "coherence": 1.5
+    }
+  ],
+  "reading_count": 4,
+  "provenance": {
+    "math_brain_version": "3.1.5-live",
+    "ephemeris_source": "best-astrology-api-v3",
+    "build_ts": "2025-12-03T04:58:27.980Z",
+    "house_system": "Placidus",
+    "orbs_profile": "wm-tight-2025-11-v5"
+  }
+}
