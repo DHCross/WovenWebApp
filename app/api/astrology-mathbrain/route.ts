@@ -98,23 +98,19 @@ export async function POST(request: Request) {
     const personBData = body.personB ? normalizePerson(body.personB) : null;
 
     // 2. Fetch Natal Geometry (Parallel)
-    // FIXED: Updated parsing logic to match V3 API structure
     const fetchChartData = async (name: string, data: BirthData, settings: any) => {
-      const subject = buildSubjectPayload(name, data);
-      const commonPayload = {
-        subject,
-        // API V3 expects simplified structure or just 'subject' + 'options' often works, 
-        // but passing location explicitly ensures accuracy if API supports it.
-        // Standard V3 'positions' endpoint usually just needs 'subject' + 'options'.
-        options: settings
+      // FIX: Construct exact V3 payload structure
+      const payload = {
+        subject: buildSubjectPayload(name, data),
+        options: settings // V3 uses 'options', not 'settings'
       };
 
       const [positionsRes, housesRes] = await Promise.all([
-        callApi('/data/positions', commonPayload, apiKey),
-        callApi('/data/house-cusps', commonPayload, apiKey)
+        callApi('/data/positions', payload, apiKey),
+        callApi('/data/house-cusps', payload, apiKey)
       ]);
 
-      // PARSING FIX: V3 returns { data: [...] } for positions, not data.planets
+      // Handle V3 response structure (data array vs direct object)
       const rawPositions = Array.isArray(positionsRes.data) ? positionsRes.data : [];
 
       // Convert array to Dictionary for Math Brain compatibility
@@ -123,36 +119,35 @@ export async function POST(request: Request) {
 
       rawPositions.forEach((p: any) => {
         const key = p.name || p.id;
-        positionsMap[key] = {
-          sign: p.sign,
-          deg: p.norm_degree || p.longitude,
-          house: p.house_number,
-          retro: p.is_retrograde
-        };
+        if (key) {
+          positionsMap[key] = {
+            sign: p.sign,
+            deg: p.norm_degree || p.longitude,
+            house: p.house_number,
+            retro: p.is_retrograde
+          };
 
-        // Capture Angles
-        if (key === 'Ascendant' || key === 'ASC') anglesMap['Ascendant'] = positionsMap[key];
-        if (key === 'Midheaven' || key === 'MC' || key === 'Medium_Coeli') anglesMap['MC'] = positionsMap[key];
+          // Capture Angles for legacy compatibility
+          if (key === 'Ascendant' || key === 'ASC') anglesMap['Ascendant'] = positionsMap[key];
+          if (key === 'Midheaven' || key === 'MC' || key === 'Medium_Coeli') anglesMap['MC'] = positionsMap[key];
+        }
       });
 
       // Parse House Cusps
-      // V3 /house-cusps typically returns { data: [ { house: 1, sign: '...', degree: ... }, ... ] }
       const rawHouses = Array.isArray(housesRes.data) ? housesRes.data : [];
 
       return {
         positions: positionsMap,
         angles: anglesMap,
         angle_signs: anglesMap, // Fallback alias
-        cusps: rawHouses,
-        // Helper to verify data is flowing
-        _debug_count: rawPositions.length
+        cusps: rawHouses
       };
     };
 
     const settings = {
       zodiac_type: body.personA.zodiac_type || 'Tropic',
       house_system: 'P', // Placidus
-      active_points: ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Ascendant', 'MC', 'North Node', 'Chiron']
+      active_points: ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Ascendant', 'Medium_Coeli', 'Mean_Node', 'Chiron']
     };
 
     const [chartA, chartB] = await Promise.all([
@@ -168,9 +163,10 @@ export async function POST(request: Request) {
       const { latitude, longitude } = body.translocation.coords;
       const method = body.translocation.method;
 
-      // Re-use fetch with mutated location
+      // Re-use fetch with mutated location for relocation
       const fetchRelocated = async (name: string, birth: BirthData) => {
         const relocatedBirthData = { ...birth, latitude, longitude };
+        // Note: We keep birth time/timezone but change coordinates
         return fetchChartData(name, relocatedBirthData, settings);
       };
 
@@ -228,7 +224,6 @@ export async function POST(request: Request) {
         name: body.personA.name,
         birth_data: personAData,
         chart: {
-          // Use Relocated geometry if available, otherwise Natal
           positions: relocationDataA ? relocationDataA.positions : chartA.positions,
           angles: relocationDataA ? relocationDataA.angles : chartA.angles,
           cusps: relocationDataA ? relocationDataA.cusps : chartA.cusps,
@@ -250,7 +245,6 @@ export async function POST(request: Request) {
         }
       }),
 
-      // v5.0 Compliance: Removed Coherence
       balance_meter: {
         magnitude: 3.5,
         directional_bias: 1.2,
@@ -278,7 +272,6 @@ export async function POST(request: Request) {
   }
 }
 
-// Mock generator (unchanged)
 function generateMockTransits(start: string, end: string) {
   if (!start || !end) return {};
   const transits: Record<string, any> = {};
