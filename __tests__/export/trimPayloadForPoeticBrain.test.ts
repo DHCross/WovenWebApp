@@ -262,10 +262,12 @@ describe('trimPayloadForPoeticBrain', () => {
     expect(reading.overflow_detail).toBeUndefined();
   });
 
-  it('removes natal aspects array', () => {
+  it('preserves natal aspects array for Poetic Brain mandate generation', () => {
     const trimmed = trimPayloadForPoeticBrain(samplePayload);
     
-    expect(trimmed.person_a.aspects).toBeUndefined();
+    // Aspects are KEPT per spec: buildMandatesForChart needs them
+    expect(trimmed.person_a.aspects).toBeDefined();
+    expect(Array.isArray(trimmed.person_a.aspects)).toBe(true);
   });
 
   it('significantly reduces payload size', () => {
@@ -284,5 +286,47 @@ describe('trimPayloadForPoeticBrain', () => {
     expect(trimPayloadForPoeticBrain(null)).toBeNull();
     expect(trimPayloadForPoeticBrain(undefined)).toBeUndefined();
     expect(trimPayloadForPoeticBrain({})).toEqual({});
+  });
+
+  it('handles API v3 format with chart.positions dictionary', () => {
+    // New format from API v3: positions in a nested dictionary with PascalCase keys
+    const apiV3Payload = {
+      _format: 'mirror-symbolic-weather-v1',
+      _version: '1.0',
+      generated_at: '2025-12-03T07:00:00.000Z',
+      person_a: {
+        name: 'Test',
+        birth_data: { year: 1980, month: 6, day: 15 },
+        chart: {
+          positions: {
+            Sun: { sign: 'Gem', deg: 24.66, abs_pos: 84.66, house: 10, retro: false },
+            Moon: { sign: 'Can', deg: 29.53, abs_pos: 119.53, house: 11, retro: false },
+            Mercury: { sign: 'Can', deg: 19.09, abs_pos: 109.09, house: 11, retro: false },
+          },
+          angle_signs: { ascendant: 'Leo', mc: 'Tau' },
+          cusps: [147.93, 170.43, 198.2, 231.36, 266.83, 299.63, 327.93, 350.43, 18.2, 51.36, 86.83, 119.63],
+          transitsByDate: {},
+        },
+      },
+      provenance: {
+        math_brain_version: '3.3.0',
+      },
+    };
+
+    const trimmed = trimPayloadForPoeticBrain(apiV3Payload);
+
+    // Should preserve positions from the dictionary
+    expect(trimmed.person_a.chart.positions).toBeDefined();
+    expect(Object.keys(trimmed.person_a.chart.positions).length).toBe(3);
+    expect(trimmed.person_a.chart.positions.Sun).toBeDefined();
+    expect(trimmed.person_a.chart.positions.Sun.abs_pos).toBe(84.66);
+    expect(trimmed.person_a.chart.positions.Sun.sign).toBe('Gem');
+    expect(trimmed.person_a.chart.positions.Sun.retrograde).toBe(false); // Normalized from 'retro'
+    
+    // Should preserve angle_signs
+    expect(trimmed.person_a.chart.angle_signs).toEqual({ ascendant: 'Leo', mc: 'Tau' });
+    
+    // Should preserve cusps
+    expect(trimmed.person_a.chart.cusps).toHaveLength(12);
   });
 });

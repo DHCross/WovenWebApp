@@ -140,6 +140,10 @@ const HOUSE_KEYS = new Set([
 
 /**
  * Trim a planet object to essential fields only
+ * 
+ * SUPPORTS TWO FORMATS:
+ * 1. Old format: { abs_pos, retrograde, house, sign, sign_num }
+ * 2. New format (API v3): { deg, abs_pos, retro, house, sign }
  */
 function trimPlanetObject(planet: any): any {
   if (!planet || typeof planet !== 'object') return planet;
@@ -147,17 +151,26 @@ function trimPlanetObject(planet: any): any {
   const trimmed: any = {};
   
   // Always keep abs_pos - this is the critical data
+  // New format uses "abs_pos" directly
   if (typeof planet.abs_pos === 'number') {
     trimmed.abs_pos = planet.abs_pos;
   }
   
+  // Keep degree within sign (new format uses "deg")
+  if (typeof planet.deg === 'number') {
+    trimmed.deg = planet.deg;
+  }
+  
   // Keep retrograde status
+  // Old format: "retrograde", new format: "retro"
   if (typeof planet.retrograde === 'boolean') {
     trimmed.retrograde = planet.retrograde;
+  } else if (typeof planet.retro === 'boolean') {
+    trimmed.retrograde = planet.retro;
   }
   
   // Keep house placement (saves Poetic Brain from recomputing)
-  if (planet.house) {
+  if (planet.house !== undefined) {
     trimmed.house = planet.house;
   }
   
@@ -176,6 +189,10 @@ function trimPlanetObject(planet: any): any {
  * Trim a chart object to essential fields only
  * Converts individual house objects to cusps array if needed
  * Adds angle_signs for quick orientation reference
+ * 
+ * SUPPORTS TWO FORMATS:
+ * 1. Old format: planets at chart.sun, chart.moon, etc. (lowercase)
+ * 2. New format: planets in chart.positions = { Sun: {...}, Moon: {...} } (PascalCase)
  */
 function trimChartObject(chart: any): any {
   if (!chart || typeof chart !== 'object') return chart;
@@ -189,35 +206,55 @@ function trimChartObject(chart: any): any {
     }
   }
   
-  // ⭐ Add angle signs (per spec: "the only sign labels that carry structural, orientation-defining information")
-  trimmed.angle_signs = {};
-  if (chart.ascendant?.sign) trimmed.angle_signs.ascendant = chart.ascendant.sign;
-  if (chart.medium_coeli?.sign) trimmed.angle_signs.mc = chart.medium_coeli.sign;
-  if (chart.descendant?.sign) trimmed.angle_signs.descendant = chart.descendant.sign;
-  if (chart.imum_coeli?.sign) trimmed.angle_signs.ic = chart.imum_coeli.sign;
+  // ⭐ Preserve angle_signs from API if present (new format)
+  // The API returns { angle_signs: { ascendant: "Leo", mc: "Tau" } }
+  if (chart.angle_signs && typeof chart.angle_signs === 'object') {
+    trimmed.angle_signs = { ...chart.angle_signs };
+  } else {
+    // Fallback: Build from old format (individual angle objects)
+    trimmed.angle_signs = {};
+    if (chart.ascendant?.sign) trimmed.angle_signs.ascendant = chart.ascendant.sign;
+    if (chart.medium_coeli?.sign) trimmed.angle_signs.mc = chart.medium_coeli.sign;
+    if (chart.descendant?.sign) trimmed.angle_signs.descendant = chart.descendant.sign;
+    if (chart.imum_coeli?.sign) trimmed.angle_signs.ic = chart.imum_coeli.sign;
+  }
   
   // Build positions object with trimmed planets
   trimmed.positions = {};
   
-  // Process planets
-  for (const key of PLANET_KEYS) {
-    if (chart[key]) {
-      trimmed.positions[key] = trimPlanetObject(chart[key]);
+  // ⭐ NEW FORMAT: Check if chart.positions is already populated (API v3 format)
+  // API returns: chart.positions = { Sun: {...}, Moon: {...}, ... }
+  if (chart.positions && typeof chart.positions === 'object' && Object.keys(chart.positions).length > 0) {
+    // Copy positions directly, trimming each planet object
+    for (const [key, value] of Object.entries(chart.positions)) {
+      if (value && typeof value === 'object') {
+        trimmed.positions[key] = trimPlanetObject(value);
+      }
     }
-  }
-  
-  // Process axial points (ASC, DSC, MC, IC)
-  for (const key of AXIAL_KEYS) {
-    if (chart[key]) {
-      trimmed.positions[key] = trimPlanetObject(chart[key]);
-    }
-  }
-  
-  // Ensure house_cusps is a 12-element array
-  if (Array.isArray(chart.house_cusps) && chart.house_cusps.length === 12) {
-    trimmed.house_cusps = chart.house_cusps;
   } else {
-    // Build from individual house objects if needed
+    // OLD FORMAT: Process planets at top level (chart.sun, chart.moon, etc.)
+    for (const key of PLANET_KEYS) {
+      if (chart[key]) {
+        trimmed.positions[key] = trimPlanetObject(chart[key]);
+      }
+    }
+    
+    // Process axial points (ASC, DSC, MC, IC)
+    for (const key of AXIAL_KEYS) {
+      if (chart[key]) {
+        trimmed.positions[key] = trimPlanetObject(chart[key]);
+      }
+    }
+  }
+  
+  // Ensure house_cusps/cusps is a 12-element array
+  // New format uses "cusps", old format may use "house_cusps"
+  if (Array.isArray(chart.cusps) && chart.cusps.length === 12) {
+    trimmed.cusps = chart.cusps;
+  } else if (Array.isArray(chart.house_cusps) && chart.house_cusps.length === 12) {
+    trimmed.cusps = chart.house_cusps;
+  } else {
+    // Build from individual house objects if needed (old format)
     const cusps: number[] = [];
     const houseOrder = [
       'first_house', 'second_house', 'third_house', 'fourth_house',
@@ -230,7 +267,7 @@ function trimChartObject(chart: any): any {
       }
     }
     if (cusps.length === 12) {
-      trimmed.house_cusps = cusps;
+      trimmed.cusps = cusps;
     }
   }
   
