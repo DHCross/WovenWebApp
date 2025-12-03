@@ -107,7 +107,10 @@ function determineReportType(isRelational: boolean, hasTransits: boolean): strin
  * - midpoint: Midpoint of both (discouraged, only if explicitly requested)
  */
 function determineRelocationMode(translocation: any, isRelational: boolean): string {
+  // Relocation requires both applies=true AND valid coords
+  // If coords is missing, we cannot actually relocate - provenance must be honest
   if (!translocation?.applies) return 'None';
+  if (!translocation?.coords?.latitude || !translocation?.coords?.longitude) return 'None';
   
   const method = translocation.method || '';
   if (method.includes('midpoint')) return 'midpoint';
