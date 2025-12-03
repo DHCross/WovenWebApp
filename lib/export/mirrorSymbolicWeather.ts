@@ -9,6 +9,7 @@ import {
   OVERFLOW_TOLERANCE,
 } from '../math-brain/overflow-detail';
 import { validateForExport } from '../validation/report-integrity-validator';
+import { inferMbtiFromChart, formatForPoeticBrain } from '../mbti/inferMbtiFromChart';
 
 type AxisKey = 'magnitude' | 'directional_bias' | 'volatility';
 
@@ -182,6 +183,26 @@ export function createMirrorSymbolicWeatherPayload(
       coordinates: additionalContext.translocation.coordinates || null,
       timezone: additionalContext.translocation.timezone || null,
     } : null,
+
+    // MBTI Correspondence (Poetic Brain context - symbolic, not typology)
+    mbti_correspondence: (() => {
+      const chart = unifiedOutput?.person_a?.chart;
+      if (!chart) return null;
+      const inference = inferMbtiFromChart(chart);
+      if (!inference) return null;
+      return {
+        // Symbolic phrases for Poetic Brain - no raw MBTI codes in frontstage
+        poetic_brain_context: formatForPoeticBrain(inference),
+        archetypal_motion: inference.archetypal_motion,
+        symbolic_phrases: inference.symbolic_phrases,
+        hinge_points: inference.hinge_points,
+        confidence: inference.confidence,
+        disclaimer: inference.disclaimer,
+        // Backstage only - not for frontstage output
+        _backstage_code: inference.code,
+      };
+    })(),
+
     balance_meter_frontstage: null,
     daily_readings: [],
   };

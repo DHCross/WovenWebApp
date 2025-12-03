@@ -1,0 +1,169 @@
+{
+  "_meta": {
+    "version": "1.0.0",
+    "description": "Woven Map ⇄ MBTI Correspondence Table - Constitutional Geometry → Psychological Preference",
+    "usage": "Internal backstage reference for Poetic Brain. NOT for frontstage typology assertions.",
+    "disclaimer": "Symbolic resonance, not typology assertion. Maps geometric signals to preference tendencies."
+  },
+  "axes": {
+    "EI": {
+      "name": "Outward-first vs. Inward-first Motion",
+      "E": {
+        "label": "Extroversion",
+        "woven_map_construct": "Interface Orientation (Ascendant)",
+        "geometric_indicators": ["Fire dominance", "Air dominance", "Positive polarity", "Cardinal rising"],
+        "symbolic_language": ["Outward-first motion", "Ignition through contact"],
+        "element_affinity": ["Fire", "Air"],
+        "modality_affinity": ["Cardinal"],
+        "polarity": "positive"
+      },
+      "I": {
+        "label": "Introversion",
+        "woven_map_construct": "Somatic Basement (Moon), Polarity",
+        "geometric_indicators": ["Earth dominance", "Water dominance", "Negative polarity", "Fixed rising"],
+        "symbolic_language": ["Inward-first motion", "Depth before movement"],
+        "element_affinity": ["Earth", "Water"],
+        "modality_affinity": ["Fixed"],
+        "polarity": "negative"
+      }
+    },
+    "NS": {
+      "name": "Pattern-first vs. Concrete-first Perception",
+      "N": {
+        "label": "Intuition",
+        "woven_map_construct": "Cognitive Lattice (Mercury + Elemental Air/Fire)",
+        "geometric_indicators": ["Moon in Air/Water", "Mercury in Air/Fire", "Fire/Air Actor patterns"],
+        "symbolic_language": ["Pattern-first", "Meaning before detail", "Symbol over sequence"],
+        "mercury_elements": ["Air", "Fire"],
+        "moon_elements": ["Air", "Water"]
+      },
+      "S": {
+        "label": "Sensing",
+        "woven_map_construct": "Tangible Band / Saturn Line",
+        "geometric_indicators": ["Earth/Water cognition", "Mercury in Earth/Water", "Saturn emphasis"],
+        "symbolic_language": ["Concrete-first", "Verification through touch", "Built from data points"],
+        "mercury_elements": ["Earth", "Water"],
+        "saturn_emphasis": true
+      }
+    },
+    "TF": {
+      "name": "Structure-led vs. Resonance-led Evaluation",
+      "T": {
+        "label": "Thinking",
+        "woven_map_construct": "Decision Spine (Mercury/Saturn/Uranus)",
+        "geometric_indicators": ["Air emphasis", "Analytical aspects", "Angular Saturn"],
+        "symbolic_language": ["Decision by structure", "Coherence as compass"],
+        "element_affinity": ["Air"],
+        "planets": ["Mercury", "Saturn", "Uranus"]
+      },
+      "F": {
+        "label": "Feeling",
+        "woven_map_construct": "Relational Axis (Moon/Venus/Saturn interplay)",
+        "geometric_indicators": ["Moon/Venus emphasis", "Water/Fire", "Relational aspect patterns"],
+        "symbolic_language": ["Decision by resonance", "Integrity of feeling", "Coherence of values"],
+        "element_affinity": ["Water", "Fire"],
+        "planets": ["Moon", "Venus"]
+      }
+    },
+    "JP": {
+      "name": "Closure-seeking vs. Open-form Movement",
+      "J": {
+        "label": "Judging",
+        "woven_map_construct": "Structural Rhythm",
+        "geometric_indicators": ["Cardinal dominance", "Fixed dominance", "Saturn/Pluto angularity"],
+        "symbolic_language": ["Closure-seeking", "Directional motion", "Design over drift"],
+        "modality_affinity": ["Cardinal", "Fixed"],
+        "planets": ["Saturn", "Pluto"]
+      },
+      "P": {
+        "label": "Perceiving",
+        "woven_map_construct": "Adaptive Rhythm",
+        "geometric_indicators": ["Mutable dominance", "Uranus/Neptune prominence"],
+        "symbolic_language": ["Open-form", "Exploratory timing", "Improvisational motion"],
+        "modality_affinity": ["Mutable"],
+        "planets": ["Uranus", "Neptune"]
+      }
+    }
+  },
+  "cognitive_functions": {
+    "Ni": {
+      "name": "Introverted Intuition",
+      "woven_map_correspondence": "Depth Pattern Recognition",
+      "geometry": ["Scorpio MC", "8th house emphasis", "12th house emphasis", "Water/Air blend"]
+    },
+    "Ne": {
+      "name": "Extroverted Intuition",
+      "woven_map_correspondence": "Divergent Pattern Expansion",
+      "geometry": ["Mutable Air", "Mutable Fire", "Uranus aspects"]
+    },
+    "Si": {
+      "name": "Introverted Sensing",
+      "woven_map_correspondence": "Memory-based Stabilization",
+      "geometry": ["Earth Mercury", "Water Mercury", "4th house emphasis", "6th house emphasis"]
+    },
+    "Se": {
+      "name": "Extroverted Sensing",
+      "woven_map_correspondence": "Tangible Immediate Perception",
+      "geometry": ["Strong 2nd-house Fire", "Mars/Ascendant aspects"]
+    },
+    "Fi": {
+      "name": "Introverted Feeling",
+      "woven_map_correspondence": "Internal Value Alignment",
+      "geometry": ["Venus in Earth", "Venus in Water", "Moon-Saturn tension"]
+    },
+    "Fe": {
+      "name": "Extroverted Feeling",
+      "woven_map_correspondence": "Relational Harmony / Integrity",
+      "geometry": ["Moon-Venus ease", "Libra signatures", "Leo signatures"]
+    },
+    "Ti": {
+      "name": "Introverted Thinking",
+      "woven_map_correspondence": "Internal Logic Calibration",
+      "geometry": ["Mercury-Saturn aspects", "Mercury-Uranus aspects", "Air trines"]
+    },
+    "Te": {
+      "name": "Extroverted Thinking",
+      "woven_map_correspondence": "External Structure Implementation",
+      "geometry": ["Capricorn MC", "Angular Saturn", "Earth cardinality"]
+    }
+  },
+  "archetypal_patterns": {
+    "IN": { "motion": "Depth-first pattern reader" },
+    "IS": { "motion": "Interior archivist of the real" },
+    "EN": { "motion": "Expansive pattern igniter" },
+    "ES": { "motion": "Contact-based reality mover" },
+    "TJ": { "motion": "Structure-seeking clarifier" },
+    "TP": { "motion": "Adaptive analyst" },
+    "FJ": { "motion": "Relational coherence-keeper" },
+    "FP": { "motion": "Value-driven improviser" }
+  },
+  "hinge_indicators": {
+    "NT_NF": {
+      "description": "Air/Fire shell + Water/Fire core",
+      "typical_fork": ["INTJ", "INFJ"]
+    },
+    "TI_FE": {
+      "description": "Aquarius/Aries interface + Leo/Venus-Saturn core",
+      "note": "T-coded clarity serving F-coded purpose"
+    },
+    "EI": {
+      "description": "Fire ignition + Saturn-bound presence",
+      "typical_fork": ["ENxJ", "INxJ"]
+    }
+  },
+  "sign_elements": {
+    "Ari": "Fire", "Tau": "Earth", "Gem": "Air", "Can": "Water",
+    "Leo": "Fire", "Vir": "Earth", "Lib": "Air", "Sco": "Water",
+    "Sag": "Fire", "Cap": "Earth", "Aqu": "Air", "Pis": "Water"
+  },
+  "sign_modalities": {
+    "Ari": "Cardinal", "Tau": "Fixed", "Gem": "Mutable", "Can": "Cardinal",
+    "Leo": "Fixed", "Vir": "Mutable", "Lib": "Cardinal", "Sco": "Fixed",
+    "Sag": "Mutable", "Cap": "Cardinal", "Aqu": "Fixed", "Pis": "Mutable"
+  },
+  "sign_polarities": {
+    "Ari": "positive", "Tau": "negative", "Gem": "positive", "Can": "negative",
+    "Leo": "positive", "Vir": "negative", "Lib": "positive", "Sco": "negative",
+    "Sag": "positive", "Cap": "negative", "Aqu": "positive", "Pis": "negative"
+  }
+}
