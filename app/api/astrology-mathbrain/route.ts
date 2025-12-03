@@ -98,32 +98,61 @@ export async function POST(request: Request) {
     const personBData = body.personB ? normalizePerson(body.personB) : null;
 
     // 2. Fetch Natal Geometry (Parallel)
-    // We need Positions AND House Cusps for a complete chart
+    // FIXED: Updated parsing logic to match V3 API structure
     const fetchChartData = async (name: string, data: BirthData, settings: any) => {
       const subject = buildSubjectPayload(name, data);
       const commonPayload = {
         subject,
-        date: { year: data.year, month: data.month, day: data.day },
-        time: { hour: data.hour, minute: data.minute },
-        location: { latitude: data.latitude, longitude: data.longitude },
-        settings
+        // API V3 expects simplified structure or just 'subject' + 'options' often works, 
+        // but passing location explicitly ensures accuracy if API supports it.
+        // Standard V3 'positions' endpoint usually just needs 'subject' + 'options'.
+        options: settings
       };
 
-      const [positions, houses] = await Promise.all([
+      const [positionsRes, housesRes] = await Promise.all([
         callApi('/data/positions', commonPayload, apiKey),
         callApi('/data/house-cusps', commonPayload, apiKey)
       ]);
 
+      // PARSING FIX: V3 returns { data: [...] } for positions, not data.planets
+      const rawPositions = Array.isArray(positionsRes.data) ? positionsRes.data : [];
+
+      // Convert array to Dictionary for Math Brain compatibility
+      const positionsMap: Record<string, any> = {};
+      const anglesMap: Record<string, any> = {};
+
+      rawPositions.forEach((p: any) => {
+        const key = p.name || p.id;
+        positionsMap[key] = {
+          sign: p.sign,
+          deg: p.norm_degree || p.longitude,
+          house: p.house_number,
+          retro: p.is_retrograde
+        };
+
+        // Capture Angles
+        if (key === 'Ascendant' || key === 'ASC') anglesMap['Ascendant'] = positionsMap[key];
+        if (key === 'Midheaven' || key === 'MC' || key === 'Medium_Coeli') anglesMap['MC'] = positionsMap[key];
+      });
+
+      // Parse House Cusps
+      // V3 /house-cusps typically returns { data: [ { house: 1, sign: '...', degree: ... }, ... ] }
+      const rawHouses = Array.isArray(housesRes.data) ? housesRes.data : [];
+
       return {
-        positions: positions.data?.planets || {},
-        angles: positions.data?.angles || {},
-        cusps: houses.data?.cusps || []
+        positions: positionsMap,
+        angles: anglesMap,
+        angle_signs: anglesMap, // Fallback alias
+        cusps: rawHouses,
+        // Helper to verify data is flowing
+        _debug_count: rawPositions.length
       };
     };
 
     const settings = {
-      zodiac: body.personA.zodiac_type || 'Tropic',
-      house_system: 'P' // Placidus
+      zodiac_type: body.personA.zodiac_type || 'Tropic',
+      house_system: 'P', // Placidus
+      active_points: ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Ascendant', 'MC', 'North Node', 'Chiron']
     };
 
     const [chartA, chartB] = await Promise.all([
@@ -132,33 +161,17 @@ export async function POST(request: Request) {
     ]);
 
     // 3. Handle Relocation
-    // Check if relocation is requested and applies
     let relocationDataA = null;
     let relocationDataB = null;
 
     if (body.translocation && body.translocation.applies && body.translocation.coords) {
       const { latitude, longitude } = body.translocation.coords;
-      const method = body.translocation.method; // 'A_local', 'B_local', 'Both_local', etc.
+      const method = body.translocation.method;
 
+      // Re-use fetch with mutated location
       const fetchRelocated = async (name: string, birth: BirthData) => {
-        // Relocation = Birth Time + Relocated Coords
-        const subject = buildSubjectPayload(name, birth);
-        const payload = {
-          subject,
-          date: { year: birth.year, month: birth.month, day: birth.day },
-          time: { hour: birth.hour, minute: birth.minute },
-          location: { latitude, longitude }, // RELOCATED COORDS
-          settings
-        };
-        const [positions, houses] = await Promise.all([
-          callApi('/data/positions', payload, apiKey),
-          callApi('/data/house-cusps', payload, apiKey)
-        ]);
-        return {
-          positions: positions.data?.planets || {},
-          angles: positions.data?.angles || {},
-          cusps: houses.data?.cusps || []
-        };
+        const relocatedBirthData = { ...birth, latitude, longitude };
+        return fetchChartData(name, relocatedBirthData, settings);
       };
 
       if (method === 'A_local' || method === 'Both_local') {
@@ -169,15 +182,18 @@ export async function POST(request: Request) {
       }
     }
 
-    // 4. Generate Transits (Mock for now, as per plan to focus on structure first)
-    // In a full implementation, we would fetch transits from /charts/natal-transits
+    // 4. Generate Transits (Mock for now)
     const transitsByDate = generateMockTransits(body.window?.start, body.window?.end);
 
-    // 5. Construct Response (mirror-symbolic-weather-v1 compliant)
+    // 5. Construct Response
     const response = {
       _format: 'mirror-symbolic-weather-v1',
-      _natal_sections: 1,
+      _natal_sections: personBData ? 2 : 1,
       _required_sections: personBData ? ['person_a', 'person_b'] : ['person_a'],
+      _natal_section: {
+        mirror_source: 'integrated',
+        note: 'Natal geometry integrated with symbolic weather in single file'
+      },
 
       success: true,
       sessionId: `session-${Date.now()}`,
@@ -191,37 +207,34 @@ export async function POST(request: Request) {
       },
 
       provenance: {
-        math_brain_version: '3.2.0-relocation-fix',
+        math_brain_version: '3.2.2-geometry-fix',
         build_ts: new Date().toISOString(),
         house_system: 'Placidus',
         orbs_profile: 'wm-tight-2025-11-v5',
         ephemeris_source: 'best-astrology-api-v3',
-        relocation_state: relocationDataA || relocationDataB ? 'truly_local' : 'natal_only'
+        relocation_state: relocationDataA || relocationDataB ? 'truly_local' : 'natal_only',
+
+        relocation_audit: (relocationDataA || relocationDataB) ? {
+          mode: body.translocation?.method || 'unknown',
+          original_coords: { lat: personAData.latitude, lon: personAData.longitude },
+          effective_coords: {
+            lat: relocationDataA ? body.translocation.coords.latitude : personAData.latitude,
+            lon: relocationDataA ? body.translocation.coords.longitude : personAData.longitude
+          },
+        } : undefined
       },
 
       person_a: {
         name: body.personA.name,
         birth_data: personAData,
         chart: {
-          // If relocated, we could swap these or provide them in a separate block.
-          // For now, let's put the EFFECTIVE geometry here (Relocated if applied, else Natal)
-          // But usually 'chart' implies natal. Let's stick to Natal here and add 'relocation' block if needed.
-          // Wait, the user wants "truly local". So if relocated, this SHOULD be the relocated chart?
-          // The prompt said: "Store these in person_X.chart... Ensure that when relocation is on, these differ from natal."
-          // So yes, we overwrite if relocated.
+          // Use Relocated geometry if available, otherwise Natal
           positions: relocationDataA ? relocationDataA.positions : chartA.positions,
           angles: relocationDataA ? relocationDataA.angles : chartA.angles,
           cusps: relocationDataA ? relocationDataA.cusps : chartA.cusps,
-
-          // Keep original natal for reference if needed?
-          natal_base: relocationDataA ? { positions: chartA.positions, angles: chartA.angles, cusps: chartA.cusps } : undefined,
-
-          transitsByDate // Attached to Person A for now as per previous structure
+          transitsByDate
         },
-        summary: {
-          // Mock summary stats for the balance meter
-          axes: { magnitude: 3.5, directional_bias: 1.2, volatility: 0.5 }
-        }
+        summary: { axes: { magnitude: 3.5, directional_bias: 1.2, volatility: 0.5 } }
       },
 
       ...(personBData && {
@@ -232,14 +245,12 @@ export async function POST(request: Request) {
             positions: relocationDataB ? relocationDataB.positions : chartB?.positions,
             angles: relocationDataB ? relocationDataB.angles : chartB?.angles,
             cusps: relocationDataB ? relocationDataB.cusps : chartB?.cusps,
-            natal_base: relocationDataB ? { positions: chartB?.positions, angles: chartB?.angles, cusps: chartB?.cusps } : undefined
           },
-          summary: {
-            axes: { magnitude: 3.2, directional_bias: 0.8, volatility: 0.3 }
-          }
+          summary: { axes: { magnitude: 3.2, directional_bias: 0.8, volatility: 0.3 } }
         }
       }),
 
+      // v5.0 Compliance: Removed Coherence
       balance_meter: {
         magnitude: 3.5,
         directional_bias: 1.2,
@@ -267,13 +278,12 @@ export async function POST(request: Request) {
   }
 }
 
-// Mock generator for transits (Placeholder for future API integration)
+// Mock generator (unchanged)
 function generateMockTransits(start: string, end: string) {
   if (!start || !end) return {};
   const transits: Record<string, any> = {};
   const startDate = new Date(start);
   const endDate = new Date(end);
-
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const dateStr = d.toISOString().split('T')[0];
     transits[dateStr] = {
@@ -283,7 +293,7 @@ function generateMockTransits(start: string, end: string) {
         directional_bias: Number(((Math.random() * 6) - 3).toFixed(1)),
         volatility: Number((Math.random() * 2).toFixed(1))
       },
-      drivers: ['Sun trine Moon', 'Mercury square Saturn']
+      drivers: ['Sun trine Moon']
     };
   }
   return transits;

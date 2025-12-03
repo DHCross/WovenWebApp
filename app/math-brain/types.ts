@@ -207,31 +207,31 @@ export interface CorpusSynastryTransitsPayload {
   _format: 'mirror-symbolic-weather-v1';
   _poetic_brain_compatible: true;
   _natal_section?: boolean;
-  
+
   report_type: 'synastry-transits';
-  
+
   // === SUBJECTS ===
-  subjects: {
-    person_a: { name?: string; birth_data: Partial<Subject> };
-    person_b: { name?: string; birth_data: Partial<Subject> };
-  };
-  
+  // === SUBJECTS ===
+  person_a: { name?: string; birth_data: Partial<Subject>; chart?: any; summary?: any };
+  person_b?: { name?: string; birth_data: Partial<Subject>; chart?: any; summary?: any };
+
   // === RELATIONSHIP CONTEXT ===
   relationship_context?: {
     type?: string;         // PARTNER, FRIEND, FAMILY, etc.
     intimacy_tier?: string; // P1, P2, P3, etc.
     scope?: string;
   };
-  
+
   // === ANGLE DRIFT GUARDRAIL ===
   context: {
     angle_drift_alert: boolean;
     house_system: string;
+    relocation?: any;
   };
-  
+
   // === CORPUS-COMPLIANT DAILY ENTRIES ===
-  daily_entries: CorpusDailyEntry[];
-  
+  daily_entries?: CorpusDailyEntry[]; // Optional if using legacy daily_readings or other structure
+
   // === PROVENANCE ===
   provenance: {
     math_brain_version: string;
@@ -240,13 +240,21 @@ export interface CorpusSynastryTransitsPayload {
     person_a?: string;
     person_b?: string;
     window?: { start: string; end: string };
+    relocation_state?: 'truly_local' | 'natal_only' | 'falsely_mirrored';
+    relocation_audit?: {
+      mode: string;
+      original_coords: { lat: number; lon: number };
+      effective_coords: { lat: number; lon: number };
+      asc_shift_deg?: number;
+      mc_shift_deg?: number;
+    };
     terrain?: {
       hot_degrees: number[];
       hot_degrees_count: number;
       synastry_aspects_used: number;
     };
   };
-  
+
   // === SUMMARY STATS ===
   summary?: {
     peak_resonance_day: string | null;
@@ -265,10 +273,10 @@ export interface CorpusSynastryTransitsPayload {
 export interface ResonanceSeismographPayload {
   report_type: 'synastry-transits';
   date_range: { start: string; end: string };
-  
+
   /** The merged relational weather graph */
   resonance_seismograph: ResonanceDailyEntry[];
-  
+
   /** Summary statistics */
   summary: {
     peak_resonance_day: string | null;
@@ -278,14 +286,14 @@ export interface ResonanceSeismographPayload {
     resonance_events_count: number;
     total_days: number;
   };
-  
+
   /** Synastry terrain info (the "map" behind the weather) */
   synastry_terrain: {
     hot_degrees_count: number;
     synastry_aspects_used: number;
     dominant_themes?: string[];
   };
-  
+
   /** Standard provenance */
   provenance?: {
     house_system: string;

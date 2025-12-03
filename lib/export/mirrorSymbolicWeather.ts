@@ -77,7 +77,11 @@ export function createMirrorSymbolicWeatherPayload(
   if (!rawResult) return null;
 
   const unifiedOutput = rawResult?.unified_output || rawResult;
+
+  // V5.0 Strict Relational Check: If person_b structure exists, it is relational.
+  // We trust the upstream route to have populated this correctly.
   const isRelational = Boolean(unifiedOutput?.person_b);
+
   const hasPersonAChart =
     unifiedOutput?.person_a?.chart && Object.keys(unifiedOutput.person_a.chart).length > 0;
   const hasPersonBChart =
@@ -91,7 +95,7 @@ export function createMirrorSymbolicWeatherPayload(
     unifiedOutput?.relationship_context ||
     null;
 
-  // Pre-compute window/date hints from unified output
+  // Pre-compute window/date hints
   const transitsObj: Record<string, any> | null =
     (unifiedOutput?.person_a?.chart?.transitsByDate && typeof unifiedOutput.person_a.chart.transitsByDate === 'object')
       ? unifiedOutput.person_a.chart.transitsByDate
@@ -101,7 +105,6 @@ export function createMirrorSymbolicWeatherPayload(
   const dateKeys = transitsObj ? Object.keys(transitsObj).sort() : [];
   const transitDays = dateKeys.length;
   const rangeDates = (() => {
-    // Use transit window from unified output
     const transitWindow = unifiedOutput?.transit_window;
     if (transitWindow?.start_date && transitWindow?.end_date) {
       return [transitWindow.start_date, transitWindow.end_date];
@@ -121,9 +124,8 @@ export function createMirrorSymbolicWeatherPayload(
 
   const payload: any = {
     _format: 'mirror-symbolic-weather-v1',
-    _version: '1.0',
+    _version: '1.0', // V5.0 Compliance: No Coherence, No SFD
     _poetic_brain_compatible: hasChartGeometry,
-    // Lightweight ingestion hints to help early classification in partial reads
     _template_hint: isRelational ? 'relational_pair' : 'solo_mirror',
     _required_sections: isRelational ? ['person_a', 'person_b'] : ['person_a'],
     _contains_transits: containsTransits,
@@ -144,16 +146,17 @@ export function createMirrorSymbolicWeatherPayload(
       aspects: unifiedOutput?.person_a?.aspects || [],
       summary: unifiedOutput?.person_a?.summary || null,
     },
-    person_b: unifiedOutput?.person_b
+    person_b: isRelational
       ? {
-          name: unifiedOutput?.person_b?.details?.name || unifiedOutput?.person_b?.name || null,
-          birth_data: unifiedOutput?.person_b?.details || unifiedOutput?.person_b?.birth_data || null,
-          chart: unifiedOutput?.person_b?.chart || null,
-          aspects: unifiedOutput?.person_b?.aspects || [],
-          summary: unifiedOutput?.person_b?.summary || null,
-        }
+        name: unifiedOutput?.person_b?.details?.name || unifiedOutput?.person_b?.name || null,
+        birth_data: unifiedOutput?.person_b?.details || unifiedOutput?.person_b?.birth_data || null,
+        chart: unifiedOutput?.person_b?.chart || null,
+        aspects: unifiedOutput?.person_b?.aspects || [],
+        summary: unifiedOutput?.person_b?.summary || null,
+      }
       : null,
-    // ⭐ CRITICAL: mirror_contract tells Poetic Brain whether to generate relational content
+
+    // V5.0: Honest Relationship Contract
     mirror_contract: {
       report_kind: formatReportKind(reportContractType),
       is_relational: isRelational,
@@ -163,7 +166,7 @@ export function createMirrorSymbolicWeatherPayload(
     },
     report_kind: formatReportKind(reportContractType),
     relationship_context: relationshipContext || null,
-    // User-entered relationship details from Math Brain
+
     relationship_details: additionalContext?.relationship ? {
       type: additionalContext.relationship.type || null,
       intimacy_tier: additionalContext.relationship.intimacy_tier || null,
@@ -172,7 +175,7 @@ export function createMirrorSymbolicWeatherPayload(
       ex_estranged: additionalContext.relationship.ex_estranged ?? null,
       notes: additionalContext.relationship.notes || null,
     } : null,
-    // Relocation/translocation context
+
     translocation_context: additionalContext?.translocation ? {
       mode: additionalContext.translocation.mode || null,
       label: additionalContext.translocation.label || null,
@@ -185,43 +188,31 @@ export function createMirrorSymbolicWeatherPayload(
 
   if (unifiedOutput?.provenance) {
     payload.provenance = unifiedOutput.provenance;
-    const smpId =
-      unifiedOutput.provenance.normalized_input_hash || unifiedOutput.provenance.hash;
+    const smpId = unifiedOutput.provenance.normalized_input_hash || unifiedOutput.provenance.hash;
     if (smpId) {
       payload.signed_map_package = smpId;
     }
   }
 
+  // V5.0 Balance Meter: Magnitude + Bias + (Volatility as backstage)
+  // REMOVED: Coherence calculation
   const balanceSummary = unifiedOutput?.person_a?.summary;
   if (balanceSummary) {
     const rawMag = toNumber(balanceSummary.magnitude, 'magnitude', balanceSummary);
     const rawBias = toNumber(
-      balanceSummary.directional_bias?.value,
+      balanceSummary.directional_bias?.value || balanceSummary.directional_bias,
       'directional_bias',
       balanceSummary
     );
     const rawVol = toNumber(balanceSummary.volatility, 'volatility', balanceSummary);
 
-    let summaryCoherence: number | null = null;
-    if (typeof rawVol === 'number') {
-      const volNorm = rawVol > 1.01 ? rawVol / 5 : rawVol;
-      summaryCoherence = 5 - volNorm * 5;
-      summaryCoherence = Math.max(0, Math.min(5, Math.round(summaryCoherence * 10) / 10));
-    }
-
     payload.balance_meter_frontstage = {
-      magnitude:
-        typeof rawMag === 'number' ? normalizeToFrontStage(rawMag, 'magnitude') : null,
-      directional_bias:
-        typeof rawBias === 'number'
-          ? normalizeToFrontStage(rawBias, 'directional_bias')
-          : null,
-      volatility:
-        typeof rawVol === 'number' ? normalizeToFrontStage(rawVol, 'volatility') : null,
-      coherence: summaryCoherence,
+      magnitude: typeof rawMag === 'number' ? normalizeToFrontStage(rawMag, 'magnitude') : null,
+      directional_bias: typeof rawBias === 'number' ? normalizeToFrontStage(rawBias, 'directional_bias') : null,
+      volatility: typeof rawVol === 'number' ? normalizeToFrontStage(rawVol, 'volatility') : null,
+      // coherence: REMOVED per v5.0 spec
       magnitude_label: balanceSummary.magnitude_label || null,
-      directional_bias_label:
-        balanceSummary.directional_bias_label || balanceSummary.valence_label || null,
+      directional_bias_label: balanceSummary.directional_bias_label || balanceSummary.valence_label || null,
       volatility_label: balanceSummary.volatility_label || null,
     };
   }
@@ -238,44 +229,27 @@ export function createMirrorSymbolicWeatherPayload(
         const seismo = (dayData as any).seismograph || dayData;
         const rawMag = toNumber(seismo.magnitude, 'magnitude', seismo);
         const rawBias = toNumber(
-          seismo.directional_bias?.value,
+          seismo.directional_bias?.value || seismo.directional_bias,
           'directional_bias',
           seismo
         );
         const rawVol = toNumber(seismo.volatility, 'volatility', seismo);
 
-        const safeRawMag =
-          typeof rawMag === 'number' && Number.isFinite(rawMag) ? rawMag : null;
-        const safeRawBias =
-          typeof rawBias === 'number' && Number.isFinite(rawBias) ? rawBias : null;
-        const safeRawVol =
-          typeof rawVol === 'number' && Number.isFinite(rawVol) ? rawVol : null;
+        const safeRawMag = typeof rawMag === 'number' && Number.isFinite(rawMag) ? rawMag : null;
+        const safeRawBias = typeof rawBias === 'number' && Number.isFinite(rawBias) ? rawBias : null;
+        const safeRawVol = typeof rawVol === 'number' && Number.isFinite(rawVol) ? rawVol : null;
 
-        let volNorm: number | null = null;
-        if (typeof safeRawVol === 'number') {
-          volNorm = safeRawVol > 1.01 ? safeRawVol / 5 : safeRawVol;
-        }
+        // REMOVED: Coherence calculation in daily loop
 
-        let coherence: number | null = null;
-        if (typeof volNorm === 'number') {
-          coherence = 5 - volNorm * 5;
-          coherence = Math.max(0, Math.min(5, Math.round(coherence * 10) / 10));
-        }
-
-        const magnitudeClampedFlag =
-          typeof safeRawMag === 'number' && safeRawMag > OVERFLOW_LIMIT;
-        const directionalClampedFlag =
-          typeof safeRawBias === 'number' && Math.abs(safeRawBias) > OVERFLOW_LIMIT;
-        const saturationFlag =
-          typeof safeRawMag === 'number' &&
-          safeRawMag >= OVERFLOW_LIMIT - OVERFLOW_TOLERANCE;
+        const magnitudeClampedFlag = typeof safeRawMag === 'number' && safeRawMag > OVERFLOW_LIMIT;
+        const directionalClampedFlag = typeof safeRawBias === 'number' && Math.abs(safeRawBias) > OVERFLOW_LIMIT;
+        const saturationFlag = typeof safeRawMag === 'number' && safeRawMag >= OVERFLOW_LIMIT - OVERFLOW_TOLERANCE;
 
         const overflowDetail = computeOverflowDetail({
           rawMagnitude: safeRawMag,
           clampedMagnitude: typeof safeRawMag === 'number' ? clamp(safeRawMag, 0, 5) : null,
           rawDirectionalBias: safeRawBias,
-          clampedDirectionalBias:
-            typeof safeRawBias === 'number' ? clamp(safeRawBias, -5, 5) : null,
+          clampedDirectionalBias: typeof safeRawBias === 'number' ? clamp(safeRawBias, -5, 5) : null,
           magnitudeClamped: magnitudeClampedFlag,
           directionalBiasClamped: directionalClampedFlag,
           saturation: saturationFlag,
@@ -284,19 +258,11 @@ export function createMirrorSymbolicWeatherPayload(
 
         dailyReadings.push({
           date,
-          magnitude:
-            typeof safeRawMag === 'number'
-              ? normalizeToFrontStage(safeRawMag, 'magnitude')
-              : null,
-          directional_bias:
-            typeof safeRawBias === 'number'
-              ? normalizeToFrontStage(safeRawBias, 'directional_bias')
-              : null,
-          volatility:
-            typeof safeRawVol === 'number'
-              ? normalizeToFrontStage(safeRawVol, 'volatility')
-              : null,
-          coherence,
+          magnitude: typeof safeRawMag === 'number' ? normalizeToFrontStage(safeRawMag, 'magnitude') : null,
+          directional_bias: typeof safeRawBias === 'number' ? normalizeToFrontStage(safeRawBias, 'directional_bias') : null,
+          volatility: typeof safeRawVol === 'number' ? normalizeToFrontStage(safeRawVol, 'volatility') : null,
+          // coherence: REMOVED per v5.0 spec
+
           raw_magnitude: safeRawMag ?? null,
           raw_bias_signed: safeRawBias ?? null,
           raw_volatility: safeRawVol ?? null,
@@ -316,12 +282,10 @@ export function createMirrorSymbolicWeatherPayload(
     payload.symbolic_weather_context = unifiedOutput.woven_map.symbolic_weather;
   }
 
-  // Validate the payload before export (Jules Constitution compliance)
   const validationResult = validateForExport(payload, 'json', {
-    requestsSymbolicRead: true, // JSON exports may be used for Poetic Brain
+    requestsSymbolicRead: true,
   });
-  
-  // Attach validation metadata to payload
+
   if (validationResult.warnings.length > 0 || validationResult.errors.length > 0) {
     payload._validation = {
       valid: validationResult.valid,
@@ -329,12 +293,6 @@ export function createMirrorSymbolicWeatherPayload(
       warnings: validationResult.warnings,
       forceGenericSymbolicRead: validationResult.forceGenericSymbolicRead,
     };
-  }
-  
-  // Log validation issues but don't block export (warnings are informational)
-  if (validationResult.errors.length > 0) {
-    // eslint-disable-next-line no-console
-    console.warn('[MirrorSymbolicWeather] Validation errors:', validationResult.errors);
   }
 
   return {
