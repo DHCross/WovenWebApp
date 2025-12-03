@@ -190,16 +190,13 @@ export function createMirrorSymbolicWeatherPayload(
       if (!chart) return null;
       const inference = inferMbtiFromChart(chart);
       if (!inference) return null;
+      const poeticContext = formatForPoeticBrain(inference);
       return {
         // Symbolic phrases for Poetic Brain - no raw MBTI codes in frontstage
-        poetic_brain_context: formatForPoeticBrain(inference),
-        archetypal_motion: inference.archetypal_motion,
-        symbolic_phrases: inference.symbolic_phrases,
-        hinge_points: inference.hinge_points,
-        confidence: inference.confidence,
-        disclaimer: inference.disclaimer,
+        poetic_brain_context: poeticContext,
         // Backstage only - not for frontstage output
         _backstage_code: inference.code,
+        _backstage_axes: inference._axes,
       };
     })(),
 

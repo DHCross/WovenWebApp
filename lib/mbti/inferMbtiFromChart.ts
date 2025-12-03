@@ -111,6 +111,57 @@ export interface MbtiHint {
   _axes?: { EI: number; NS: number; TF: number; JP: number };
 }
 
+export interface PoeticBrainContext {
+  /** Symbolic phrases for narrative context (never raw MBTI codes frontstage) */
+  motion_tendency: string;
+  processing_style: string;
+  decision_lens: string;
+  rhythm_preference: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Poetic Brain Formatting (symbolic, not typology)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MOTION_PHRASES: Record<string, string> = {
+  E: 'outward-moving energy, drawn toward external engagement',
+  I: 'inward-moving energy, drawn toward internal reflection',
+};
+
+const PROCESSING_PHRASES: Record<string, string> = {
+  N: 'pattern-seeking awareness, tends to read between the lines',
+  S: 'grounded awareness, tends to trust direct experience',
+};
+
+const DECISION_PHRASES: Record<string, string> = {
+  T: 'analytical lens, weighs logic and consistency',
+  F: 'empathic lens, weighs harmony and values',
+};
+
+const RHYTHM_PHRASES: Record<string, string> = {
+  J: 'structured rhythm, prefers clarity and closure',
+  P: 'adaptive rhythm, prefers openness and flexibility',
+};
+
+/**
+ * Format MBTI hint into symbolic phrases for Poetic Brain context.
+ * Returns null if hint is invalid.
+ * 
+ * @internal backstage only - provides narrative context without raw codes
+ */
+export function formatForPoeticBrain(hint: MbtiHint | null): PoeticBrainContext | null {
+  if (!hint?.code || hint.code.length !== 4) return null;
+
+  const [ei, ns, tf, jp] = hint.code.split('');
+
+  return {
+    motion_tendency: MOTION_PHRASES[ei] || 'balanced energy flow',
+    processing_style: PROCESSING_PHRASES[ns] || 'flexible awareness',
+    decision_lens: DECISION_PHRASES[tf] || 'balanced consideration',
+    rhythm_preference: RHYTHM_PHRASES[jp] || 'adaptable rhythm',
+  };
+}
+
 /**
  * Infer MBTI-like tendency from chart geometry.
  * Returns null if insufficient data.
