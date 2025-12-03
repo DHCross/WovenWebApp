@@ -26,7 +26,7 @@ function buildRapidApiHeaders() {
   };
 }
 
-const API_PING_ENDPOINT = 'https://astrology-api.p.rapidapi.com/v3/data/positions';
+const API_PING_ENDPOINT = 'https://best-astrology-api.p.rapidapi.com/v3/data/positions';
 
 async function rapidApiPing(shouldPing) {
   if (!shouldPing || !process.env.RAPIDAPI_KEY) {
@@ -61,7 +61,7 @@ async function rapidApiPing(shouldPing) {
       method: 'POST',
       headers: {
         ...buildRapidApiHeaders(),
-        'x-rapidapi-host': 'astrology-api.p.rapidapi.com'
+        'x-rapidapi-host': 'best-astrology-api.p.rapidapi.com'
       },
       body: JSON.stringify(payload),
       signal: controller.signal
