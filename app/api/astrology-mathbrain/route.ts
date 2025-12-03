@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     // 3. Call External API
     const apiKey = process.env.RAPIDAPI_KEY;
     const apiHost = 'best-astrology-api.p.rapidapi.com'; // CORRECTED HOST
-    const apiUrl = `https://${apiHost}/v3/data/positions`; // VALID ENDPOINT
+    const apiUrl = `https://api.astrology-api.io/api/v3/data/positions`; // VALID ENDPOINT
 
     if (!apiKey) {
       console.warn('Missing RAPIDAPI_KEY env var; falling back to mock data.');
