@@ -6,9 +6,9 @@
  * NOTE: Keep the metadata constants in sync with lib/server/astrology-mathbrain.js.
  */
 
-const API_NOW_ENDPOINT = 'https://astrologer.p.rapidapi.com/api/v4/now';
+const API_NOW_ENDPOINT = 'https://best-astrology-api.p.rapidapi.com/v3/data/now';
 const MATH_BRAIN_VERSION = '0.2.1';            // Keep in sync with core module
-const EPHEMERIS_SOURCE = 'AstrologerAPI-v4';   // Keep in sync with core module
+const EPHEMERIS_SOURCE = 'AstrologerAPI-v3';   // Updated to v3
 const CALIBRATION_BOUNDARY = '2025-09-05';     // Keep in sync with core module
 
 let coldStartTimestamp = Date.now();
@@ -22,7 +22,7 @@ function buildRapidApiHeaders() {
   return {
     'content-type': 'application/json',
     'x-rapidapi-key': key,
-    'x-rapidapi-host': 'astrologer.p.rapidapi.com'
+    'x-rapidapi-host': 'best-astrology-api.p.rapidapi.com'
   };
 }
 
