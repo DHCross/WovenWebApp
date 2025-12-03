@@ -1930,7 +1930,7 @@ export default function MathBrainPage() {
         await ensureSdk();
 
         let res;
-        let fetchError;
+        let fetchError: any;
         for (let i = 0; i < 3; i++) {
           try {
             res = await fetch('/api/auth-config', { cache: 'no-store' });
@@ -1940,7 +1940,7 @@ export default function MathBrainPage() {
             await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
           }
         }
-        if (!res || !res.ok) throw new Error(fetchError ? `Auth config fetch failed: ${fetchError.message}` : 'Auth config fetch failed');
+        if (!res || !res.ok) throw new Error(fetchError ? `Auth config fetch failed: ${fetchError.message || String(fetchError)}` : 'Auth config fetch failed');
 
         const cfg = await res.json();
         const domain = normalizeAuth0Domain(cfg?.domain);
