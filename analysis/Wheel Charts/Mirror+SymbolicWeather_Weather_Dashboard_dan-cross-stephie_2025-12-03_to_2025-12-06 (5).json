@@ -13,7 +13,7 @@
     "person_a",
     "person_b"
   ],
-  "generated_at": "2025-12-03T05:21:13.689Z",
+  "generated_at": "2025-12-03T06:39:41.597Z",
   "_natal_section": {
     "mirror_source": "integrated",
     "note": "Natal geometry integrated with symbolic weather in single file"
@@ -38,30 +38,30 @@
       "transitsByDate": {
         "2025-12-03": {
           "seismograph": {
-            "magnitude": 3.6,
-            "directional_bias": 1,
-            "volatility": 0.3
+            "magnitude": 2.5,
+            "directional_bias": -2.2,
+            "volatility": 0.8
           }
         },
         "2025-12-04": {
           "seismograph": {
-            "magnitude": 1.9,
-            "directional_bias": -2.5,
-            "volatility": 0.9
+            "magnitude": 1.6,
+            "directional_bias": -2.9,
+            "volatility": 1.5
           }
         },
         "2025-12-05": {
           "seismograph": {
-            "magnitude": 3.3,
-            "directional_bias": -1.2,
-            "volatility": 0.5
+            "magnitude": 1.7,
+            "directional_bias": -1.9,
+            "volatility": 1.6
           }
         },
         "2025-12-06": {
           "seismograph": {
-            "magnitude": 2.3,
-            "directional_bias": -1.7,
-            "volatility": 0.5
+            "magnitude": 2.8,
+            "directional_bias": 0.2,
+            "volatility": 0.1
           }
         }
       }
@@ -98,7 +98,6 @@
     "magnitude": 3.5,
     "directional_bias": 1.2,
     "volatility": 0.5,
-    "coherence": 2.5,
     "magnitude_label": "Active",
     "directional_bias_label": "Mild Outward",
     "volatility_label": "Low"
@@ -106,38 +105,34 @@
   "daily_readings": [
     {
       "date": "2025-12-03",
-      "magnitude": 3.6,
-      "directional_bias": 1,
-      "volatility": 0.3,
-      "coherence": 3.5
+      "magnitude": 2.5,
+      "directional_bias": -2.2,
+      "volatility": 0.8
     },
     {
       "date": "2025-12-04",
-      "magnitude": 1.9,
-      "directional_bias": -2.5,
-      "volatility": 0.9,
-      "coherence": 0.5
+      "magnitude": 1.6,
+      "directional_bias": -2.9,
+      "volatility": 1.5
     },
     {
       "date": "2025-12-05",
-      "magnitude": 3.3,
-      "directional_bias": -1.2,
-      "volatility": 0.5,
-      "coherence": 2.5
+      "magnitude": 1.7,
+      "directional_bias": -1.9,
+      "volatility": 1.6
     },
     {
       "date": "2025-12-06",
-      "magnitude": 2.3,
-      "directional_bias": -1.7,
-      "volatility": 0.5,
-      "coherence": 2.5
+      "magnitude": 2.8,
+      "directional_bias": 0.2,
+      "volatility": 0.1
     }
   ],
   "reading_count": 4,
   "provenance": {
-    "math_brain_version": "3.2.0-relocation-fix",
+    "math_brain_version": "3.2.8-debug-provenance",
     "ephemeris_source": "best-astrology-api-v3",
-    "build_ts": "2025-12-03T05:21:11.656Z",
+    "build_ts": "2025-12-03T06:39:40.121Z",
     "house_system": "Placidus",
     "orbs_profile": "wm-tight-2025-11-v5"
   }
