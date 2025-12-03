@@ -9,7 +9,7 @@ import {
   OVERFLOW_TOLERANCE,
 } from '../math-brain/overflow-detail';
 import { validateForExport } from '../validation/report-integrity-validator';
-import { inferMbtiFromChart, formatForPoeticBrain } from '../mbti/inferMbtiFromChart';
+import { inferMbtiFromChart, formatForPoeticBrain, inferContactResonance } from '../mbti/inferMbtiFromChart';
 
 type AxisKey = 'magnitude' | 'directional_bias' | 'volatility';
 
@@ -185,6 +185,7 @@ export function createMirrorSymbolicWeatherPayload(
     } : null,
 
     // MBTI Correspondence (Poetic Brain context - symbolic, not typology)
+    // v1.2: Interior Compass with per-axis reasoning and falsifiability
     mbti_correspondence: (() => {
       const chart = unifiedOutput?.person_a?.chart;
       if (!chart) return null;
@@ -194,9 +195,60 @@ export function createMirrorSymbolicWeatherPayload(
       return {
         // Symbolic phrases for Poetic Brain - no raw MBTI codes in frontstage
         poetic_brain_context: poeticContext,
+        // v1.2: Per-axis reasoning for Poetic Brain context
+        axis_reasoning: inference.axisReasoning ? {
+          motion: {
+            call: inference.axisReasoning.EI.value === 'E' ? 'outward-first' : 'inward-first',
+            confidence: inference.axisReasoning.EI.confidence,
+            reasoning: inference.axisReasoning.EI.reasoning,
+            falsifiability: inference.axisReasoning.EI.falsifiability,
+          },
+          perception: {
+            call: inference.axisReasoning.NS.value === 'N' ? 'pattern-first' : 'concrete-first',
+            confidence: inference.axisReasoning.NS.confidence,
+            reasoning: inference.axisReasoning.NS.reasoning,
+            falsifiability: inference.axisReasoning.NS.falsifiability,
+          },
+          decision: {
+            call: inference.axisReasoning.TF.value === 'F' ? 'resonance-led' : 'structure-led',
+            confidence: inference.axisReasoning.TF.confidence,
+            reasoning: inference.axisReasoning.TF.reasoning,
+            falsifiability: inference.axisReasoning.TF.falsifiability,
+          },
+          rhythm: {
+            call: inference.axisReasoning.JP.value === 'J' ? 'closure-seeking' : 'open-form',
+            confidence: inference.axisReasoning.JP.confidence,
+            reasoning: inference.axisReasoning.JP.reasoning,
+            falsifiability: inference.axisReasoning.JP.falsifiability,
+          },
+        } : null,
+        // v1.2: Global summary
+        global_summary: inference.globalSummary || null,
+        // Layer separation note
+        layer_note: 'Interior Compass only — describes internal processing, not contact style',
         // Backstage only - not for frontstage output
         _backstage_code: inference.code,
         _backstage_axes: inference._axes,
+      };
+    })(),
+
+    // Contact Resonance (Interface behavior - separate from MBTI)
+    // v1.2: Describes how others experience the person, with appearance mismatch notes
+    contact_resonance: (() => {
+      const chart = unifiedOutput?.person_a?.chart;
+      if (!chart) return null;
+      const resonance = inferContactResonance(chart);
+      if (!resonance) return null;
+      return {
+        ignition_style: resonance.ignition_style,
+        interface_tone: resonance.interface_tone,
+        presentation_tempo: resonance.presentation_tempo,
+        // v1.2: Appearance mismatch detection
+        appearance_notes: {
+          ei_mismatch: resonance.ei_appearance_note || null,
+          tf_mismatch: resonance.tf_appearance_note || null,
+        },
+        layer_note: 'Contact Resonance — describes interface behavior, not MBTI preference',
       };
     })(),
 

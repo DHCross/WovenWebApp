@@ -1,60 +1,111 @@
 {
-  "version": "v11-clean-architecture",
-  "description": "Woven Map ⇄ MBTI correspondence (internal-only). Axes determinative; resonances descriptive.",
+  "version": "v13-clean-firewall",
+  "description": "Woven Map ⇄ MBTI correspondence (internal-only). Canonical, falsifiable, architecture-stable. Hard firewall on Contact Resonance. All scoring values are HEURISTICS.",
+  "protocol_rules": {
+    "rule_A": {
+      "name": "No Axis Left Uncalled",
+      "description": "Every axis receives a best-fit call. No axis returns 'ambiguous' or '???'.",
+      "rationale": "The field can live with being wrong. It can't live with being vague."
+    },
+    "rule_B": {
+      "name": "Layer-Based Tie-Breaker",
+      "description": "When score ≈ 0, use Interior Compass hierarchy: Moon first, Saturn second.",
+      "fallback": "If still tied, default toward the more common population tendency."
+    },
+    "rule_C": {
+      "name": "Falsifiability Required",
+      "description": "Every call includes a falsifiable expectation that could prove the call wrong.",
+      "format": "If this call is wrong, you would notice: [testable observation]"
+    },
+    "firewall": {
+      "name": "Contact Resonance Hard Firewall",
+      "description": "Sun polarity, Ascendant, Mars, Mercury tempo NEVER influence E/I, T/F, or J/P.",
+      "rationale": "These describe presentation and interface, not interior cognition."
+    }
+  },
+  "layer_separation": {
+    "interior_compass": {
+      "description": "Internal cognitive motion — MBTI inferred here",
+      "sources": {
+        "EI": ["Moon element", "Saturn bias"],
+        "NS": ["Sun element", "Mercury element"],
+        "TF": ["Moon element", "Venus-Saturn weighting", "MC/IC purpose-axis tone"],
+        "JP": ["Moon modality", "Saturn structure-bias"]
+      },
+      "note": "Sun element → N/S only (perception). Sun modality/polarity EXCLUDED from E/I and J/P.",
+      "mbti_relevance": true
+    },
+    "contact_resonance": {
+      "description": "How others experience the person on contact — NOT MBTI",
+      "sources": ["Ascendant sign", "Mars ignition", "Mercury tempo", "Sun expression/modality"],
+      "mbti_relevance": false,
+      "firewall": "HARD — these signals are tracked but NEVER influence type determination"
+    }
+  },
   "axes": {
     "E/I": {
+      "decision_phrase": "Outward-first vs. Inward-first Motion",
+      "primary_sources": ["Moon element", "Saturn bias"],
+      "excluded": ["Sun polarity", "Ascendant", "Mars"],
       "E": {
         "phrase": "Outward-first",
-        "construct": "Interface Orientation (Ascendant)",
-        "geometry": "Fire/Air dominance; positive polarity; Cardinal rising",
-        "note": "Determined by Ascendant polarity + elemental emphasis"
+        "geometry": "Fire/Air Moon; outward Saturn bias",
+        "scoring": "Moon Fire/Air = 1.0; Saturn Fire/Air = +0.2"
       },
       "I": {
         "phrase": "Inward-first",
-        "construct": "Somatic Basement (Moon), Polarity Axis",
-        "geometry": "Earth/Water dominance; negative polarity; Fixed rising"
+        "geometry": "Earth/Water Moon; inward Saturn bias",
+        "scoring": "Moon Earth/Water = 0.0; Saturn Earth/Water = -0.2"
       }
     },
     "N/S": {
+      "decision_phrase": "Pattern-first vs. Concrete-first Perception",
+      "primary_sources": ["Sun element", "Mercury element"],
+      "note": "Sun element used here for perception architecture (not E/I or J/P)",
       "N": {
         "phrase": "Pattern-first",
-        "construct": "Cognitive Lattice (Mercury + Air/Fire fields)",
-        "geometry": "Mercury in Air/Fire; Moon in Air/Water; Fire/Air actor patterns",
-        "note": "Determined by Mercury + Moon + elemental distribution"
+        "geometry": "Fire/Air Sun + Mercury",
+        "scoring": "Fire/Air = 1.0 each; combined >= 1.2"
       },
       "S": {
         "phrase": "Concrete-first",
-        "construct": "Tangible Band / Saturn Line",
-        "geometry": "Earth/Water Mercury; Saturn emphasis; dense practical signatures"
+        "geometry": "Earth/Water Sun + Mercury",
+        "scoring": "Earth/Water = 0.0 each; combined <= 0.8"
       }
     },
     "T/F": {
+      "decision_phrase": "Structure-led vs. Resonance-led Evaluation",
+      "primary_sources": ["Moon element", "Venus-Saturn weighting", "MC/IC purpose-axis tone"],
       "T": {
         "phrase": "Structure-led",
-        "construct": "Decision Spine (Mercury/Saturn/Uranus)",
-        "geometry": "Air prioritization; Saturn angularity; analytical aspects"
+        "geometry": "Earth/Air Moon; Saturn dominance; Earth/Air MC",
+        "scoring": "Moon Earth/Air = 0.5; Saturn = -0.2; MC Earth/Air = -0.15"
       },
       "F": {
         "phrase": "Resonance-led",
-        "construct": "Relational Axis (Moon/Venus/Saturn)",
-        "geometry": "Moon/Venus emphasis; Water/Fire relational signatures"
+        "geometry": "Water/Fire Moon; Venus-Moon harmony; Water/Fire MC",
+        "scoring": "Moon Water/Fire = 1.5; Venus harmony = +0.2; MC Water/Fire = +0.15"
       }
     },
     "J/P": {
+      "decision_phrase": "Closure-seeking vs. Open-form Movement",
+      "primary_sources": ["Moon modality", "Saturn structure-bias"],
+      "excluded": ["Sun modality", "Ascendant modality", "Mars modality"],
       "J": {
         "phrase": "Closure-seeking",
-        "construct": "Structural Rhythm",
-        "geometry": "Cardinal/Fixed dominance; Saturn/Pluto angularity"
+        "geometry": "Cardinal/Fixed Moon; structured Saturn",
+        "scoring": "Moon Cardinal/Fixed = 1.0; Saturn Cardinal/Fixed = +0.3"
       },
       "P": {
         "phrase": "Open-form",
-        "construct": "Adaptive Rhythm",
-        "geometry": "Mutable emphasis; Uranus/Neptune prominence"
+        "geometry": "Mutable Moon; flexible Saturn",
+        "scoring": "Moon Mutable = 0.0; Saturn Mutable = -0.2"
       }
     }
   },
   "notes": {
-    "resonance_layer": "Resonances are descriptive only and do not determine type. They are used for post-hoc shading.",
-    "firewall": "Resonances never override E/I, N/S, T/F, or J/P determinations. Hinge indicators only break ties."
+    "firewall": "Contact Resonance signals (Sun polarity, ASC, Mars, Mercury tempo) are tracked for explanation but NEVER determine type.",
+    "heuristic_disclaimer": "All scoring values are heuristics, not empirical claims. This protocol is falsifiable and user-correctable.",
+    "osr_protocol": "On Self-Report correction: withdraw cleanly, identify firewall violation, name oversight, realign to Moon/Saturn, collapse corrected branch."
   }
 }
