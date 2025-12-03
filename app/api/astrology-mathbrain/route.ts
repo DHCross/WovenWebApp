@@ -99,19 +99,31 @@ export async function POST(request: Request) {
 
     // 2. Fetch Natal Geometry (Parallel)
     const fetchChartData = async (name: string, data: BirthData, settings: any) => {
-      const payload = {
-        subject: buildSubjectPayload(name, data),
+      const subject = buildSubjectPayload(name, data);
+
+      // Payload for Positions: Needs full settings with active_points
+      const positionsPayload = {
+        subject,
         options: settings
       };
 
+      // Payload for Houses: CLEAN options only (system + zodiac)
+      // Removing active_points prevents 500 errors on the house-cusps endpoint
+      const housesPayload = {
+        subject,
+        options: {
+          house_system: settings.house_system,
+          zodiac_type: settings.zodiac_type
+        }
+      };
+
       const [positionsRes, housesRes] = await Promise.all([
-        callApi('/data/positions', payload, apiKey),
-        callApi('/data/house-cusps', payload, apiKey)
+        callApi('/data/positions', positionsPayload, apiKey),
+        callApi('/data/house-cusps', housesPayload, apiKey)
       ]);
 
-      // --- ROBUST PARSING LOGIC START ---
-
-      // Parse Positions: Handle Array directly, { data: [...] }, or { data: { planets: [...] } }
+      // --- ROBUST PARSING LOGIC ---
+      // Parse Positions
       let rawPositions: any[] = [];
       if (Array.isArray(positionsRes)) {
         rawPositions = positionsRes;
@@ -122,20 +134,6 @@ export async function POST(request: Request) {
       } else {
         console.warn('[API Warning] Unexpected positions format:', JSON.stringify(positionsRes).slice(0, 200));
       }
-
-      // Parse House Cusps: Handle Array directly or { data: [...] } or { data: { cusps: [...] } }
-      let rawHouses: any[] = [];
-      if (Array.isArray(housesRes)) {
-        rawHouses = housesRes;
-      } else if (Array.isArray(housesRes.data)) {
-        rawHouses = housesRes.data;
-      } else if (housesRes.data && Array.isArray(housesRes.data.cusps)) {
-        rawHouses = housesRes.data.cusps;
-      } else {
-        console.warn('[API Warning] Unexpected houses format:', JSON.stringify(housesRes).slice(0, 200));
-      }
-
-      // --- ROBUST PARSING LOGIC END ---
 
       // Convert array to Dictionary for Math Brain compatibility
       const positionsMap: Record<string, any> = {};
@@ -151,11 +149,23 @@ export async function POST(request: Request) {
             retro: !!p.is_retrograde
           };
 
-          // Capture Angles for legacy compatibility
+          // Capture Angles
           if (key === 'Ascendant' || key === 'ASC') anglesMap['Ascendant'] = positionsMap[key];
           if (key === 'Midheaven' || key === 'MC' || key === 'Medium_Coeli') anglesMap['MC'] = positionsMap[key];
         }
       });
+
+      // Parse House Cusps
+      let rawHouses: any[] = [];
+      if (Array.isArray(housesRes)) {
+        rawHouses = housesRes;
+      } else if (Array.isArray(housesRes.data)) {
+        rawHouses = housesRes.data;
+      } else if (housesRes.data && Array.isArray(housesRes.data.cusps)) {
+        rawHouses = housesRes.data.cusps;
+      } else {
+        console.warn('[API Warning] Unexpected houses format:', JSON.stringify(housesRes).slice(0, 200));
+      }
 
       return {
         positions: positionsMap,
@@ -168,7 +178,11 @@ export async function POST(request: Request) {
     const settings = {
       zodiac_type: body.personA.zodiac_type || 'Tropic',
       house_system: 'P', // Placidus
-      active_points: ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Ascendant', 'MC', 'North Node', 'Chiron']
+      active_points: [
+        'Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn',
+        'Uranus', 'Neptune', 'Pluto', 'Chiron',
+        'Ascendant', 'Medium_Coeli', 'Mean_Node'
+      ]
     };
 
     const [chartA, chartB] = await Promise.all([
@@ -222,7 +236,7 @@ export async function POST(request: Request) {
       },
 
       provenance: {
-        math_brain_version: '3.2.3-robust-parsing',
+        math_brain_version: '3.2.5-split-payload',
         build_ts: new Date().toISOString(),
         house_system: 'Placidus',
         orbs_profile: 'wm-tight-2025-11-v5',
