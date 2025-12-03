@@ -19,7 +19,7 @@ const { buildWindowSamples } = require('../../lib/time-sampling');
 
 // AstroAPI v3 Base URL
 // Switched to RapidAPI gateway URL to match user subscription
-const API_BASE_URL = 'https://best-astrology-api.p.rapidapi.com';
+const API_BASE_URL = 'https://api.astrology-api.io';
 
 // AstroAPI v3 Endpoints
 // AstroAPI v3 Endpoints
