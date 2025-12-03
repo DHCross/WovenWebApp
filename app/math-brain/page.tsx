@@ -4675,27 +4675,28 @@ export default function MathBrainPage() {
         payload.transitStartDate = startDate;
         payload.transitEndDate = endDate;
         payload.transitStep = step;
-        payload.translocation = ((): any => {
-          const relocationMode = relocationStatus.effectiveMode;
-          if (relocationMode === 'NONE' || relocationMode === 'A_NATAL' || relocationMode === 'B_NATAL') {
-            return { applies: false, method: 'Natal' };
-          }
-          const methodMap: Record<TranslocationOption, string> = {
-            NONE: 'Natal', A_NATAL: 'Natal', A_LOCAL: 'A_local',
-            B_NATAL: 'Natal', B_LOCAL: 'B_local', BOTH_LOCAL: 'Both_local',
-            MIDPOINT: 'Midpoint',
-          };
-          return {
-            applies: true,
-            method: methodMap[relocationMode] || 'Custom',
-            coords: relocCoords ? { latitude: relocCoords.lat, longitude: relocCoords.lon } : undefined,
-            label: relocLabel || undefined,
-            timezone: relocTz || undefined,
-          };
-        })();
-      } else {
-        payload.translocation = { applies: false, method: 'Natal' };
       }
+
+      // Translocation applies to house calculations regardless of transit window
+      // FIX: Previously only sent when transits were enabled, causing UI/export mismatch
+      payload.translocation = ((): any => {
+        const relocationMode = relocationStatus.effectiveMode;
+        if (relocationMode === 'NONE' || relocationMode === 'A_NATAL' || relocationMode === 'B_NATAL') {
+          return { applies: false, method: 'Natal' };
+        }
+        const methodMap: Record<TranslocationOption, string> = {
+          NONE: 'Natal', A_NATAL: 'Natal', A_LOCAL: 'A_local',
+          B_NATAL: 'Natal', B_LOCAL: 'B_local', BOTH_LOCAL: 'Both_local',
+          MIDPOINT: 'Midpoint',
+        };
+        return {
+          applies: true,
+          method: methodMap[relocationMode] || 'Custom',
+          coords: relocCoords ? { latitude: relocCoords.lat, longitude: relocCoords.lon } : undefined,
+          label: relocLabel || undefined,
+          timezone: relocTz || undefined,
+        };
+      })();
 
       // Add Person B and relationship context for relational modes
       if (RELATIONAL_MODES.includes(mode) && includePersonB) {
