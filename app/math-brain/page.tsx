@@ -5618,9 +5618,17 @@ export default function MathBrainPage() {
                 }
                 const missing: string[] = [];
                 if (!personA.name) missing.push('Name');
-                if (!personA.city) missing.push('City');
-                if (!personA.state) missing.push('State');
+
+                // If coordinates are provided and valid, City/State are optional
+                const hasACoords = aCoordsValid && (personA.latitude !== '' || personA.longitude !== '');
+
+                if (!hasACoords) {
+                  if (!personA.city) missing.push('City');
+                  if (!personA.state) missing.push('State');
+                }
+
                 if (!personA.timezone) missing.push('Timezone');
+
                 if (missing.length > 0) {
                   return <p className="mt-2 text-xs text-amber-400">⚠️ Missing required fields for Person A: {missing.join(', ')}</p>;
                 }
@@ -5872,8 +5880,8 @@ export default function MathBrainPage() {
                             end: endDate || 'Unknown'
                           }}
                           location={relocationStatus.effectiveMode !== 'NONE'
-                            ? (relocLabel || `${personA.city || 'Unknown'}, ${personA.state || 'Unknown'}`)
-                            : `${personA.city || 'Unknown'}, ${personA.state || 'Unknown'}`
+                            ? (relocLabel || (personA.city ? `${personA.city}, ${personA.state || ''}` : `${personA.latitude}, ${personA.longitude}`))
+                            : (personA.city ? `${personA.city}, ${personA.state || ''}` : `${personA.latitude}, ${personA.longitude}`)
                           }
                           mode={RELATIONAL_MODES.includes(mode) ? 'relational' : 'single'}
                           names={RELATIONAL_MODES.includes(mode)
@@ -5938,7 +5946,7 @@ export default function MathBrainPage() {
                                 relocation_supported: false,
                                 ...(relocationStatus.effectiveMode !== 'NONE' && {
                                   relocation_overlay: {
-                                    user_place: relocLabel || `${personA.city || 'Unknown'}, ${personA.state || 'Unknown'}`,
+                                    user_place: relocLabel || (personA.city ? `${personA.city}, ${personA.state || ''}` : `${personA.latitude}, ${personA.longitude}`),
                                     advisory: 'Same sky, natal rooms only. Local guidance is author-authored overlay, not computed houses.',
                                     confidence: 'author_note' as const,
                                     notes: [
