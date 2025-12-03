@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { inferMbtiFromChart, formatForPoeticBrain } from '../../../lib/mbti/inferMbtiFromChart';
+import { inferMbtiFromChart } from '../../../lib/mbti/inferMbtiFromChart';
 
 // --- Types & Interfaces ---
 
@@ -375,6 +375,12 @@ export async function POST(request: Request) {
           synastry: '1.0.0'
         },
         
+        // MBTI hint (backstage only, symbolic resonance)
+        _mbti_hint: inferMbtiFromChart({
+          positions: relocationDataA ? relocationDataA.positions : chartA.positions,
+          angle_signs: relocationDataA ? relocationDataA.angle_signs : chartA.angle_signs,
+        }),
+        
         // Debug info (only in dev)
         ...(process.env.NODE_ENV !== 'production' && {
           debug_dump: {
@@ -419,26 +425,6 @@ export async function POST(request: Request) {
       }),
 
       balance_meter: calculateCombinedBalanceMeter(transitsByDateA, transitsByDateB),
-
-      // MBTI Correspondence (backstage only - symbolic resonance, not typology assertion)
-      mbti_correspondence: (() => {
-        const chartForMbti = {
-          positions: relocationDataA ? relocationDataA.positions : chartA.positions,
-          angle_signs: relocationDataA ? relocationDataA.angle_signs : chartA.angle_signs,
-        };
-        const inference = inferMbtiFromChart(chartForMbti);
-        if (!inference) return null;
-        return {
-          // Backstage: full inference data for debugging/analysis
-          _backstage: inference,
-          // Poetic Brain context: symbolic phrases only, no raw codes
-          poetic_brain_context: formatForPoeticBrain(inference),
-          // Quick reference (backstage only)
-          code: inference.code,
-          confidence: inference.confidence,
-          archetypal_motion: inference.archetypal_motion,
-        };
-      })(),
 
       context: {
         mode: body.mode,
