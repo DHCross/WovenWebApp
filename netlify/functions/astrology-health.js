@@ -26,7 +26,7 @@ function buildRapidApiHeaders() {
   };
 }
 
-const API_PING_ENDPOINT = 'https://best-astrology-api.p.rapidapi.com/v3/data/positions';
+const API_PING_ENDPOINT = 'https://api.astrology-api.io/api/v3/data/positions';
 
 async function rapidApiPing(shouldPing) {
   if (!shouldPing || !process.env.RAPIDAPI_KEY) {
