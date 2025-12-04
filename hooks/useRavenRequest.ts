@@ -68,16 +68,16 @@ export function useRavenRequest({
         prev.map((msg) =>
           msg.id === messageId
             ? {
-                ...msg,
-                html: `<div class="raven-error"><p class="text-rose-400">${escapeHtml(
-                  friendly,
-                )}</p></div>`,
-                climate: "VOICE · Realignment",
-                hook: message.toLowerCase().includes("osr_detected")
-                  ? "Let's Try Again"
-                  : msg.hook,
-                rawText: friendly,
-              }
+              ...msg,
+              html: `<div class="raven-error"><p class="text-rose-400">${escapeHtml(
+                friendly,
+              )}</p></div>`,
+              climate: "VOICE · Realignment",
+              hook: message.toLowerCase().includes("osr_detected")
+                ? "Let's Try Again"
+                : msg.hook,
+              rawText: friendly,
+            }
             : msg,
         ),
       );
@@ -103,15 +103,15 @@ export function useRavenRequest({
         ? formatShareableDraft(response.draft, response.prov ?? null)
         : guidance
           ? {
-              html: `<div class="raven-guard" style="font-size:13px; line-height:1.5; color:#94a3b8; white-space:pre-line;">${escapeHtml(
-                guidance,
-              )}</div>`,
-              rawText: guidance,
-            }
+            html: `<div class="raven-guard" style="font-size:13px; line-height:1.5; color:#94a3b8; white-space:pre-line;">${escapeHtml(
+              guidance,
+            )}</div>`,
+            rawText: guidance,
+          }
           : {
-              html: `<p>${escapeHtml(fallbackMessage)}</p>`,
-              rawText: fallbackMessage,
-            };
+            html: `<p>${escapeHtml(fallbackMessage)}</p>`,
+            rawText: fallbackMessage,
+          };
 
       const climateDisplay = formatClimate(response?.climate ?? undefined);
       // Prefer explicit hook from response, fall back to formatted intent
@@ -126,9 +126,9 @@ export function useRavenRequest({
       const existingPoints = validationMap[messageId] ?? [];
       const parsedPoints = shouldParseValidation
         ? parseValidationPoints(rawText, existingPoints, {
-            allowParagraphFallback:
-              response?.validation?.allowFallback === true,
-          })
+          allowParagraphFallback:
+            response?.validation?.allowFallback === true,
+        })
         : existingPoints;
 
       if (shouldParseValidation) {
@@ -197,6 +197,9 @@ export function useRavenRequest({
             headers: {
               "Content-Type": "application/json",
               "X-Request-Id": generateId(),
+              ...(typeof window !== "undefined" && window.localStorage.getItem("auth.token")
+                ? { Authorization: `Bearer ${window.localStorage.getItem("auth.token")}` }
+                : {}),
             },
             body: JSON.stringify(mergedPayload),
             signal: controller.signal,
@@ -243,10 +246,10 @@ export function useRavenRequest({
                     prev.map((msg) =>
                       msg.id === placeholderId
                         ? {
-                            ...msg,
-                            html: `<p>${escapeHtml(accumulatedDraft)}</p>`,
-                            rawText: accumulatedDraft
-                          }
+                          ...msg,
+                          html: `<p>${escapeHtml(accumulatedDraft)}</p>`,
+                          rawText: accumulatedDraft
+                        }
                         : msg
                     )
                   );
@@ -254,16 +257,16 @@ export function useRavenRequest({
 
                 // Merge other metadata as it arrives
                 if (chunk.intent || chunk.climate || chunk.hook || chunk.probe || chunk.prov) {
-                   if (!finalResponseData) finalResponseData = { ok: true };
-                   Object.assign(finalResponseData, chunk);
+                  if (!finalResponseData) finalResponseData = { ok: true };
+                  Object.assign(finalResponseData, chunk);
 
-                   // Update metadata in UI immediately
-                   updateMessage(placeholderId, {
-                     climate: formatClimate(chunk.climate),
-                     hook: formatIntentHook(chunk.intent, chunk.prov),
-                     probe: chunk.probe,
-                     prov: chunk.prov
-                   });
+                  // Update metadata in UI immediately
+                  updateMessage(placeholderId, {
+                    climate: formatClimate(chunk.climate),
+                    hook: formatIntentHook(chunk.intent, chunk.prov),
+                    probe: chunk.probe,
+                    prov: chunk.prov
+                  });
                 }
 
                 if (chunk.sessionId) {
@@ -271,7 +274,7 @@ export function useRavenRequest({
                 }
 
                 if (chunk.error) {
-                   throw new Error(chunk.error);
+                  throw new Error(chunk.error);
                 }
 
               } catch (e) {
@@ -283,14 +286,14 @@ export function useRavenRequest({
 
           // Final pass to format the complete message properly with markdown/paragraphs
           if (accumulatedDraft) {
-             const finalDraft = { conversation: accumulatedDraft };
-             const finalResponse: RavenDraftResponse = {
-                ok: true,
-                draft: finalDraft,
-                ...finalResponseData
-             };
-             applyRavenResponse(placeholderId, finalResponse, fallbackMessage);
-             return finalResponse;
+            const finalDraft = { conversation: accumulatedDraft };
+            const finalResponse: RavenDraftResponse = {
+              ok: true,
+              draft: finalDraft,
+              ...finalResponseData
+            };
+            applyRavenResponse(placeholderId, finalResponse, fallbackMessage);
+            return finalResponse;
           }
 
           return finalResponseData;

@@ -4,27 +4,26 @@
  * Heuristic mapping from chart geometry to MBTI-like tendencies.
  * NEVER used frontstage; only supplies symbolic context for Poetic Brain.
  * 
- * ARCHITECTURE NOTE (v1.4 — Depth Edition + Human Voice):
+ * ARCHITECTURE NOTE (v1.4 — Three-Layer Precedence Model):
  * 
- * INTERIOR COMPASS (determines type):
- * - E/I: Moon element + Saturn bias (Gravity Well clause applied)
- * - N/S: Sun element + Mercury element (perception architecture)
- * - T/F: Moon element + Venus-Saturn weighting + MC/IC purpose-axis tone
- * - J/P: Moon modality + Saturn structure-bias
+ * LAYER 1: BLUEPRINT (Symbolic Core — Raven's Layer)
+ * - J/P: Sun Modality (Primary Determinant)
+ * - N/S: Sun Element + Mercury Element + Moon Element (Water = Depth-Patterning)
+ * - T/F: Moon Element + Venus-Saturn + MC/IC
+ * - E/I: Moon Element + Saturn Bias
  * 
- * CONTACT RESONANCE (EXCLUDED from type — hard firewall):
- * - Ascendant sign (interface mask)
- * - Mars ignition
- * - Sun modality/polarity for E/I or J/P (presentation, not cognition)
- * - Mercury tempo
+ * LAYER 2: ENGINE (Numeric Tone)
+ * - Provides polarity pressure and nuance (e.g., "Soft P" vs "Strong J")
+ * - Does NOT override Layer 1 if Blueprint signal is clear.
+ * 
+ * LAYER 3: CONTACT RESONANCE (The Interface)
+ * - Ascendant, Mars, Sun polarity (for E/I)
+ * - Strictly firewalled from Type determination.
  * 
  * PROTOCOL RULES:
- * - Rule A: No Axis Left Uncalled — every axis gets a best-fit
- * - Rule B: Layer-Based Tie-Breaker — Moon first, Saturn second
- * - Rule C: Falsifiability Required — every call includes testable prediction
- * - FIREWALL: Sun/ASC/Mars/Mercury tempo NEVER influence E/I, T/F, or J/P
- * 
- * NOTE: All scoring values are HEURISTICS, not empirical claims.
+ * - Rule A: Blueprint Precedence — Sun determines J/P.
+ * - Rule B: Depth-Patterning — Water Moons allow N-orientation.
+ * - Rule C: Falsifiability Required.
  * 
  * @internal
  */
@@ -267,9 +266,10 @@ function axisEI(positions: Record<string, any>, ascSign: string | null): AxisDet
 /**
  * N/S Axis — Pattern-first vs. Concrete-first Perception
  * 
- * Sources (v1.2 Final):
+ * Sources (v1.4 — Three-Layer Precedence):
  * 1. Actor (Sun) element
  * 2. Mercury element
+ * 3. Moon element (Water = Depth-Patterning)
  */
 function axisNS(positions: Record<string, any>): AxisDetail {
   const interiorSignals: string[] = [];
@@ -295,15 +295,27 @@ function axisNS(positions: Record<string, any>): AxisDetail {
     interiorSignals.push(`Mercury in ${ELEMENT_NAMES[mercuryEl]} (${patternFirst ? 'abstract' : 'practical'})`);
   }
 
+  // Tertiary signal: Moon element (Water = Depth-Patterning)
+  const moon = positions['Moon'] || positions['moon'];
+  const moonEl = elem(moon?.sign);
+  let moonScore = 0;
+  if (moonEl === 'W') {
+    moonScore = 1.5; // Strong N bias for Water Moons (Overrides Earth)
+    interiorSignals.push(`Moon in Water (depth-patterning / intuitive bias)`);
+  }
+
   // Calculate combined score
-  const combinedScore = actorScore + mercuryScore;
+  const combinedScore = actorScore + mercuryScore + moonScore;
 
+  // Thresholds adjusted for 3 inputs
   let value: string;
-  if (combinedScore >= 1.2) value = 'N';
-  else if (combinedScore <= 0.8) value = 'S';
-  else value = combinedScore >= 1.0 ? 'N' : 'S';
+  // Max score 2.8 (Sun+Merc+Moon), Min 0.0
+  // Midpoint ~1.4
+  if (combinedScore >= 1.5) value = 'N';
+  else if (combinedScore <= 1.0) value = 'S';
+  else value = combinedScore >= 1.2 ? 'N' : 'S';
 
-  const score = Math.max(-1, Math.min(1, (combinedScore - 1.0)));
+  const score = Math.max(-1, Math.min(1, (combinedScore - 1.2)));
   const confidence = scoreToConfidence(score);
 
   // v1.4 Voice
@@ -422,28 +434,41 @@ function axisTF(positions: Record<string, any>, mcSign: string | null): AxisDeta
 /**
  * J/P Axis — Closure-seeking vs. Open-form Movement
  * 
- * Sources (v1.4 — Depth Edition):
- * 1. Moon modality (primary)
- * 2. Saturn structure-bias
+ * Sources (v1.4 — Three-Layer Precedence):
+ * 1. Sun Modality (Primary - Blueprint Layer)
+ * 2. Moon Modality (Secondary - Engine Layer)
+ * 3. Saturn structure-bias
  * 
  * v1.4 Updates:
- * - Saturn Retrograde = 1.2x multiplier on J-bias (intensifies need for internal order)
+ * - Sun Modality determines Blueprint J/P (+/- 1.5 weight)
+ * - Moon/Saturn provide tonal nuance
  */
 function axisJP(positions: Record<string, any>, ascSign: string | null): AxisDetail {
   const interiorSignals: string[] = [];
   const contactSignals: string[] = [];
 
-  // Primary: Moon modality
+  // Primary: Sun Modality (Blueprint Layer)
+  const sun = positions['Sun'] || positions['sun'];
+  const sunMod = mod(sun?.sign);
+  let sunScore = 0;
+  if (sunMod) {
+    const jLeaning = sunMod === 'C' || sunMod === 'F';
+    // Heavy weight to ensure Blueprint precedence
+    sunScore = jLeaning ? 1.5 : -1.5;
+    interiorSignals.push(`Sun in ${MODALITY_NAMES[sunMod]} (Blueprint ${jLeaning ? 'J' : 'P'})`);
+  }
+
+  // Secondary: Moon modality (Engine Layer)
   const moon = positions['Moon'] || positions['moon'];
   const moonMod = mod(moon?.sign);
   let moonScore = 0;
   if (moonMod) {
     const jLeaning = moonMod === 'C' || moonMod === 'F';
-    moonScore = jLeaning ? 1.0 : 0.0;
-    interiorSignals.push(`Moon in ${MODALITY_NAMES[moonMod]} (${jLeaning ? 'closure-seeking' : 'open-flow'})`);
+    moonScore = jLeaning ? 0.5 : -0.5;
+    interiorSignals.push(`Moon in ${MODALITY_NAMES[moonMod]} (${jLeaning ? 'closure-seeking' : 'open-flow'} tone)`);
   }
 
-  // Secondary: Saturn structure-bias
+  // Tertiary: Saturn structure-bias
   const saturn = positions['Saturn'] || positions['saturn'];
   const saturnMod = mod(saturn?.sign);
   let saturnBias = 0;
@@ -465,12 +490,6 @@ function axisJP(positions: Record<string, any>, ascSign: string | null): AxisDet
   }
 
   // Track Contact Resonance
-  const sun = positions['Sun'] || positions['sun'];
-  const sunMod = mod(sun?.sign);
-  if (sunMod) {
-    const jLeaning = sunMod === 'C' || sunMod === 'F';
-    contactSignals.push(`Sun in ${MODALITY_NAMES[sunMod]} (${jLeaning ? 'J-like' : 'P-like'} style)`);
-  }
   const ascMod = mod(ascSign);
   if (ascMod) {
     const jLeaning = ascMod === 'C' || ascMod === 'F';
@@ -484,8 +503,11 @@ function axisJP(positions: Record<string, any>, ascSign: string | null): AxisDet
   }
 
   // Calculate score
-  const rawScore = moonScore + saturnBias;
-  const score = Math.max(-1, Math.min(1, (rawScore - 0.5) * 1.5));
+  // Sun (+/- 1.5) dominates Moon (+/- 0.5) and Saturn (+/- 0.15)
+  const rawScore = sunScore + moonScore + saturnBias;
+
+  // Normalize
+  const score = Math.max(-1, Math.min(1, rawScore / 2.0));
 
   const value = score >= 0 ? 'J' : 'P';
   const confidence = scoreToConfidence(score);

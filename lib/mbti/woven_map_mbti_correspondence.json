@@ -2,9 +2,10 @@
   "protocol_version": "v1.4-depth-voice",
   "protocol_name": "MBTI INFERENCE PROTOCOL — v1.4 (Depth Edition + Human Voice)",
   "architecture": {
-    "layer_1": "Interior Compass (The Engine) — Cognitive Physics",
-    "layer_2": "Contact Resonance (The Interface) — Social Texture",
-    "firewall": "Strict separation: Layer 2 signals (Ascendant, Mars, Sun polarity) NEVER influence Layer 1 scoring."
+    "layer_1": "Blueprint (Symbolic Core) — Sun determines J/P, Moon shapes N/S",
+    "layer_2": "Engine (Numeric Tone) — Provides polarity pressure",
+    "layer_3": "Contact Resonance (The Interface) — Social Texture",
+    "precedence": "Layer 1 overrides Layer 2 when in conflict."
   },
   "resonance_domains": {
     "domain_1": {
@@ -50,13 +51,15 @@
       "description": "How you perceive reality: reading the pattern first or the detail first.",
       "sources": [
         "Sun Element (Primary)",
-        "Mercury Element (Secondary)"
+        "Mercury Element (Secondary)",
+        "Moon Element (Water = Depth-Patterning)"
       ],
       "scoring": {
         "Sun_Fire_Air": "+1.0 (Pattern-First)",
         "Sun_Earth_Water": "0.0 (Concrete-First)",
         "Mercury_Fire_Air": "+1.0 (Abstract)",
-        "Mercury_Earth_Water": "0.0 (Practical)"
+        "Mercury_Earth_Water": "0.0 (Practical)",
+        "Moon_Water": "+1.5 (Depth-Patterning / Intuitive Bias)"
       }
     },
     "TF": {
@@ -79,11 +82,14 @@
       "name": "Rhythm Preference",
       "description": "How you move through time: seeking closure or keeping options open.",
       "sources": [
-        "Moon Modality (Primary)",
+        "Sun Modality (Primary - Blueprint Layer)",
+        "Moon Modality (Secondary)",
         "Saturn Structure-Bias"
       ],
       "scoring": {
-        "Moon_Fixed_Cardinal": "+1.0 (Closure-Seeking)",
+        "Sun_Cardinal_Fixed": "+1.5 (Blueprint J)",
+        "Sun_Mutable": "-1.5 (Blueprint P)",
+        "Moon_Fixed_Cardinal": "+0.5 (Closure-Seeking)",
         "Moon_Mutable": "0.0 (Open-Flow)",
         "Saturn_Fixed_Cardinal": "+0.15 (Structured)",
         "Saturn_Mutable": "-0.15 (Flexible)",

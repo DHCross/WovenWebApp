@@ -67,12 +67,13 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
         if (isAuthed) {
           // Refresh the token to ensure we have a valid one
           try {
-            await client.getTokenSilently({
+            const token = await client.getTokenSilently({
               authorizationParams: {
                 audience: audience || undefined,
                 scope: 'openid profile email'
               }
             });
+            window.localStorage.setItem('auth.token', token);
           } catch (tokenError) {
             console.warn('Failed to refresh token silently:', tokenError);
             // If silent refresh fails, we might need to re-login, but for now let's proceed

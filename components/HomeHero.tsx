@@ -244,8 +244,8 @@ export default function HomeHero() {
     try {
       // Auth0 requires the returnTo URL to exactly match an Allowed Logout URL
       // Ensure trailing slash for consistency with Auth0 configuration
-      const returnTo = window.location.origin.endsWith('/') 
-        ? window.location.origin 
+      const returnTo = window.location.origin.endsWith('/')
+        ? window.location.origin
         : `${window.location.origin}/`;
       await clientRef.current.logout?.({
         logoutParams: {
@@ -253,12 +253,14 @@ export default function HomeHero() {
         }
       });
       persistAuthState(false, null);
+      window.localStorage.removeItem('auth.token');
     } catch (e) {
       console.error("Logout failed", e);
       // Fallback: clear local state and reload
       setAuthed(false);
       setUserName(null);
       persistAuthState(false, null);
+      window.localStorage.removeItem('auth.token');
       window.location.reload();
     }
   };
