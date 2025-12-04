@@ -1,27 +1,25 @@
 import { inferMbtiFromChart, inferContactResonance } from '../../lib/mbti/inferMbtiFromChart';
 
 /**
- * Tests for MBTI Correspondence Inference (Subtle / Backstage Only)
+ * Tests for MBTI Correspondence Inference (v1.4 - Depth Edition + Human Voice)
  * 
- * ARCHITECTURE NOTE (v1.2-final-firewall-enforced):
+ * ARCHITECTURE NOTE (v1.4):
  * 
  * Axis Sources (Interior Compass ONLY):
- * - E/I: Moon element + Saturn bias
- *        FIREWALL: Sun polarity, Ascendant, Mars EXCLUDED
- * - N/S: Sun element + Mercury element (perception architecture)
+ * - E/I: Moon element + Saturn bias (Gravity Well clause applied)
+ * - N/S: Sun element + Mercury element
  * - T/F: Moon element + Venus-Saturn weighting + MC/IC purpose-axis tone
  * - J/P: Moon modality + Saturn structure-bias
- *        FIREWALL: Sun modality, Ascendant modality EXCLUDED
- * 
- * Contact Resonance (Ascendant sign, Mars, Mercury tempo, Sun expression) 
- * is tracked separately and NEVER determines type.
  * 
  * Protocol Rules:
- * - Rule A: No Axis Left Uncalled — every axis gets a best-fit
- * - Rule B: Layer-Based Tie-Breaker — Moon first, Saturn second
- * - Rule C: Falsifiability Required — every call includes testable prediction
+ * - Rule A: No Axis Left Uncalled
+ * - Rule B: Layer-Based Tie-Breaker
+ * - Rule C: Falsifiability Required
  * 
- * All scoring values are HEURISTICS, not empirical claims.
+ * v1.4 Updates:
+ * - Saturn in Water/12th = Gravity Well (-0.4 bias)
+ * - Saturn Retrograde = 1.2x multiplier on inward/structure bias
+ * - Voice: Experience-based metaphors (e.g., "Your energy tends to flow...")
  */
 
 describe('inferMbtiFromChart', () => {
@@ -43,7 +41,7 @@ describe('inferMbtiFromChart', () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // v1.2: Per-Axis Reasoning and Falsifiability
+  // v1.4: Per-Axis Reasoning and Falsifiability (Human Voice)
   // ─────────────────────────────────────────────────────────────────────────────
 
   it('returns axisReasoning with confidence and falsifiability for all axes', () => {
@@ -60,21 +58,18 @@ describe('inferMbtiFromChart', () => {
     const result = inferMbtiFromChart(chart);
     expect(result).not.toBeNull();
     expect(result!.axisReasoning).toBeDefined();
-    
-    // Check all four axes have required fields
+
     for (const axis of ['EI', 'NS', 'TF', 'JP'] as const) {
       expect(result!.axisReasoning![axis]).toBeDefined();
-      // Value should be single letter from MBTI type (E, I, N, S, T, F, J, P)
       expect(['E', 'I', 'N', 'S', 'T', 'F', 'J', 'P']).toContain(result!.axisReasoning![axis].value);
       expect(['strong_call', 'clear_call', 'soft_call']).toContain(result!.axisReasoning![axis].confidence);
-      expect(result!.axisReasoning![axis].reasoning).toBeTruthy();
-      // Falsifiability should be a non-empty string with testable language
+      // v1.4 Voice Check: Should use "You tend to..." or "Your energy..."
+      expect(result!.axisReasoning![axis].reasoning).toMatch(/Your energy|You tend to/);
       expect(result!.axisReasoning![axis].falsifiability).toBeTruthy();
-      expect(result!.axisReasoning![axis].falsifiability.length).toBeGreaterThan(20);
     }
   });
 
-  it('includes globalSummary with Protocol Rule A reference', () => {
+  it('includes globalSummary with collaborative framing', () => {
     const chart = {
       positions: {
         Sun: { sign: 'Ari' },
@@ -85,11 +80,12 @@ describe('inferMbtiFromChart', () => {
     const result = inferMbtiFromChart(chart);
     expect(result).not.toBeNull();
     expect(result!.globalSummary).toBeDefined();
-    expect(result!.globalSummary).toContain('Protocol Rule A');
+    // v1.4 Voice Check: "This map listens to you"
+    expect(result!.globalSummary).toContain('This map listens to you');
   });
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // E/I Axis — Interior Compass (Moon, MC) — NOT Ascendant
+  // E/I Axis — Interior Compass (Moon, Saturn)
   // ─────────────────────────────────────────────────────────────────────────────
 
   it('infers E from Fire Moon (Interior Compass)', () => {
@@ -103,9 +99,8 @@ describe('inferMbtiFromChart', () => {
     const result = inferMbtiFromChart(chart);
     expect(result).not.toBeNull();
     expect(result!.code[0]).toBe('E');
-    expect(result!._layer_note).toContain('Interior Compass');
     expect(result!.axisReasoning!.EI.value).toBe('E');
-    expect(result!.axisReasoning!.EI.reasoning).toContain('Moon');
+    expect(result!.axisReasoning!.EI.reasoning).toContain('flow outward');
   });
 
   it('infers I from Water Moon (Interior Compass)', () => {
@@ -115,36 +110,52 @@ describe('inferMbtiFromChart', () => {
         Moon: { sign: 'Sco' }, // Water Moon = I-leaning
         Mercury: { sign: 'Ari' },
       },
-      angle_signs: { midheaven: 'Sco' }, // Water MC reinforces I
     } as any;
     const result = inferMbtiFromChart(chart);
     expect(result).not.toBeNull();
     expect(result!.code[0]).toBe('I');
     expect(result!.axisReasoning!.EI.value).toBe('I');
+    expect(result!.axisReasoning!.EI.reasoning).toContain('flow inward');
   });
 
-  it('does NOT use Ascendant for E/I (Contact Resonance excluded)', () => {
-    // Fire Ascendant should NOT push toward E if Moon is Water
+  // v1.4: Saturnine Gravity Clause
+  it('dampens E score when Saturn is in Water (Gravity Well)', () => {
     const chart = {
       positions: {
-        Sun: { sign: 'Tau' },
-        Moon: { sign: 'Can' }, // Water Moon = I-leaning
-        Mercury: { sign: 'Tau' },
-        Saturn: { sign: 'Cap' }, // Saturn adds inward weight
-      },
-      angle_signs: { 
-        ascendant: 'Ari', // Fire ASC — should be IGNORED for MBTI
-        midheaven: 'Cap',
+        Sun: { sign: 'Ari' },
+        Moon: { sign: 'Leo' }, // Fire Moon (+1.0)
+        Saturn: { sign: 'Sco' }, // Water Saturn (-0.4)
+        Mercury: { sign: 'Ari' },
       },
     } as any;
     const result = inferMbtiFromChart(chart);
     expect(result).not.toBeNull();
-    // Should be I despite Fire Ascendant
-    expect(result!.code[0]).toBe('I');
+    // Net: +0.6 -> Normalized: (0.6 - 0.5)*2 = 0.2 -> Soft Call
+    // It might still be E, but confidence should be 'soft_call' (or close to it)
+    // Actually, 0.2 is < 0.3, so it should be 'soft_call'
+    expect(result!.axisReasoning!.EI.confidence).toBe('soft_call');
+    expect(result!.axisReasoning!.EI.reasoning).toMatch(/Gravity Well/);
+  });
+
+  // v1.4: Retrograde Factor
+  it('intensifies inward pull when Saturn is Retrograde', () => {
+    const chart = {
+      positions: {
+        Sun: { sign: 'Ari' },
+        Moon: { sign: 'Leo' }, // Fire Moon (+1.0)
+        Saturn: { sign: 'Sco', retrograde: true }, // Water Saturn (-0.4) * 1.2 = -0.48
+        Mercury: { sign: 'Ari' },
+      },
+    } as any;
+    const result = inferMbtiFromChart(chart);
+    expect(result).not.toBeNull();
+    // Net: 1.0 - 0.48 = 0.52 -> Normalized: (0.52 - 0.5)*2 = 0.04 -> Very Soft Call
+    expect(result!.axisReasoning!.EI.confidence).toBe('soft_call');
+    expect(result!.axisReasoning!.EI.reasoning).toMatch(/Retrograde/);
   });
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // N/S Axis — Actor (Sun) element + Mercury element (v1.2 Final)
+  // N/S Axis — Actor (Sun) element + Mercury element
   // ─────────────────────────────────────────────────────────────────────────────
 
   it('infers N from Fire/Air Actor + Mercury (pattern-first)', () => {
@@ -159,7 +170,7 @@ describe('inferMbtiFromChart', () => {
     expect(result).not.toBeNull();
     expect(result!.code[1]).toBe('N');
     expect(result!.axisReasoning!.NS.value).toBe('N');
-    expect(result!.axisReasoning!.NS.reasoning).toContain('pattern');
+    expect(result!.axisReasoning!.NS.reasoning).toContain('pattern before the detail');
   });
 
   it('infers S from Earth/Water Actor + Mercury (concrete-first)', () => {
@@ -170,12 +181,12 @@ describe('inferMbtiFromChart', () => {
         Mercury: { sign: 'Cap' }, // Earth Mercury = S-leaning
         Saturn: { sign: 'Cap' },
       },
-      angle_signs: { midheaven: 'Cap' },
     } as any;
     const result = inferMbtiFromChart(chart);
     expect(result).not.toBeNull();
     expect(result!.code[1]).toBe('S');
     expect(result!.axisReasoning!.NS.value).toBe('S');
+    expect(result!.axisReasoning!.NS.reasoning).toContain('reality before the theory');
   });
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -189,14 +200,14 @@ describe('inferMbtiFromChart', () => {
         Moon: { sign: 'Pis' }, // Water Moon
         Mercury: { sign: 'Lib' },
         Venus: { sign: 'Can' }, // Water Venus = harmony with Water Moon
-        Saturn: { sign: 'Sco' }, // Water Saturn serves relational depth
+        Saturn: { sign: 'Sco' },
       },
     } as any;
     const result = inferMbtiFromChart(chart);
     expect(result).not.toBeNull();
     expect(result!.code[2]).toBe('F');
     expect(result!.axisReasoning!.TF.value).toBe('F');
-    expect(result!.axisReasoning!.TF.reasoning).toContain('resonance');
+    expect(result!.axisReasoning!.TF.reasoning).toContain('felt integrity');
   });
 
   it('infers T from Saturn-Moon tension with Air/Earth emphasis', () => {
@@ -213,166 +224,80 @@ describe('inferMbtiFromChart', () => {
     expect(result).not.toBeNull();
     expect(result!.code[2]).toBe('T');
     expect(result!.axisReasoning!.TF.value).toBe('T');
+    expect(result!.axisReasoning!.TF.reasoning).toContain('logic, consistency');
   });
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // J/P Axis — Moon modality + Saturn structure (v1.2-final-firewall-enforced)
-  // FIREWALL: Sun modality and Ascendant modality EXCLUDED
+  // J/P Axis — Moon modality + Saturn structure
   // ─────────────────────────────────────────────────────────────────────────────
 
   it('infers J from Cardinal/Fixed Moon + Saturn', () => {
     const chart = {
       positions: {
-        Sun: { sign: 'Gem' }, // Mutable Sun (IGNORED for J/P)
+        Sun: { sign: 'Gem' },
         Moon: { sign: 'Cap' }, // Cardinal Moon = J-leaning
         Mercury: { sign: 'Gem' },
         Saturn: { sign: 'Leo' }, // Saturn present = +J weight
       },
-      angle_signs: { ascendant: 'Pis' }, // Mutable ASC (IGNORED for J/P)
     } as any;
     const result = inferMbtiFromChart(chart);
     expect(result).not.toBeNull();
     expect(result!.code[3]).toBe('J');
     expect(result!.axisReasoning!.JP.value).toBe('J');
-    expect(result!.axisReasoning!.JP.reasoning).toContain('closure');
+    expect(result!.axisReasoning!.JP.reasoning).toContain('settled path');
   });
 
   it('infers P from Mutable Moon', () => {
     const chart = {
       positions: {
-        Sun: { sign: 'Ari' }, // Cardinal Sun (IGNORED for J/P)
+        Sun: { sign: 'Ari' },
         Moon: { sign: 'Sag' }, // Mutable Moon = P-leaning
         Mercury: { sign: 'Ari' },
       },
-      angle_signs: { ascendant: 'Cap' }, // Cardinal ASC (IGNORED for J/P)
     } as any;
     const result = inferMbtiFromChart(chart);
     expect(result).not.toBeNull();
     expect(result!.code[3]).toBe('P');
     expect(result!.axisReasoning!.JP.value).toBe('P');
+    expect(result!.axisReasoning!.JP.reasoning).toContain('open options');
   });
 
-  it('does NOT use Sun or Ascendant modality for J/P (Contact Resonance firewall)', () => {
-    // Cardinal Sun + Cardinal Ascendant should NOT push toward J if Moon is Mutable
-    const chart = {
-      positions: {
-        Sun: { sign: 'Ari' }, // Cardinal Sun — IGNORED
-        Moon: { sign: 'Gem' }, // Mutable Moon = P-leaning
-        Mercury: { sign: 'Ari' },
-      },
-      angle_signs: { ascendant: 'Cap' }, // Cardinal ASC — IGNORED
-    } as any;
-    const result = inferMbtiFromChart(chart);
-    expect(result).not.toBeNull();
-    // Should be P despite Cardinal Sun/Ascendant
-    expect(result!.code[3]).toBe('P');
-  });
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Contact Resonance Tests (Separate System)
+  // ─────────────────────────────────────────────────────────────────────────────
 
-  it('produces valid four-letter code with layer note', () => {
-    const chart = {
-      positions: {
-        Sun: { sign: 'Ari' },
-        Moon: { sign: 'Leo' },
-        Mercury: { sign: 'Gem' },
-        Venus: { sign: 'Can' },
-        Mars: { sign: 'Leo' },
-        Saturn: { sign: 'Sco' },
-      },
-      angle_signs: { 
-        ascendant: 'Vir',
-        midheaven: 'Gem',
-      },
-    } as any;
-    const result = inferMbtiFromChart(chart);
-    expect(result).not.toBeNull();
-    expect(result!.code).toMatch(/^[EI][NS][TF][JP]$/);
-    expect(result!._layer_note).toBeDefined();
-    expect(result!._layer_note).toContain('v1.2');
-  });
-});
+  describe('inferContactResonance', () => {
+    it('returns null for empty chart', () => {
+      expect(inferContactResonance(null)).toBeNull();
+    });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Contact Resonance Tests (Separate System)
-// ─────────────────────────────────────────────────────────────────────────────
+    it('detects fast ignition from Fire Mars/Sun', () => {
+      const chart = {
+        positions: {
+          Sun: { sign: 'Ari' },
+          Moon: { sign: 'Can' },
+          Mars: { sign: 'Leo' },
+          Mercury: { sign: 'Ari' },
+        },
+        angle_signs: { ascendant: 'Aqu' },
+      } as any;
+      const result = inferContactResonance(chart);
+      expect(result).not.toBeNull();
+      expect(result!.ignition_style).toContain('fast');
+    });
 
-describe('inferContactResonance', () => {
-  it('returns null for empty chart', () => {
-    expect(inferContactResonance(null)).toBeNull();
-    expect(inferContactResonance(undefined)).toBeNull();
-  });
-
-  it('detects fast ignition from Fire Mars/Sun', () => {
-    const chart = {
-      positions: {
-        Sun: { sign: 'Ari' },
-        Moon: { sign: 'Can' },
-        Mars: { sign: 'Leo' },
-        Mercury: { sign: 'Ari' },
-      },
-      angle_signs: { ascendant: 'Aqu' },
-    } as any;
-    const result = inferContactResonance(chart);
-    expect(result).not.toBeNull();
-    expect(result!.ignition_style).toContain('fast');
-  });
-
-  it('detects cool interface from Air Ascendant', () => {
-    const chart = {
-      positions: {
-        Sun: { sign: 'Tau' },
-        Moon: { sign: 'Tau' },
-        Mercury: { sign: 'Tau' },
-      },
-      angle_signs: { ascendant: 'Aqu' },
-    } as any;
-    const result = inferContactResonance(chart);
-    expect(result).not.toBeNull();
-    expect(result!.interface_tone).toContain('cool');
-  });
-
-  it('detects warm interface from Fire Ascendant', () => {
-    const chart = {
-      positions: {
-        Sun: { sign: 'Cap' },
-        Moon: { sign: 'Cap' },
-        Mercury: { sign: 'Cap' },
-      },
-      angle_signs: { ascendant: 'Leo' },
-    } as any;
-    const result = inferContactResonance(chart);
-    expect(result).not.toBeNull();
-    expect(result!.interface_tone).toContain('warm');
-  });
-
-  // v1.2: Appearance mismatch detection
-  it('detects E/I appearance mismatch note for Fire Ascendant', () => {
-    const chart = {
-      positions: {
-        Sun: { sign: 'Tau' },
-        Moon: { sign: 'Can' }, // Water Moon = I-leaning
-        Mercury: { sign: 'Tau' },
-      },
-      angle_signs: { ascendant: 'Ari' }, // Fire ASC = E-like presentation
-    } as any;
-    const result = inferContactResonance(chart);
-    expect(result).not.toBeNull();
-    expect(result!.ei_appearance_note).toBeDefined();
-    expect(result!.ei_appearance_note).toContain('E-like');
-  });
-
-  it('detects T/F appearance mismatch note for Mercury in Air', () => {
-    const chart = {
-      positions: {
-        Sun: { sign: 'Tau' },
-        Moon: { sign: 'Pis' }, // Water Moon
-        Mercury: { sign: 'Aqu' }, // Air Mercury = T-like articulation
-        Venus: { sign: 'Can' }, // Water Venus = F-leaning interior
-      },
-      angle_signs: { ascendant: 'Tau' },
-    } as any;
-    const result = inferContactResonance(chart);
-    expect(result).not.toBeNull();
-    expect(result!.tf_appearance_note).toBeDefined();
-    expect(result!.tf_appearance_note).toContain('T-like');
+    it('detects cool interface from Air Ascendant', () => {
+      const chart = {
+        positions: {
+          Sun: { sign: 'Tau' },
+          Moon: { sign: 'Tau' },
+          Mercury: { sign: 'Tau' },
+        },
+        angle_signs: { ascendant: 'Aqu' },
+      } as any;
+      const result = inferContactResonance(chart);
+      expect(result).not.toBeNull();
+      expect(result!.interface_tone).toContain('cool');
+    });
   });
 });

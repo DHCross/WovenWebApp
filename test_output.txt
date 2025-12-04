@@ -1,0 +1,2997 @@
+
+> woven-web-app@1.0.0 test
+> node test/astrology-mathbrain.test.js lib/mbti/inferMbtiFromChart.test.ts
+
+🧪 Running Final Woven Map Test Suite
+
+Running: Should return 405 for non-POST requests
+✅ PASS: Should return 405 for non-POST requests
+
+Running: Should return 400 if Person A is invalid
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called { input: { name: 'Invalid' } }
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: { name: 'Invalid' },
+  output: {
+    name: 'Invalid',
+    zodiac_type: 'Tropic',
+    city: undefined,
+    nation: undefined,
+    latitude: undefined,
+    longitude: undefined,
+    timezone: undefined
+  }
+}
+✅ PASS: Should return 400 if Person A is invalid
+
+Running: Should handle natal chart mode
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: false,
+  modeToken: 'BIRTH_CHART',
+  contextMode: 'BIRTH_CHART',
+  relationshipMode: false,
+  wantSynastry: undefined,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: false
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: false, start: undefined, end: undefined }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+[DEBUG] Setting default active_points (includes True nodes & full angle set)
+[DEBUG] Setting default active_aspects from profile wm-spec-2025-09: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semisquare', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semisextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Normalized + clamped active_aspects list: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semi-square', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semi-sextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Fetching complete natal chart for person_a (BIRTH_CHART)
+[INFO] [COORD_TRACE] person_a SENDING to API: {
+  name: 'Test Person A',
+  city: 'New York',
+  nation: 'US',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  contextLabel: 'BIRTH_CHART'
+}
+[DEBUG] [STRICT_MODE] Omitting city/country_code for Test Person A: {
+  coords: { lat: 40.7128, lon: -74.006 },
+  omittedCity: 'New York',
+  omittedCountry: 'US',
+  reason: 'Prevent API re-geocoding from overwriting exact coordinates'
+}
+[INFO] [COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Birth chart (person_a) - BIRTH_CHART',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'New York'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - BIRTH_CHART
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - BIRTH_CHART',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - BIRTH_CHART
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - BIRTH_CHART',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - BIRTH_CHART {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - BIRTH_CHART',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] Coords mode failed for Birth chart (person_a) - BIRTH_CHART, trying city mode { error: 'Client error 404 for Birth chart (person_a) - BIRTH_CHART' }
+[INFO] [COORD_TRACE] callNatal using CITY mode: {
+  description: 'Birth chart (person_a) - BIRTH_CHART',
+  city: 'New York',
+  state: undefined,
+  nation: 'US'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - BIRTH_CHART (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - BIRTH_CHART (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - BIRTH_CHART (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - BIRTH_CHART (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - BIRTH_CHART (city-first) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - BIRTH_CHART (city-first)',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] City mode failed for Birth chart (person_a) - BIRTH_CHART {
+  error: 'Client error 404 for Birth chart (person_a) - BIRTH_CHART (city-first)'
+}
+[ERROR] Handler error: Error: Birth chart (person_a) - BIRTH_CHART failed: Client error 404 for Birth chart (person_a) - BIRTH_CHART (city-first)
+    at callNatal (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:376:24)
+    at async fetchNatalChartComplete (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:1302:25)
+    at async processMathbrain (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:2758:24)
+    at async exports.handler (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:4213:12)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:155:22
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+❌ FAIL: Should handle natal chart mode
+   Error: Error: Expected 200, got 500
+    at TestRunner.assertEqual (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:56:75)
+    at /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:156:14
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+
+Running: Should handle transits and Seismograph for a single person
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: false,
+  modeToken: 'NATAL_TRANSITS',
+  contextMode: 'NATAL_TRANSITS',
+  relationshipMode: false,
+  wantSynastry: undefined,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: false
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: true, start: '2024-01-01', end: '2024-01-01' }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+[DEBUG] Setting default active_points (includes True nodes & full angle set)
+[DEBUG] Setting default active_aspects from profile wm-spec-2025-09: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semisquare', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semisextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Normalized + clamped active_aspects list: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semi-square', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semi-sextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Fetching complete natal chart for person_a (NATAL_TRANSITS)
+[INFO] [COORD_TRACE] person_a SENDING to API: {
+  name: 'Test Person A',
+  city: 'New York',
+  nation: 'US',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  contextLabel: 'NATAL_TRANSITS'
+}
+[DEBUG] [STRICT_MODE] Omitting city/country_code for Test Person A: {
+  coords: { lat: 40.7128, lon: -74.006 },
+  omittedCity: 'New York',
+  omittedCountry: 'US',
+  reason: 'Prevent API re-geocoding from overwriting exact coordinates'
+}
+[INFO] [COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Birth chart (person_a) - NATAL_TRANSITS',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'New York'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - NATAL_TRANSITS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_TRANSITS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - NATAL_TRANSITS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_TRANSITS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - NATAL_TRANSITS {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - NATAL_TRANSITS',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] Coords mode failed for Birth chart (person_a) - NATAL_TRANSITS, trying city mode {
+  error: 'Client error 404 for Birth chart (person_a) - NATAL_TRANSITS'
+}
+[INFO] [COORD_TRACE] callNatal using CITY mode: {
+  description: 'Birth chart (person_a) - NATAL_TRANSITS',
+  city: 'New York',
+  state: undefined,
+  nation: 'US'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - NATAL_TRANSITS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_TRANSITS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - NATAL_TRANSITS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_TRANSITS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - NATAL_TRANSITS (city-first) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - NATAL_TRANSITS (city-first)',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] City mode failed for Birth chart (person_a) - NATAL_TRANSITS {
+  error: 'Client error 404 for Birth chart (person_a) - NATAL_TRANSITS (city-first)'
+}
+[ERROR] Handler error: Error: Birth chart (person_a) - NATAL_TRANSITS failed: Client error 404 for Birth chart (person_a) - NATAL_TRANSITS (city-first)
+    at callNatal (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:376:24)
+    at async fetchNatalChartComplete (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:1302:25)
+    at async processMathbrain (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:2758:24)
+    at async exports.handler (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:4213:12)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:163:20
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+❌ FAIL: Should handle transits and Seismograph for a single person
+   Error: Error: Expected 200, got 500
+    at TestRunner.assertEqual (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:56:75)
+    at /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:164:12
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+
+Running: Directional bias remains signed for contraction days
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: false,
+  modeToken: 'NATAL_TRANSITS',
+  contextMode: 'NATAL_TRANSITS',
+  relationshipMode: false,
+  wantSynastry: undefined,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: false
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: true, start: '2024-01-01', end: '2024-01-01' }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+[DEBUG] Setting default active_points (includes True nodes & full angle set)
+[DEBUG] Setting default active_aspects from profile wm-spec-2025-09: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semisquare', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semisextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Normalized + clamped active_aspects list: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semi-square', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semi-sextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Fetching complete natal chart for person_a (NATAL_TRANSITS)
+[INFO] [COORD_TRACE] person_a SENDING to API: {
+  name: 'Test Person A',
+  city: 'New York',
+  nation: 'US',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  contextLabel: 'NATAL_TRANSITS'
+}
+[DEBUG] [STRICT_MODE] Omitting city/country_code for Test Person A: {
+  coords: { lat: 40.7128, lon: -74.006 },
+  omittedCity: 'New York',
+  omittedCountry: 'US',
+  reason: 'Prevent API re-geocoding from overwriting exact coordinates'
+}
+[INFO] [COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Birth chart (person_a) - NATAL_TRANSITS',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'New York'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - NATAL_TRANSITS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_TRANSITS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - NATAL_TRANSITS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_TRANSITS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - NATAL_TRANSITS {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - NATAL_TRANSITS',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] Coords mode failed for Birth chart (person_a) - NATAL_TRANSITS, trying city mode {
+  error: 'Client error 404 for Birth chart (person_a) - NATAL_TRANSITS'
+}
+[INFO] [COORD_TRACE] callNatal using CITY mode: {
+  description: 'Birth chart (person_a) - NATAL_TRANSITS',
+  city: 'New York',
+  state: undefined,
+  nation: 'US'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - NATAL_TRANSITS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_TRANSITS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - NATAL_TRANSITS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_TRANSITS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - NATAL_TRANSITS (city-first) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - NATAL_TRANSITS (city-first)',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] City mode failed for Birth chart (person_a) - NATAL_TRANSITS {
+  error: 'Client error 404 for Birth chart (person_a) - NATAL_TRANSITS (city-first)'
+}
+[ERROR] Handler error: Error: Birth chart (person_a) - NATAL_TRANSITS failed: Client error 404 for Birth chart (person_a) - NATAL_TRANSITS (city-first)
+    at callNatal (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:376:24)
+    at async fetchNatalChartComplete (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:1302:25)
+    at async processMathbrain (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:2758:24)
+    at async exports.handler (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:4213:12)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:173:20
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+❌ FAIL: Directional bias remains signed for contraction days
+   Error: Error: Expected 200, got 500
+    at TestRunner.assertEqual (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:56:75)
+    at /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:174:12
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+
+Running: Should handle synastry mode
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person B',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    latitude: 34.0522,
+    longitude: -118.2437,
+    city: 'Los Angeles',
+    nation: 'US',
+    timezone: 'America/Los_Angeles',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person B',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    latitude: 34.0522,
+    longitude: -118.2437,
+    city: 'Los Angeles',
+    nation: 'US',
+    timezone: 'America/Los_Angeles',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person B',
+    zodiac_type: 'Tropic',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    city: 'Los Angeles',
+    nation: 'US',
+    latitude: 34.0522,
+    longitude: -118.2437,
+    timezone: 'America/Los_Angeles'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: false,
+  modeToken: 'SYNASTRY',
+  contextMode: 'SYNASTRY',
+  relationshipMode: true,
+  wantSynastry: true,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: false
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: false, start: undefined, end: undefined }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+[DEBUG] Setting default active_points (includes True nodes & full angle set)
+[DEBUG] Setting default active_aspects from profile wm-spec-2025-09: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semisquare', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semisextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Normalized + clamped active_aspects list: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semi-square', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semi-sextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Fetching complete natal chart for person_a (SYNASTRY)
+[INFO] [COORD_TRACE] person_a SENDING to API: {
+  name: 'Test Person A',
+  city: 'New York',
+  nation: 'US',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  contextLabel: 'SYNASTRY'
+}
+[DEBUG] [STRICT_MODE] Omitting city/country_code for Test Person A: {
+  coords: { lat: 40.7128, lon: -74.006 },
+  omittedCity: 'New York',
+  omittedCountry: 'US',
+  reason: 'Prevent API re-geocoding from overwriting exact coordinates'
+}
+[INFO] [COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Birth chart (person_a) - SYNASTRY',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'New York'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - SYNASTRY
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - SYNASTRY
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - SYNASTRY {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - SYNASTRY',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] Coords mode failed for Birth chart (person_a) - SYNASTRY, trying city mode { error: 'Client error 404 for Birth chart (person_a) - SYNASTRY' }
+[INFO] [COORD_TRACE] callNatal using CITY mode: {
+  description: 'Birth chart (person_a) - SYNASTRY',
+  city: 'New York',
+  state: undefined,
+  nation: 'US'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - SYNASTRY (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - SYNASTRY (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - SYNASTRY (city-first) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - SYNASTRY (city-first)',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] City mode failed for Birth chart (person_a) - SYNASTRY {
+  error: 'Client error 404 for Birth chart (person_a) - SYNASTRY (city-first)'
+}
+[ERROR] Handler error: Error: Birth chart (person_a) - SYNASTRY failed: Client error 404 for Birth chart (person_a) - SYNASTRY (city-first)
+    at callNatal (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:376:24)
+    at async fetchNatalChartComplete (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:1302:25)
+    at async processMathbrain (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:2758:24)
+    at async exports.handler (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:4213:12)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:195:22
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+❌ FAIL: Should handle synastry mode
+   Error: Error: Expected 200, got 500
+    at TestRunner.assertEqual (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:56:75)
+    at /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:196:14
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+
+Running: Relationship contact_state toggle respected
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person B',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    latitude: 34.0522,
+    longitude: -118.2437,
+    city: 'Los Angeles',
+    nation: 'US',
+    timezone: 'America/Los_Angeles',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person B',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    latitude: 34.0522,
+    longitude: -118.2437,
+    city: 'Los Angeles',
+    nation: 'US',
+    timezone: 'America/Los_Angeles',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person B',
+    zodiac_type: 'Tropic',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    city: 'Los Angeles',
+    nation: 'US',
+    latitude: 34.0522,
+    longitude: -118.2437,
+    timezone: 'America/Los_Angeles'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: false,
+  modeToken: 'SYNASTRY',
+  contextMode: 'SYNASTRY',
+  relationshipMode: true,
+  wantSynastry: true,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: false
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: false, start: undefined, end: undefined }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+[DEBUG] Setting default active_points (includes True nodes & full angle set)
+[DEBUG] Setting default active_aspects from profile wm-spec-2025-09: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semisquare', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semisextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Normalized + clamped active_aspects list: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semi-square', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semi-sextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Fetching complete natal chart for person_a (SYNASTRY)
+[INFO] [COORD_TRACE] person_a SENDING to API: {
+  name: 'Test Person A',
+  city: 'New York',
+  nation: 'US',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  contextLabel: 'SYNASTRY'
+}
+[DEBUG] [STRICT_MODE] Omitting city/country_code for Test Person A: {
+  coords: { lat: 40.7128, lon: -74.006 },
+  omittedCity: 'New York',
+  omittedCountry: 'US',
+  reason: 'Prevent API re-geocoding from overwriting exact coordinates'
+}
+[INFO] [COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Birth chart (person_a) - SYNASTRY',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'New York'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - SYNASTRY
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - SYNASTRY
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - SYNASTRY {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - SYNASTRY',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] Coords mode failed for Birth chart (person_a) - SYNASTRY, trying city mode { error: 'Client error 404 for Birth chart (person_a) - SYNASTRY' }
+[INFO] [COORD_TRACE] callNatal using CITY mode: {
+  description: 'Birth chart (person_a) - SYNASTRY',
+  city: 'New York',
+  state: undefined,
+  nation: 'US'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - SYNASTRY (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - SYNASTRY (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - SYNASTRY (city-first) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - SYNASTRY (city-first)',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] City mode failed for Birth chart (person_a) - SYNASTRY {
+  error: 'Client error 404 for Birth chart (person_a) - SYNASTRY (city-first)'
+}
+[ERROR] Handler error: Error: Birth chart (person_a) - SYNASTRY failed: Client error 404 for Birth chart (person_a) - SYNASTRY (city-first)
+    at callNatal (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:376:24)
+    at async fetchNatalChartComplete (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:1302:25)
+    at async processMathbrain (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:2758:24)
+    at async exports.handler (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:4213:12)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:208:20
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+❌ FAIL: Relationship contact_state toggle respected
+   Error: Error: Expected 200, got 500
+    at TestRunner.assertEqual (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:56:75)
+    at /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:209:12
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+
+Running: Should handle synastry with transits and Seismograph for BOTH people
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person B',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    latitude: 34.0522,
+    longitude: -118.2437,
+    city: 'Los Angeles',
+    nation: 'US',
+    timezone: 'America/Los_Angeles',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person B',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    latitude: 34.0522,
+    longitude: -118.2437,
+    city: 'Los Angeles',
+    nation: 'US',
+    timezone: 'America/Los_Angeles',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person B',
+    zodiac_type: 'Tropic',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    city: 'Los Angeles',
+    nation: 'US',
+    latitude: 34.0522,
+    longitude: -118.2437,
+    timezone: 'America/Los_Angeles'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: false,
+  modeToken: 'SYNASTRY_TRANSITS',
+  contextMode: 'SYNASTRY_TRANSITS',
+  relationshipMode: true,
+  wantSynastry: true,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: false
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: true, start: '2024-01-01', end: '2024-01-01' }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+[DEBUG] Setting default active_points (includes True nodes & full angle set)
+[DEBUG] Setting default active_aspects from profile wm-spec-2025-09: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semisquare', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semisextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Normalized + clamped active_aspects list: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semi-square', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semi-sextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Fetching complete natal chart for person_a (SYNASTRY_TRANSITS)
+[INFO] [COORD_TRACE] person_a SENDING to API: {
+  name: 'Test Person A',
+  city: 'New York',
+  nation: 'US',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  contextLabel: 'SYNASTRY_TRANSITS'
+}
+[DEBUG] [STRICT_MODE] Omitting city/country_code for Test Person A: {
+  coords: { lat: 40.7128, lon: -74.006 },
+  omittedCity: 'New York',
+  omittedCountry: 'US',
+  reason: 'Prevent API re-geocoding from overwriting exact coordinates'
+}
+[INFO] [COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Birth chart (person_a) - SYNASTRY_TRANSITS',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'New York'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - SYNASTRY_TRANSITS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - SYNASTRY_TRANSITS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - SYNASTRY_TRANSITS {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] Coords mode failed for Birth chart (person_a) - SYNASTRY_TRANSITS, trying city mode {
+  error: 'Client error 404 for Birth chart (person_a) - SYNASTRY_TRANSITS'
+}
+[INFO] [COORD_TRACE] callNatal using CITY mode: {
+  description: 'Birth chart (person_a) - SYNASTRY_TRANSITS',
+  city: 'New York',
+  state: undefined,
+  nation: 'US'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - SYNASTRY_TRANSITS (city-first) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] City mode failed for Birth chart (person_a) - SYNASTRY_TRANSITS {
+  error: 'Client error 404 for Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)'
+}
+[ERROR] Handler error: Error: Birth chart (person_a) - SYNASTRY_TRANSITS failed: Client error 404 for Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)
+    at callNatal (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:376:24)
+    at async fetchNatalChartComplete (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:1302:25)
+    at async processMathbrain (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:2758:24)
+    at async exports.handler (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:4213:12)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:223:20
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+❌ FAIL: Should handle synastry with transits and Seismograph for BOTH people
+   Error: Error: Expected 200, got 500
+    at TestRunner.assertEqual (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:56:75)
+    at /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:226:12
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+
+Running: Should handle composite with transits and Seismograph
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person B',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    latitude: 34.0522,
+    longitude: -118.2437,
+    city: 'Los Angeles',
+    nation: 'US',
+    timezone: 'America/Los_Angeles',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person B',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    latitude: 34.0522,
+    longitude: -118.2437,
+    city: 'Los Angeles',
+    nation: 'US',
+    timezone: 'America/Los_Angeles',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person B',
+    zodiac_type: 'Tropic',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    city: 'Los Angeles',
+    nation: 'US',
+    latitude: 34.0522,
+    longitude: -118.2437,
+    timezone: 'America/Los_Angeles'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: false,
+  modeToken: 'COMPOSITE_TRANSITS',
+  contextMode: 'COMPOSITE_TRANSITS',
+  relationshipMode: true,
+  wantSynastry: undefined,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: true
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: true, start: '2024-01-01', end: '2024-01-01' }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+[DEBUG] Setting default active_points (includes True nodes & full angle set)
+[DEBUG] Setting default active_aspects from profile wm-spec-2025-09: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semisquare', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semisextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Normalized + clamped active_aspects list: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semi-square', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semi-sextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Fetching complete natal chart for person_a (COMPOSITE_TRANSITS)
+[INFO] [COORD_TRACE] person_a SENDING to API: {
+  name: 'Test Person A',
+  city: 'New York',
+  nation: 'US',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  contextLabel: 'COMPOSITE_TRANSITS'
+}
+[DEBUG] [STRICT_MODE] Omitting city/country_code for Test Person A: {
+  coords: { lat: 40.7128, lon: -74.006 },
+  omittedCity: 'New York',
+  omittedCountry: 'US',
+  reason: 'Prevent API re-geocoding from overwriting exact coordinates'
+}
+[INFO] [COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Birth chart (person_a) - COMPOSITE_TRANSITS',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'New York'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - COMPOSITE_TRANSITS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - COMPOSITE_TRANSITS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - COMPOSITE_TRANSITS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - COMPOSITE_TRANSITS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - COMPOSITE_TRANSITS {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - COMPOSITE_TRANSITS',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] Coords mode failed for Birth chart (person_a) - COMPOSITE_TRANSITS, trying city mode {
+  error: 'Client error 404 for Birth chart (person_a) - COMPOSITE_TRANSITS'
+}
+[INFO] [COORD_TRACE] callNatal using CITY mode: {
+  description: 'Birth chart (person_a) - COMPOSITE_TRANSITS',
+  city: 'New York',
+  state: undefined,
+  nation: 'US'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - COMPOSITE_TRANSITS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - COMPOSITE_TRANSITS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - COMPOSITE_TRANSITS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - COMPOSITE_TRANSITS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - COMPOSITE_TRANSITS (city-first) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - COMPOSITE_TRANSITS (city-first)',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] City mode failed for Birth chart (person_a) - COMPOSITE_TRANSITS {
+  error: 'Client error 404 for Birth chart (person_a) - COMPOSITE_TRANSITS (city-first)'
+}
+[ERROR] Handler error: Error: Birth chart (person_a) - COMPOSITE_TRANSITS failed: Client error 404 for Birth chart (person_a) - COMPOSITE_TRANSITS (city-first)
+    at callNatal (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:376:24)
+    at async fetchNatalChartComplete (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:1302:25)
+    at async processMathbrain (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:2758:24)
+    at async exports.handler (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:4213:12)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:242:20
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+❌ FAIL: Should handle composite with transits and Seismograph
+   Error: Error: Expected 200, got 500
+    at TestRunner.assertEqual (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:56:75)
+    at /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:243:12
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+
+Running: Composite transits - explicit COMPOSITE_TRANSITS mode
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person B',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    latitude: 34.0522,
+    longitude: -118.2437,
+    city: 'Los Angeles',
+    nation: 'US',
+    timezone: 'America/Los_Angeles',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person B',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    latitude: 34.0522,
+    longitude: -118.2437,
+    city: 'Los Angeles',
+    nation: 'US',
+    timezone: 'America/Los_Angeles',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person B',
+    zodiac_type: 'Tropic',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    city: 'Los Angeles',
+    nation: 'US',
+    latitude: 34.0522,
+    longitude: -118.2437,
+    timezone: 'America/Los_Angeles'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: false,
+  modeToken: 'COMPOSITE_TRANSITS',
+  contextMode: 'COMPOSITE_TRANSITS',
+  relationshipMode: true,
+  wantSynastry: undefined,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: true
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: true, start: '2024-12-01', end: '2024-12-02' }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+[DEBUG] Setting default active_points (includes True nodes & full angle set)
+[DEBUG] Setting default active_aspects from profile wm-spec-2025-09: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semisquare', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semisextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Normalized + clamped active_aspects list: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semi-square', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semi-sextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Fetching complete natal chart for person_a (COMPOSITE_TRANSITS)
+[INFO] [COORD_TRACE] person_a SENDING to API: {
+  name: 'Test Person A',
+  city: 'New York',
+  nation: 'US',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  contextLabel: 'COMPOSITE_TRANSITS'
+}
+[DEBUG] [STRICT_MODE] Omitting city/country_code for Test Person A: {
+  coords: { lat: 40.7128, lon: -74.006 },
+  omittedCity: 'New York',
+  omittedCountry: 'US',
+  reason: 'Prevent API re-geocoding from overwriting exact coordinates'
+}
+[INFO] [COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Birth chart (person_a) - COMPOSITE_TRANSITS',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'New York'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - COMPOSITE_TRANSITS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - COMPOSITE_TRANSITS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - COMPOSITE_TRANSITS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - COMPOSITE_TRANSITS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - COMPOSITE_TRANSITS {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - COMPOSITE_TRANSITS',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] Coords mode failed for Birth chart (person_a) - COMPOSITE_TRANSITS, trying city mode {
+  error: 'Client error 404 for Birth chart (person_a) - COMPOSITE_TRANSITS'
+}
+[INFO] [COORD_TRACE] callNatal using CITY mode: {
+  description: 'Birth chart (person_a) - COMPOSITE_TRANSITS',
+  city: 'New York',
+  state: undefined,
+  nation: 'US'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - COMPOSITE_TRANSITS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - COMPOSITE_TRANSITS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - COMPOSITE_TRANSITS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - COMPOSITE_TRANSITS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - COMPOSITE_TRANSITS (city-first) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - COMPOSITE_TRANSITS (city-first)',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] City mode failed for Birth chart (person_a) - COMPOSITE_TRANSITS {
+  error: 'Client error 404 for Birth chart (person_a) - COMPOSITE_TRANSITS (city-first)'
+}
+[ERROR] Handler error: Error: Birth chart (person_a) - COMPOSITE_TRANSITS failed: Client error 404 for Birth chart (person_a) - COMPOSITE_TRANSITS (city-first)
+    at callNatal (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:376:24)
+    at async fetchNatalChartComplete (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:1302:25)
+    at async processMathbrain (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:2758:24)
+    at async exports.handler (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:4213:12)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:253:20
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+❌ FAIL: Composite transits - explicit COMPOSITE_TRANSITS mode
+   Error: Error: Should return 200 for composite transits
+    at TestRunner.assertEqual (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:56:75)
+    at /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:264:12
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+
+Running: Time policy: planetary_only suppresses houses when birth time unknown
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: false,
+  modeToken: 'NATAL_ASPECTS',
+  contextMode: 'NATAL_ASPECTS',
+  relationshipMode: false,
+  wantSynastry: undefined,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: false
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: true, start: '2024-01-01', end: '2024-01-01' }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+[DEBUG] Setting default active_points (includes True nodes & full angle set)
+[DEBUG] Time policy excludes angular points for transits
+[DEBUG] Setting default active_aspects from profile wm-spec-2025-09: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semisquare', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semisextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Normalized + clamped active_aspects list: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semi-square', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semi-sextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Fetching complete natal chart for person_a (NATAL_ASPECTS)
+[INFO] [COORD_TRACE] person_a SENDING to API: {
+  name: 'Test Person A',
+  city: 'New York',
+  nation: 'US',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  contextLabel: 'NATAL_ASPECTS'
+}
+[DEBUG] [STRICT_MODE] Omitting city/country_code for Test Person A: {
+  coords: { lat: 40.7128, lon: -74.006 },
+  omittedCity: 'New York',
+  omittedCountry: 'US',
+  reason: 'Prevent API re-geocoding from overwriting exact coordinates'
+}
+[INFO] [COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Birth chart (person_a) - NATAL_ASPECTS',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'New York'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - NATAL_ASPECTS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - NATAL_ASPECTS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - NATAL_ASPECTS {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] Coords mode failed for Birth chart (person_a) - NATAL_ASPECTS, trying city mode {
+  error: 'Client error 404 for Birth chart (person_a) - NATAL_ASPECTS'
+}
+[INFO] [COORD_TRACE] callNatal using CITY mode: {
+  description: 'Birth chart (person_a) - NATAL_ASPECTS',
+  city: 'New York',
+  state: undefined,
+  nation: 'US'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - NATAL_ASPECTS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - NATAL_ASPECTS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - NATAL_ASPECTS (city-first) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS (city-first)',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] City mode failed for Birth chart (person_a) - NATAL_ASPECTS {
+  error: 'Client error 404 for Birth chart (person_a) - NATAL_ASPECTS (city-first)'
+}
+[ERROR] Handler error: Error: Birth chart (person_a) - NATAL_ASPECTS failed: Client error 404 for Birth chart (person_a) - NATAL_ASPECTS (city-first)
+    at callNatal (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:376:24)
+    at async fetchNatalChartComplete (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:1302:25)
+    at async processMathbrain (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:2758:24)
+    at async exports.handler (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:4213:12)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:283:17
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+❌ FAIL: Time policy: planetary_only suppresses houses when birth time unknown
+   Error: Error: Response should be 200
+    at TestRunner.assertEqual (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:56:75)
+    at /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:284:12
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+
+Running: Time policy: whole_sign allows houses with noon_fallback when birth time unknown
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: false,
+  modeToken: 'NATAL_ASPECTS',
+  contextMode: 'NATAL_ASPECTS',
+  relationshipMode: false,
+  wantSynastry: undefined,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: false
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: true, start: '2024-01-01', end: '2024-01-01' }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+[DEBUG] Setting default active_points (includes True nodes & full angle set)
+[DEBUG] Time policy set houses_system_identifier=Whole_Sign
+[DEBUG] Setting default active_aspects from profile wm-spec-2025-09: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semisquare', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semisextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Normalized + clamped active_aspects list: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semi-square', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semi-sextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Fetching complete natal chart for person_a (NATAL_ASPECTS)
+[INFO] [COORD_TRACE] person_a SENDING to API: {
+  name: 'Test Person A',
+  city: 'New York',
+  nation: 'US',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  contextLabel: 'NATAL_ASPECTS'
+}
+[DEBUG] [STRICT_MODE] Omitting city/country_code for Test Person A: {
+  coords: { lat: 40.7128, lon: -74.006 },
+  omittedCity: 'New York',
+  omittedCountry: 'US',
+  reason: 'Prevent API re-geocoding from overwriting exact coordinates'
+}
+[INFO] [COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Birth chart (person_a) - NATAL_ASPECTS',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'New York'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - NATAL_ASPECTS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - NATAL_ASPECTS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - NATAL_ASPECTS {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] Coords mode failed for Birth chart (person_a) - NATAL_ASPECTS, trying city mode {
+  error: 'Client error 404 for Birth chart (person_a) - NATAL_ASPECTS'
+}
+[INFO] [COORD_TRACE] callNatal using CITY mode: {
+  description: 'Birth chart (person_a) - NATAL_ASPECTS',
+  city: 'New York',
+  state: undefined,
+  nation: 'US'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - NATAL_ASPECTS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - NATAL_ASPECTS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - NATAL_ASPECTS (city-first) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS (city-first)',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] City mode failed for Birth chart (person_a) - NATAL_ASPECTS {
+  error: 'Client error 404 for Birth chart (person_a) - NATAL_ASPECTS (city-first)'
+}
+[ERROR] Handler error: Error: Birth chart (person_a) - NATAL_ASPECTS failed: Client error 404 for Birth chart (person_a) - NATAL_ASPECTS (city-first)
+    at callNatal (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:376:24)
+    at async fetchNatalChartComplete (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:1302:25)
+    at async processMathbrain (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:2758:24)
+    at async exports.handler (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:4213:12)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:302:17
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+❌ FAIL: Time policy: whole_sign allows houses with noon_fallback when birth time unknown
+   Error: Error: Response should be 200
+    at TestRunner.assertEqual (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:56:75)
+    at /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:303:12
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+
+Running: Translocation tz null when relocation not applied
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: false,
+  modeToken: 'NATAL_ASPECTS',
+  contextMode: 'NATAL_ASPECTS',
+  relationshipMode: false,
+  wantSynastry: undefined,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: false
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: false, start: undefined, end: undefined }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+[DEBUG] Setting default active_points (includes True nodes & full angle set)
+[DEBUG] Setting default active_aspects from profile wm-spec-2025-09: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semisquare', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semisextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Normalized + clamped active_aspects list: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semi-square', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semi-sextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Fetching complete natal chart for person_a (NATAL_ASPECTS)
+[INFO] [COORD_TRACE] person_a SENDING to API: {
+  name: 'Test Person A',
+  city: 'New York',
+  nation: 'US',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  contextLabel: 'NATAL_ASPECTS'
+}
+[DEBUG] [STRICT_MODE] Omitting city/country_code for Test Person A: {
+  coords: { lat: 40.7128, lon: -74.006 },
+  omittedCity: 'New York',
+  omittedCountry: 'US',
+  reason: 'Prevent API re-geocoding from overwriting exact coordinates'
+}
+[INFO] [COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Birth chart (person_a) - NATAL_ASPECTS',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'New York'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - NATAL_ASPECTS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - NATAL_ASPECTS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - NATAL_ASPECTS {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] Coords mode failed for Birth chart (person_a) - NATAL_ASPECTS, trying city mode {
+  error: 'Client error 404 for Birth chart (person_a) - NATAL_ASPECTS'
+}
+[INFO] [COORD_TRACE] callNatal using CITY mode: {
+  description: 'Birth chart (person_a) - NATAL_ASPECTS',
+  city: 'New York',
+  state: undefined,
+  nation: 'US'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - NATAL_ASPECTS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - NATAL_ASPECTS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - NATAL_ASPECTS (city-first) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS (city-first)',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] City mode failed for Birth chart (person_a) - NATAL_ASPECTS {
+  error: 'Client error 404 for Birth chart (person_a) - NATAL_ASPECTS (city-first)'
+}
+[ERROR] Handler error: Error: Birth chart (person_a) - NATAL_ASPECTS failed: Client error 404 for Birth chart (person_a) - NATAL_ASPECTS (city-first)
+    at callNatal (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:376:24)
+    at async fetchNatalChartComplete (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:1302:25)
+    at async processMathbrain (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:2758:24)
+    at async exports.handler (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:4213:12)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:326:17
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+❌ FAIL: Translocation tz null when relocation not applied
+   Error: Error: Response should be 200
+    at TestRunner.assertEqual (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:56:75)
+    at /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:327:12
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+
+Running: Relocation applied aligns tz authority and provenance tz
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: false,
+  modeToken: 'NATAL_ASPECTS',
+  contextMode: 'NATAL_ASPECTS',
+  relationshipMode: false,
+  wantSynastry: undefined,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: false
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: false, start: undefined, end: undefined }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+[DEBUG] Setting default active_points (includes True nodes & full angle set)
+[DEBUG] Setting default active_aspects from profile wm-spec-2025-09: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semisquare', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semisextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Normalized + clamped active_aspects list: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semi-square', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semi-sextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Fetching complete natal chart for person_a (NATAL_ASPECTS)
+[INFO] [COORD_TRACE] person_a SENDING to API: {
+  name: 'Test Person A',
+  city: 'New York',
+  nation: 'US',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  contextLabel: 'NATAL_ASPECTS'
+}
+[DEBUG] [STRICT_MODE] Omitting city/country_code for Test Person A: {
+  coords: { lat: 40.7128, lon: -74.006 },
+  omittedCity: 'New York',
+  omittedCountry: 'US',
+  reason: 'Prevent API re-geocoding from overwriting exact coordinates'
+}
+[INFO] [COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Birth chart (person_a) - NATAL_ASPECTS',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'New York'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - NATAL_ASPECTS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - NATAL_ASPECTS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - NATAL_ASPECTS {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] Coords mode failed for Birth chart (person_a) - NATAL_ASPECTS, trying city mode {
+  error: 'Client error 404 for Birth chart (person_a) - NATAL_ASPECTS'
+}
+[INFO] [COORD_TRACE] callNatal using CITY mode: {
+  description: 'Birth chart (person_a) - NATAL_ASPECTS',
+  city: 'New York',
+  state: undefined,
+  nation: 'US'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - NATAL_ASPECTS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - NATAL_ASPECTS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - NATAL_ASPECTS (city-first) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - NATAL_ASPECTS (city-first)',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] City mode failed for Birth chart (person_a) - NATAL_ASPECTS {
+  error: 'Client error 404 for Birth chart (person_a) - NATAL_ASPECTS (city-first)'
+}
+[ERROR] Handler error: Error: Birth chart (person_a) - NATAL_ASPECTS failed: Client error 404 for Birth chart (person_a) - NATAL_ASPECTS (city-first)
+    at callNatal (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:376:24)
+    at async fetchNatalChartComplete (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:1302:25)
+    at async processMathbrain (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:2758:24)
+    at async exports.handler (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:4213:12)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:359:17
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+❌ FAIL: Relocation applied aligns tz authority and provenance tz
+   Error: Error: Response should be 200
+    at TestRunner.assertEqual (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:56:75)
+    at /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:360:12
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+
+Running: Both_local relocation applies shared coordinates for dyad
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person B',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    latitude: 34.0522,
+    longitude: -118.2437,
+    city: 'Los Angeles',
+    nation: 'US',
+    timezone: 'America/Los_Angeles',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person B',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    latitude: 34.0522,
+    longitude: -118.2437,
+    city: 'Los Angeles',
+    nation: 'US',
+    timezone: 'America/Los_Angeles',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person B',
+    zodiac_type: 'Tropic',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    city: 'Los Angeles',
+    nation: 'US',
+    latitude: 34.0522,
+    longitude: -118.2437,
+    timezone: 'America/Los_Angeles'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: false,
+  modeToken: 'SYNASTRY_TRANSITS',
+  contextMode: 'SYNASTRY_TRANSITS',
+  relationshipMode: true,
+  wantSynastry: true,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: false
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: true, start: '2024-01-01', end: '2024-01-01' }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+[DEBUG] Setting default active_points (includes True nodes & full angle set)
+[DEBUG] Setting default active_aspects from profile wm-spec-2025-09: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semisquare', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semisextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Normalized + clamped active_aspects list: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semi-square', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semi-sextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Fetching complete natal chart for person_a (SYNASTRY_TRANSITS)
+[INFO] [COORD_TRACE] person_a SENDING to API: {
+  name: 'Test Person A',
+  city: 'New York',
+  nation: 'US',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  contextLabel: 'SYNASTRY_TRANSITS'
+}
+[DEBUG] [STRICT_MODE] Omitting city/country_code for Test Person A: {
+  coords: { lat: 40.7128, lon: -74.006 },
+  omittedCity: 'New York',
+  omittedCountry: 'US',
+  reason: 'Prevent API re-geocoding from overwriting exact coordinates'
+}
+[INFO] [COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Birth chart (person_a) - SYNASTRY_TRANSITS',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'New York'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - SYNASTRY_TRANSITS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - SYNASTRY_TRANSITS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - SYNASTRY_TRANSITS {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] Coords mode failed for Birth chart (person_a) - SYNASTRY_TRANSITS, trying city mode {
+  error: 'Client error 404 for Birth chart (person_a) - SYNASTRY_TRANSITS'
+}
+[INFO] [COORD_TRACE] callNatal using CITY mode: {
+  description: 'Birth chart (person_a) - SYNASTRY_TRANSITS',
+  city: 'New York',
+  state: undefined,
+  nation: 'US'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - SYNASTRY_TRANSITS (city-first) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] City mode failed for Birth chart (person_a) - SYNASTRY_TRANSITS {
+  error: 'Client error 404 for Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)'
+}
+[ERROR] Handler error: Error: Birth chart (person_a) - SYNASTRY_TRANSITS failed: Client error 404 for Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)
+    at callNatal (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:376:24)
+    at async fetchNatalChartComplete (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:1302:25)
+    at async processMathbrain (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:2758:24)
+    at async exports.handler (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:4213:12)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:397:17
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+❌ FAIL: Both_local relocation applies shared coordinates for dyad
+   Error: Error: Response should be 200
+    at TestRunner.assertEqual (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:56:75)
+    at /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:398:12
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+
+Running: String token Both_local triggers relocation context
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person B',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    latitude: 34.0522,
+    longitude: -118.2437,
+    city: 'Los Angeles',
+    nation: 'US',
+    timezone: 'America/Los_Angeles',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person B',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    latitude: 34.0522,
+    longitude: -118.2437,
+    city: 'Los Angeles',
+    nation: 'US',
+    timezone: 'America/Los_Angeles',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person B',
+    zodiac_type: 'Tropic',
+    year: 1992,
+    month: 8,
+    day: 22,
+    hour: 8,
+    minute: 15,
+    city: 'Los Angeles',
+    nation: 'US',
+    latitude: 34.0522,
+    longitude: -118.2437,
+    timezone: 'America/Los_Angeles'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: false,
+  modeToken: 'SYNASTRY_TRANSITS',
+  contextMode: 'SYNASTRY_TRANSITS',
+  relationshipMode: true,
+  wantSynastry: true,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: false
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: true, start: '2024-01-01', end: '2024-01-01' }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+[DEBUG] Setting default active_points (includes True nodes & full angle set)
+[DEBUG] Setting default active_aspects from profile wm-spec-2025-09: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semisquare', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semisextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Normalized + clamped active_aspects list: [
+  { name: 'conjunction', orb: 8 },
+  { name: 'opposition', orb: 8 },
+  { name: 'square', orb: 7 },
+  { name: 'trine', orb: 7 },
+  { name: 'sextile', orb: 5 },
+  { name: 'quincunx', orb: 3 },
+  { name: 'semi-square', orb: 2 },
+  { name: 'sesquiquadrate', orb: 2 },
+  { name: 'semi-sextile', orb: 2 },
+  { name: 'quintile', orb: 1 },
+  { name: 'biquintile', orb: 1 }
+]
+[DEBUG] Fetching complete natal chart for person_a (SYNASTRY_TRANSITS)
+[INFO] [COORD_TRACE] person_a SENDING to API: {
+  name: 'Test Person A',
+  city: 'New York',
+  nation: 'US',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  contextLabel: 'SYNASTRY_TRANSITS'
+}
+[DEBUG] [STRICT_MODE] Omitting city/country_code for Test Person A: {
+  coords: { lat: 40.7128, lon: -74.006 },
+  omittedCity: 'New York',
+  omittedCountry: 'US',
+  reason: 'Prevent API re-geocoding from overwriting exact coordinates'
+}
+[INFO] [COORD_TRACE] callNatal using STRICT COORDINATES mode (no city sent): {
+  description: 'Birth chart (person_a) - SYNASTRY_TRANSITS',
+  latitude: 40.7128,
+  longitude: -74.006,
+  timezone: 'America/New_York',
+  cityOmitted: true,
+  originalCity: 'New York'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - SYNASTRY_TRANSITS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - SYNASTRY_TRANSITS
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - SYNASTRY_TRANSITS {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] Coords mode failed for Birth chart (person_a) - SYNASTRY_TRANSITS, trying city mode {
+  error: 'Client error 404 for Birth chart (person_a) - SYNASTRY_TRANSITS'
+}
+[INFO] [COORD_TRACE] callNatal using CITY mode: {
+  description: 'Birth chart (person_a) - SYNASTRY_TRANSITS',
+  city: 'New York',
+  state: undefined,
+  nation: 'US'
+}
+[DEBUG] API call attempt 1/2 for Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[DEBUG] API call attempt 2/2 for Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)
+[ERROR] Client error (non-retryable) {
+  status: 404,
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)',
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  body: 'Not Found'
+}
+[ERROR] Failed after 2 attempts: Client error 404 for Birth chart (person_a) - SYNASTRY_TRANSITS (city-first) {
+  url: 'https://api.astrology-api.io/api/v3/charts/natal',
+  operation: 'Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)',
+  code: 'CLIENT_ERROR',
+  status: 404
+}
+[WARN] City mode failed for Birth chart (person_a) - SYNASTRY_TRANSITS {
+  error: 'Client error 404 for Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)'
+}
+[ERROR] Handler error: Error: Birth chart (person_a) - SYNASTRY_TRANSITS failed: Client error 404 for Birth chart (person_a) - SYNASTRY_TRANSITS (city-first)
+    at callNatal (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:376:24)
+    at async fetchNatalChartComplete (/Users/dancross/Documents/GitHub/WovenWebApp/src/math-brain/api-client.js:1302:25)
+    at async processMathbrain (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:2758:24)
+    at async exports.handler (/Users/dancross/Documents/GitHub/WovenWebApp/lib/server/astrology-mathbrain.js:4213:12)
+    at async /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:431:17
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+❌ FAIL: String token Both_local triggers relocation context
+   Error: Error: Response should be 200
+    at TestRunner.assertEqual (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:56:75)
+    at /Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:432:12
+    at async TestRunner.run (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:63:9)
+    at async runTests (/Users/dancross/Documents/GitHub/WovenWebApp/test/astrology-mathbrain.test.js:490:3)
+
+Running: Mirror report rejects midpoint relocation mode
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: false,
+  modeToken: 'MIRROR',
+  contextMode: 'mirror',
+  relationshipMode: false,
+  wantSynastry: undefined,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: false
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: false, start: undefined, end: undefined }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+✅ PASS: Mirror report rejects midpoint relocation mode
+
+Running: Mirror report requires Person B for B_local relocation
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: false,
+  modeToken: 'MIRROR',
+  contextMode: 'mirror',
+  relationshipMode: false,
+  wantSynastry: undefined,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: false
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: false, start: undefined, end: undefined }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+✅ PASS: Mirror report requires Person B for B_local relocation
+
+Running: Balance report blocks midpoint without Person B
+[INFO] RapidAPI key check: present (test-key...)
+[INFO] [VALIDATION] normalizeSubjectData called {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  }
+}
+[INFO] [VALIDATION] normalizeSubjectData complete {
+  input: {
+    name: 'Test Person A',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    latitude: 40.7128,
+    longitude: -74.006,
+    city: 'New York',
+    nation: 'US',
+    timezone: 'America/New_York',
+    zodiac_type: 'Tropic'
+  },
+  output: {
+    name: 'Test Person A',
+    zodiac_type: 'Tropic',
+    year: 1990,
+    month: 5,
+    day: 15,
+    hour: 14,
+    minute: 30,
+    city: 'New York',
+    nation: 'US',
+    latitude: 40.7128,
+    longitude: -74.006,
+    timezone: 'America/New_York'
+  }
+}
+[DEBUG] Balance Meter decision variables (Part 1): {
+  wantBalanceMeter: true,
+  modeToken: 'BALANCE_METER',
+  contextMode: 'balance_meter',
+  relationshipMode: false,
+  wantSynastry: undefined,
+  wantSynastryAspectsOnly: undefined,
+  wantComposite: false
+}
+[DEBUG] Balance Meter decision variables (Part 2): { haveRange: true, start: '2024-01-01', end: '2024-01-01' }
+[DEBUG] Building headers with RAPIDAPI_KEY: ****
+✅ PASS: Balance report blocks midpoint without Person B
+
+
+📊 Test Results: Passed: 5, Failed: 14, Total: 19
+
+❌ Some tests failed.

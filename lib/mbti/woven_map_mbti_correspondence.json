@@ -1,111 +1,94 @@
 {
-  "version": "v13-clean-firewall",
-  "description": "Woven Map ⇄ MBTI correspondence (internal-only). Canonical, falsifiable, architecture-stable. Hard firewall on Contact Resonance. All scoring values are HEURISTICS.",
-  "protocol_rules": {
-    "rule_A": {
-      "name": "No Axis Left Uncalled",
-      "description": "Every axis receives a best-fit call. No axis returns 'ambiguous' or '???'.",
-      "rationale": "The field can live with being wrong. It can't live with being vague."
-    },
-    "rule_B": {
-      "name": "Layer-Based Tie-Breaker",
-      "description": "When score ≈ 0, use Interior Compass hierarchy: Moon first, Saturn second.",
-      "fallback": "If still tied, default toward the more common population tendency."
-    },
-    "rule_C": {
-      "name": "Falsifiability Required",
-      "description": "Every call includes a falsifiable expectation that could prove the call wrong.",
-      "format": "If this call is wrong, you would notice: [testable observation]"
-    },
-    "firewall": {
-      "name": "Contact Resonance Hard Firewall",
-      "description": "Sun polarity, Ascendant, Mars, Mercury tempo NEVER influence E/I, T/F, or J/P.",
-      "rationale": "These describe presentation and interface, not interior cognition."
-    }
+  "protocol_version": "v1.4-depth-voice",
+  "protocol_name": "MBTI INFERENCE PROTOCOL — v1.4 (Depth Edition + Human Voice)",
+  "architecture": {
+    "layer_1": "Interior Compass (The Engine) — Cognitive Physics",
+    "layer_2": "Contact Resonance (The Interface) — Social Texture",
+    "firewall": "Strict separation: Layer 2 signals (Ascendant, Mars, Sun polarity) NEVER influence Layer 1 scoring."
   },
-  "layer_separation": {
-    "interior_compass": {
-      "description": "Internal cognitive motion — MBTI inferred here",
-      "sources": {
-        "EI": ["Moon element", "Saturn bias"],
-        "NS": ["Sun element", "Mercury element"],
-        "TF": ["Moon element", "Venus-Saturn weighting", "MC/IC purpose-axis tone"],
-        "JP": ["Moon modality", "Saturn structure-bias"]
-      },
-      "note": "Sun element → N/S only (perception). Sun modality/polarity EXCLUDED from E/I and J/P.",
-      "mbti_relevance": true
+  "resonance_domains": {
+    "domain_1": {
+      "name": "Interior Compass",
+      "function": "Cognitive Physics",
+      "status": "Inferred",
+      "firewall": "Protected Core"
     },
-    "contact_resonance": {
-      "description": "How others experience the person on contact — NOT MBTI",
-      "sources": ["Ascendant sign", "Mars ignition", "Mercury tempo", "Sun expression/modality"],
-      "mbti_relevance": false,
-      "firewall": "HARD — these signals are tracked but NEVER influence type determination"
+    "domain_2": {
+      "name": "Contact Resonance",
+      "function": "Social Texture / External Echo",
+      "status": "Forbidden (Cannot be used for type)",
+      "firewall": "Blocked"
+    },
+    "domain_3": {
+      "name": "Hook Stack (BACKSTAGE ONLY)",
+      "function": "Symbolic Ignition / Diagnostic Accelerator",
+      "status": "Allowed (User-Driven Recognition)",
+      "definition": "A precision ignition device. Not a personality layer. Not a behavior layer. A symbolic disruptor that causes immediate self-recognition.",
+      "firewall": "Safe (Outside the system)",
+      "usage_rule": "ARCANE TERM. Never name 'Hook Stack' to the user. It appears simply as 'the opening cards' or 'the paradox'."
     }
   },
   "axes": {
-    "E/I": {
-      "decision_phrase": "Outward-first vs. Inward-first Motion",
-      "primary_sources": ["Moon element", "Saturn bias"],
-      "excluded": ["Sun polarity", "Ascendant", "Mars"],
-      "E": {
-        "phrase": "Outward-first",
-        "geometry": "Fire/Air Moon; outward Saturn bias",
-        "scoring": "Moon Fire/Air = 1.0; Saturn Fire/Air = +0.2"
-      },
-      "I": {
-        "phrase": "Inward-first",
-        "geometry": "Earth/Water Moon; inward Saturn bias",
-        "scoring": "Moon Earth/Water = 0.0; Saturn Earth/Water = -0.2"
+    "EI": {
+      "name": "Motion Tendency",
+      "description": "How your energy moves when unobserved: gathering inward or flowing outward.",
+      "sources": [
+        "Moon Element (Primary)",
+        "Saturn Bias (Secondary - Gravity Well Clause applied)"
+      ],
+      "scoring": {
+        "Moon_Fire_Air": "+1.0 (Outward)",
+        "Moon_Earth_Water": "0.0 (Inward)",
+        "Saturn_Fire_Air": "+0.15 (Outward Structure)",
+        "Saturn_Earth": "-0.15 (Inward Structure)",
+        "Saturn_Water_12th": "-0.4 (Gravity Well — Deep Inward Pull)",
+        "Saturn_Retrograde": "1.2x Multiplier on Inward Bias"
       }
     },
-    "N/S": {
-      "decision_phrase": "Pattern-first vs. Concrete-first Perception",
-      "primary_sources": ["Sun element", "Mercury element"],
-      "note": "Sun element used here for perception architecture (not E/I or J/P)",
-      "N": {
-        "phrase": "Pattern-first",
-        "geometry": "Fire/Air Sun + Mercury",
-        "scoring": "Fire/Air = 1.0 each; combined >= 1.2"
-      },
-      "S": {
-        "phrase": "Concrete-first",
-        "geometry": "Earth/Water Sun + Mercury",
-        "scoring": "Earth/Water = 0.0 each; combined <= 0.8"
+    "NS": {
+      "name": "Perception Style",
+      "description": "How you perceive reality: reading the pattern first or the detail first.",
+      "sources": [
+        "Sun Element (Primary)",
+        "Mercury Element (Secondary)"
+      ],
+      "scoring": {
+        "Sun_Fire_Air": "+1.0 (Pattern-First)",
+        "Sun_Earth_Water": "0.0 (Concrete-First)",
+        "Mercury_Fire_Air": "+1.0 (Abstract)",
+        "Mercury_Earth_Water": "0.0 (Practical)"
       }
     },
-    "T/F": {
-      "decision_phrase": "Structure-led vs. Resonance-led Evaluation",
-      "primary_sources": ["Moon element", "Venus-Saturn weighting", "MC/IC purpose-axis tone"],
-      "T": {
-        "phrase": "Structure-led",
-        "geometry": "Earth/Air Moon; Saturn dominance; Earth/Air MC",
-        "scoring": "Moon Earth/Air = 0.5; Saturn = -0.2; MC Earth/Air = -0.15"
-      },
-      "F": {
-        "phrase": "Resonance-led",
-        "geometry": "Water/Fire Moon; Venus-Moon harmony; Water/Fire MC",
-        "scoring": "Moon Water/Fire = 1.5; Venus harmony = +0.2; MC Water/Fire = +0.15"
+    "TF": {
+      "name": "Decision Lens",
+      "description": "How you weigh decisions: through felt resonance or logical structure.",
+      "sources": [
+        "Moon Element (Primary)",
+        "Venus-Saturn Weighting",
+        "MC/IC Purpose Tone"
+      ],
+      "scoring": {
+        "Moon_Water_Fire": "+1.5 (Resonance-Led)",
+        "Moon_Earth_Air": "+0.5 (Logic-Led)",
+        "Venus_Moon_Harmony": "+0.2 (Values Align)",
+        "Saturn_Dominance": "-0.2 (Structural Weight)",
+        "MC_Water_Fire": "+0.15 (Value-Driven Purpose)"
       }
     },
-    "J/P": {
-      "decision_phrase": "Closure-seeking vs. Open-form Movement",
-      "primary_sources": ["Moon modality", "Saturn structure-bias"],
-      "excluded": ["Sun modality", "Ascendant modality", "Mars modality"],
-      "J": {
-        "phrase": "Closure-seeking",
-        "geometry": "Cardinal/Fixed Moon; structured Saturn",
-        "scoring": "Moon Cardinal/Fixed = 1.0; Saturn Cardinal/Fixed = +0.3"
-      },
-      "P": {
-        "phrase": "Open-form",
-        "geometry": "Mutable Moon; flexible Saturn",
-        "scoring": "Moon Mutable = 0.0; Saturn Mutable = -0.2"
+    "JP": {
+      "name": "Rhythm Preference",
+      "description": "How you move through time: seeking closure or keeping options open.",
+      "sources": [
+        "Moon Modality (Primary)",
+        "Saturn Structure-Bias"
+      ],
+      "scoring": {
+        "Moon_Fixed_Cardinal": "+1.0 (Closure-Seeking)",
+        "Moon_Mutable": "0.0 (Open-Flow)",
+        "Saturn_Fixed_Cardinal": "+0.15 (Structured)",
+        "Saturn_Mutable": "-0.15 (Flexible)",
+        "Saturn_Retrograde": "1.2x Multiplier on J-Bias (Internal Order)"
       }
     }
-  },
-  "notes": {
-    "firewall": "Contact Resonance signals (Sun polarity, ASC, Mars, Mercury tempo) are tracked for explanation but NEVER determine type.",
-    "heuristic_disclaimer": "All scoring values are heuristics, not empirical claims. This protocol is falsifiable and user-correctable.",
-    "osr_protocol": "On Self-Report correction: withdraw cleanly, identify firewall violation, name oversight, realign to Moon/Saturn, collapse corrected branch."
   }
 }
