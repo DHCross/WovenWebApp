@@ -2,6 +2,36 @@
 import React, { useEffect, useState } from 'react';
 import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from '../lib/auth';
 
+const AUTH_STATUS_KEY = 'auth.status';
+const AUTH_TOKEN_KEY = 'auth.token';
+
+const persistAuthState = (
+  state: { authed: boolean; userId?: string | null; token?: string | null },
+): void => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const payload = {
+      authed: state.authed,
+      updatedAt: Date.now(),
+      ...(state.userId ? { userId: state.userId } : {}),
+    };
+    window.localStorage.setItem(AUTH_STATUS_KEY, JSON.stringify(payload));
+  } catch {
+    // Ignore localStorage failures so auth flow can continue
+  }
+
+  try {
+    if (state.authed && state.token) {
+      window.localStorage.setItem(AUTH_TOKEN_KEY, state.token);
+    } else {
+      window.localStorage.removeItem(AUTH_TOKEN_KEY);
+    }
+  } catch {
+    // Ignore token storage errors
+  }
+};
+
 const authEnabled = (() => {
   const raw = process.env.NEXT_PUBLIC_ENABLE_AUTH;
   const isProduction = process.env.NODE_ENV === 'production';
@@ -79,6 +109,26 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
         }
 
         const isAuthed = await client.isAuthenticated();
+        let userId: string | null = null;
+        let token: string | null = null;
+
+        if (isAuthed) {
+          try {
+            const user = await client.getUser();
+            userId = user?.sub ?? null;
+          } catch {
+            userId = null;
+          }
+
+          try {
+            token = await client.getTokenSilently({ detailedResponse: false } as any);
+          } catch {
+            token = null;
+          }
+        }
+
+        persistAuthState({ authed: isAuthed, userId, token });
+
         if (!cancelled) {
           setAuthed(isAuthed);
           setReady(true);
@@ -92,6 +142,7 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
         if (!cancelled) {
           setError(e?.message || 'Auth error');
           setReady(true);
+          persistAuthState({ authed: false });
           // Fallback: send back to home
           window.location.replace('/');
         }
