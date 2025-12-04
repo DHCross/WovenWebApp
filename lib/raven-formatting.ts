@@ -64,9 +64,11 @@ export const formatFriendlyErrorMessage = (rawMessage: string, httpStatus?: numb
         return "Authentication error: Token issuer mismatch. Check that AUTH0_DOMAIN is configured correctly.";
       }
       if (/missing|invalid token|invalid token/i.test(r) || status === 401) {
-        const actionHint = hint || detail || '';
-        const suffix = actionHint ? ` ${actionHint}` : '';
-        return `Authentication failed: your session token is invalid or expired.${suffix} Please sign out and sign back in, then try again.`;
+        // Use hint if provided (skip redundant "sign out" instructions since we add our own)
+        if (hint && !/sign.?out/i.test(hint)) {
+          return `Authentication failed: your session token is invalid or expired. ${hint}`;
+        }
+        return `Authentication failed: your session token is invalid or expired. Please sign out and sign back in, then try again.`;
       }
       // Fallthrough: include the error reason and any helpful hint from the server
       const errorCore = String(parsed.error || parsed.detail || parsed.reason);
