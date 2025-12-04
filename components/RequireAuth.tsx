@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
+import { createAuth0Client, Auth0Client, Auth0ClientOptions } from '@auth0/auth0-spa-js';
 import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from '../lib/auth';
 
 const authEnabled = (() => {
@@ -25,19 +26,6 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
 
     async function init() {
       try {
-        // Load the local Auth0 SPA SDK (served from Next.js public as /vendor)
-        const hasCreate = typeof window.auth0?.createAuth0Client === 'function' || typeof window.createAuth0Client === 'function';
-        if (!hasCreate) {
-          await new Promise<void>((resolve, reject) => {
-            const s = document.createElement('script');
-            s.src = '/vendor/auth0-spa-js.production.js';
-            s.async = true;
-            s.onload = () => resolve();
-            s.onerror = () => reject(new Error('Failed to load Auth0 SDK'));
-            document.head.appendChild(s);
-          });
-        }
-
         // Fetch Auth0 config from Netlify function
         const res = await fetch('/api/auth-config');
         if (!res.ok) throw new Error(`Auth config failed: ${res.status}`);
@@ -49,17 +37,13 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
           throw new Error('Invalid Auth0 config');
         }
 
-        const creator = window.auth0?.createAuth0Client || window.createAuth0Client;
-        if (typeof creator !== 'function') {
-          throw new Error('Auth0 SDK not available after load');
-        }
-
         const redirect_uri = getRedirectUri();
         const authorizationParams: Record<string, any> = { redirect_uri };
         if (audience) {
           authorizationParams.audience = audience;
         }
-        const client = await creator({
+
+        const client = await createAuth0Client({
           domain,
           clientId,
           cacheLocation: 'localstorage',
@@ -79,6 +63,23 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
         }
 
         const isAuthed = await client.isAuthenticated();
+
+        if (isAuthed) {
+          // Refresh the token to ensure we have a valid one
+          try {
+            await client.getTokenSilently({
+              authorizationParams: {
+                audience: audience || undefined,
+                scope: 'openid profile email'
+              }
+            });
+          } catch (tokenError) {
+            console.warn('Failed to refresh token silently:', tokenError);
+            // If silent refresh fails, we might need to re-login, but for now let's proceed
+            // or we could set isAuthed = false;
+          }
+        }
+
         if (!cancelled) {
           setAuthed(isAuthed);
           setReady(true);
