@@ -951,7 +951,7 @@ Start with the Solo Mirror(s), then ${
     }
     
     return {
-      filename: `${prefix}_${symbolicSuffix}.json`,
+      filename: `${symbolicSuffix}_${prefix}.json`,
       payload: finalPayload,
       hasChartGeometry: exportData.hasChartGeometry,
       hasWeather,
@@ -1037,7 +1037,7 @@ Start with the Solo Mirror(s), then ${
     const directiveSuffix = extractSuffixFromFriendlyName(friendlyFilename('directive'));
    
     return {
-      filename: `${prefix}_${directiveSuffix}.json`,
+      filename: `${directiveSuffix}_${prefix}.json`,
       payload: mirrorDirective,
     };
   }, [friendlyFilename, reportContractType, result]);
@@ -1139,7 +1139,7 @@ Start with the Solo Mirror(s), then ${
     const weatherLogSuffix = extractSuffixFromFriendlyName(friendlyFilename('weather-log'));
    
     return {
-      filename: `${prefix}_${weatherLogSuffix}.json`,
+      filename: `${weatherLogSuffix}_${prefix}.json`,
       payload: fieldMapData,
     };
   }, [friendlyFilename, result]);
