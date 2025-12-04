@@ -33,6 +33,7 @@ import type {
 import MirrorResponseActions from "./MirrorResponseActions";
 import SessionWrapUpModal from "./SessionWrapUpModal";
 import WrapUpCard from "./WrapUpCard";
+import TherapeuticIntegrationStep from "./feedback/TherapeuticIntegrationStep";
 import { pingTracker } from "../lib/ping-tracker";
 import GranularValidation from "./feedback/GranularValidation";
 import PlainModeToggle from "./ui/PlainModeToggle";
@@ -319,6 +320,7 @@ export default function ChatClient() {
   const [input, setInput] = useState("");
   const [isWrapUpOpen, setIsWrapUpOpen] = useState(false);
   const [wrapUpLoading, setWrapUpLoading] = useState(false);
+  const [showTherapeuticIntegration, setShowTherapeuticIntegration] = useState(false);
   const [showWrapUpPanel, setShowWrapUpPanel] = useState(false);
   const [wrapUpExport, setWrapUpExport] = useState<RavenSessionExport | null>(null);
   const [showClearMirrorExport, setShowClearMirrorExport] = useState(false);
@@ -990,7 +992,9 @@ export default function ChatClient() {
       }
 
       setWrapUpExport(exportPayload);
-      setShowWrapUpPanel(true);
+      // Show therapeutic integration step first (Golden Thread integration)
+      // If user skips or completes, they proceed to WrapUpCard
+      setShowTherapeuticIntegration(true);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Failed to prepare wrap-up:", error);
@@ -1004,6 +1008,60 @@ export default function ChatClient() {
   const handleSkipToExport = useCallback(() => {
     setIsWrapUpOpen(false);
     setShowClearMirrorExport(true);
+  }, []);
+
+  // Therapeutic integration handlers (Golden Thread integration)
+  const handleTherapeuticComplete = useCallback(() => {
+    setShowTherapeuticIntegration(false);
+    setShowWrapUpPanel(true);
+  }, []);
+
+  const handleTherapeuticSkip = useCallback(() => {
+    setShowTherapeuticIntegration(false);
+    setShowWrapUpPanel(true);
+  }, []);
+
+  // Extract hookStack from localStorage Math Brain payload for therapeutic integration
+  const getHookStackFromStorage = useCallback((): {
+    titles: Array<{ title: string; intensity: number; polarity: string }>;
+    volatilityIndex: number;
+  } | undefined => {
+    try {
+      // Resolve userId from auth.status
+      let scope = 'anon';
+      try {
+        const authRaw = localStorage.getItem('auth.status');
+        if (authRaw) {
+          const auth = JSON.parse(authRaw);
+          if (auth?.userId && typeof auth.userId === 'string') {
+            scope = auth.userId;
+          }
+        }
+      } catch { /* ignore */ }
+
+      const payloadKey = `mb.lastPayload.${scope}`;
+      const stored = localStorage.getItem(payloadKey);
+      if (!stored) {
+        // Try legacy key
+        const legacy = localStorage.getItem('mb.lastSession');
+        if (legacy) {
+          const parsed = JSON.parse(legacy);
+          return parsed?.woven_map?.hook_stack || parsed?.wovenMap?.hook_stack;
+        }
+        return undefined;
+      }
+
+      const parsed = JSON.parse(stored);
+      // Navigate to hook_stack in various possible locations
+      return (
+        parsed?.payload?.woven_map?.hook_stack ||
+        parsed?.payload?.wovenMap?.hook_stack ||
+        parsed?.woven_map?.hook_stack ||
+        parsed?.wovenMap?.hook_stack
+      );
+    } catch {
+      return undefined;
+    }
   }, []);
 
   const handleGenerateClearMirrorPDF = useCallback(async (sessionDiagnostics?: any) => {
@@ -1704,6 +1762,17 @@ export default function ChatClient() {
           <div className="rounded-lg border border-slate-700/70 bg-slate-900 px-6 py-4 text-sm text-slate-200 shadow-xl">
             Preparing wrap-up summary…
           </div>
+        </div>
+      )}
+      {showTherapeuticIntegration && (
+        <div className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/80 px-4 py-6 overflow-y-auto">
+          <TherapeuticIntegrationStep
+            sessionId={sessionId ?? 'unknown'}
+            hookStack={getHookStackFromStorage()}
+            sessionScores={wrapUpExport?.scores}
+            onComplete={handleTherapeuticComplete}
+            onSkip={handleTherapeuticSkip}
+          />
         </div>
       )}
       {showWrapUpPanel && (
