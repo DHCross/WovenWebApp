@@ -12,6 +12,13 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { useRavenRequest } from "@/hooks/useRavenRequest";
 import { useValidation } from "@/hooks/useValidation";
 import {
+  recoverBridgeSession,
+  acknowledgeBridgeSession,
+  consumeBridgeSession,
+  hasPendingBridgeSession,
+  type BridgeSession,
+} from "@/lib/session-bridge";
+import {
   hasPendingValidations,
   getValidationStats,
   formatValidationSummary,
@@ -28,6 +35,7 @@ import SessionWrapUpModal from "./SessionWrapUpModal";
 import WrapUpCard from "./WrapUpCard";
 import { pingTracker } from "../lib/ping-tracker";
 import GranularValidation from "./feedback/GranularValidation";
+import PlainModeToggle from "./ui/PlainModeToggle";
 import {
   APP_NAME,
   STATUS_CONNECTED,
@@ -140,6 +148,9 @@ export default function ChatClient() {
 
   // Track whether user has Math Brain data available (for guided UX)
   const [hasMathBrainSession, setHasMathBrainSession] = useState<boolean | null>(null);
+  
+  // Track pending bridge session for cross-auth handoff
+  const [pendingBridgeSession, setPendingBridgeSession] = useState<BridgeSession | null>(null);
 
   // Check localStorage for Math Brain payload on mount and when tab regains focus
   // Math Brain saves to mb.lastPayload.{userId} or mb.lastPayload.anon
@@ -173,11 +184,22 @@ export default function ChatClient() {
 
     // Initial check
     checkForMathBrainSession();
+    
+    // Also check for pending bridge session (from pre-auth Math Brain handoff)
+    const bridgeSession = recoverBridgeSession();
+    if (bridgeSession) {
+      setPendingBridgeSession(bridgeSession);
+      setHasMathBrainSession(true); // Bridge session counts as having data
+    }
 
     // Re-check when user returns to tab (e.g., after visiting Math Brain)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         checkForMathBrainSession();
+        // Also re-check bridge session
+        if (!pendingBridgeSession && hasPendingBridgeSession()) {
+          setPendingBridgeSession(recoverBridgeSession());
+        }
       }
     };
 
@@ -185,6 +207,11 @@ export default function ChatClient() {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key?.startsWith('mb.lastPayload') || e.key === 'mb.lastSession' || e.key === 'auth.status') {
         checkForMathBrainSession();
+      }
+      // Check for bridge session changes
+      if (e.key === 'woven.bridgeSession') {
+        const bridgeSession = recoverBridgeSession();
+        setPendingBridgeSession(bridgeSession);
       }
     };
 
@@ -197,7 +224,7 @@ export default function ChatClient() {
       window.removeEventListener('focus', checkForMathBrainSession);
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [pendingBridgeSession]);
 
   const { validationMap, setValidationPoints, updateValidationNote } = useValidation({
     sessionId,
@@ -624,6 +651,62 @@ export default function ChatClient() {
     };
   }, [resumeFlashToken]);
 
+  // Auto-load bridge session when detected (cross-auth handoff from Math Brain)
+  useEffect(() => {
+    if (!pendingBridgeSession || typing || sessionStarted) return;
+    
+    // Acknowledge the bridge session so it won't be recovered again
+    acknowledgeBridgeSession(pendingBridgeSession.id);
+    
+    // Display a welcome message based on archetype
+    const archetypeMessages: Record<string, string> = {
+      antiDread: "I sense you're looking for grounded clarity. Let me translate this geometry into actionable patterns.",
+      creative: "I see creative energy in this configuration. Let me illuminate the artistic currents in your chart.",
+      jungCurious: "Let's explore the psychological depth here. I'll translate these patterns into insights about your inner landscape.",
+    };
+    
+    const welcomeMessage = pendingBridgeSession.archetype
+      ? archetypeMessages[pendingBridgeSession.archetype] ?? "Your chart data has been received. Beginning the structured reading now."
+      : "Your chart data has been received. Beginning the structured reading now.";
+    
+    // Announce the bridge handoff
+    pushRavenNarrative(welcomeMessage, {
+      hook: "Bridge · Session Recovered",
+      climate: "VOICE · Auto-Loading",
+    });
+    
+    // Process the bridged report data through analyzeReportContext
+    if (pendingBridgeSession.reportData) {
+      // Map bridge report type to ReportContext type (bridge uses 'mirror'/'relational'/'weather', context uses 'mirror'/'balance')
+      const mappedType = pendingBridgeSession.reportType === 'weather' ? 'balance' : 'mirror';
+      
+      const reportContext: ReportContext = {
+        id: generateId(),
+        type: mappedType,
+        name: pendingBridgeSession.personAName || 'Bridged Report',
+        summary: pendingBridgeSession.personBName 
+          ? `Relational: ${pendingBridgeSession.personAName} ↔ ${pendingBridgeSession.personBName}`
+          : 'Solo mirror reading',
+        content: pendingBridgeSession.reportData,
+        relocation: undefined,
+      };
+      
+      setReportContexts([reportContext]);
+      
+      // Trigger the analysis after a brief delay to allow UI to update
+      window.setTimeout(() => {
+        void analyzeReportContext(reportContext, [reportContext]);
+        // Consume the bridge session after successful handoff
+        consumeBridgeSession(pendingBridgeSession.id);
+        setPendingBridgeSession(null);
+      }, 500);
+    } else {
+      // No report data, just clear the bridge session
+      consumeBridgeSession(pendingBridgeSession.id);
+      setPendingBridgeSession(null);
+    }
+  }, [pendingBridgeSession, typing, sessionStarted, pushRavenNarrative, analyzeReportContext]);
+
   const sendMessage = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
@@ -1027,6 +1110,7 @@ export default function ChatClient() {
                   {PERSONA_DESCRIPTIONS[personaMode]}
                 </p>
               </div>
+              <PlainModeToggle />
               <button
                 type="button"
                 onClick={() => handleUploadButton("mirror")}
