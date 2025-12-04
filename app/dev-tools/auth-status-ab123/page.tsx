@@ -81,6 +81,9 @@ export default function AuthDebugPage() {
         const client = await creator({
           domain,
           clientId,
+          cacheLocation: 'localstorage',
+          useRefreshTokens: true,
+          useRefreshTokensFallback: true,
           authorizationParams: {
             redirect_uri: getRedirectUri(),
             ...(audience ? { audience } : {}),
