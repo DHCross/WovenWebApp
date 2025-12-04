@@ -17,6 +17,14 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
   const chartImgRef = useRef<HTMLImageElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
+  // Check if this is a relational snapshot (moved up for use in download function)
+  const hasPersonB = Boolean(result?.person_b);
+  const isRelational = hasPersonB && Boolean(result.person_b);
+
+  // Get person names for filename (using different var names to avoid conflicts with display names below)
+  const downloadNameA = result?.person_a?.subject?.name || result?.person_a?.name || 'chart';
+  const downloadNameB = result?.person_b?.subject?.name || result?.person_b?.name || '';
+
   const downloadAsPng = useCallback(async () => {
     const imgEl = chartImgRef.current;
     if (!imgEl) return;
@@ -157,7 +165,12 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
       // Convert to PNG and download
       const pngDataUrl = canvas.toDataURL('image/png', 1.0);
       const link = document.createElement('a');
-      link.download = `natal-chart-${new Date().toISOString().split('T')[0]}.png`;
+      const dateStr = new Date().toISOString().split('T')[0];
+      const chartType = isRelational ? 'synastry' : 'natal';
+      const names = isRelational && downloadNameB 
+        ? `${downloadNameA.toLowerCase().replace(/\s+/g, '-')}_${downloadNameB.toLowerCase().replace(/\s+/g, '-')}`
+        : downloadNameA.toLowerCase().replace(/\s+/g, '-');
+      link.download = `${chartType}-chart-${names}-${dateStr}.png`;
       link.href = pngDataUrl;
       link.click();
     } catch (error) {
@@ -166,14 +179,10 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
     } finally {
       setIsDownloading(false);
     }
-  }, []);
+  }, [isRelational, downloadNameA, downloadNameB]);
   console.log('[SnapshotDisplay] Rendering with result:', result);
 
   const snapshot = createSnapshotDisplay(result, location, timestamp);
-
-  // Check if this is a relational snapshot
-  const hasPersonB = Boolean(result?.person_b);
-  const isRelational = hasPersonB && Boolean(result.person_b);
 
   const selectSummarySource = () =>
     result?.balance_meter?.channel_summary_canonical ||

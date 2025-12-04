@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server';
 import { inferMbtiFromChart } from '../../../lib/mbti/inferMbtiFromChart';
 
+// --- Chart Asset Types ---
+
+interface ChartAsset {
+  id: string;
+  url: string;
+  contentType: string;
+  format: string;
+  chartType: string;
+  subject: string;
+  scope: string;
+}
+
 // --- Types & Interfaces ---
 
 interface BirthData {
@@ -60,6 +72,235 @@ async function callApi(endpoint: string, payload: any, apiKey: string) {
     return JSON.parse(text);
   } catch (e) {
     return { error: true, message: "Invalid JSON response", raw: text.slice(0, 500) };
+  }
+}
+
+/**
+ * Fetch a rendered natal wheel chart as PNG (better for download)
+ */
+async function fetchNatalWheelChart(
+  subject: { name: string; birth_data: BirthData },
+  apiKey: string,
+  subjectId: string
+): Promise<ChartAsset | null> {
+  const payload = {
+    subject,
+    options: {
+      house_system: 'P',
+      zodiac_type: 'Tropic',
+      active_points: ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Chiron', 'Mean_Node']
+    },
+    render_options: {
+      format: 'png',
+      theme: 'dark',
+      width: 1200,  // High resolution for downloads
+      scale: 2.0    // Retina quality
+    }
+  };
+
+  try {
+    const url = `${API_BASE}/render/natal`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-rapidapi-key': apiKey,
+        'x-rapidapi-host': API_HOST
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      console.warn(`[Render] Natal chart render failed for ${subject.name}: ${response.status}`);
+      return null;
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    
+    // Check if response is SVG (text) or binary image
+    if (contentType.includes('svg') || contentType.includes('xml')) {
+      const svgText = await response.text();
+      if (svgText.includes('<svg') || svgText.includes('<?xml')) {
+        const base64 = Buffer.from(svgText, 'utf8').toString('base64');
+        return {
+          id: `natal_wheel_${subjectId}_${Date.now()}`,
+          url: `data:image/svg+xml;base64,${base64}`,
+          contentType: 'image/svg+xml',
+          format: 'svg',
+          chartType: 'natal',
+          subject: subjectId,
+          scope: 'natal_wheel'
+        };
+      }
+    } else if (contentType.includes('image/png') || contentType.includes('image/jpeg') || contentType.includes('image/webp')) {
+      const arrayBuffer = await response.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      const format = contentType.includes('png') ? 'png' : contentType.includes('jpeg') ? 'jpg' : 'webp';
+      return {
+        id: `natal_wheel_${subjectId}_${Date.now()}`,
+        url: `data:${contentType};base64,${base64}`,
+        contentType,
+        format,
+        chartType: 'natal',
+        subject: subjectId,
+        scope: 'natal_wheel'
+      };
+    } else {
+      // Try to parse as JSON (API may return JSON wrapper with chart URL)
+      const text = await response.text();
+      try {
+        const json = JSON.parse(text);
+        if (json.chart_url || json.image_url || json.url) {
+          const chartUrl = json.chart_url || json.image_url || json.url;
+          return {
+            id: `natal_wheel_${subjectId}_${Date.now()}`,
+            url: chartUrl,
+            contentType: 'image/svg+xml',
+            format: 'svg',
+            chartType: 'natal',
+            subject: subjectId,
+            scope: 'natal_wheel'
+          };
+        }
+        // Check for inline SVG in response
+        if (json.svg || json.chart || json.image) {
+          const svgContent = json.svg || json.chart || json.image;
+          if (typeof svgContent === 'string' && (svgContent.includes('<svg') || svgContent.startsWith('data:'))) {
+            return {
+              id: `natal_wheel_${subjectId}_${Date.now()}`,
+              url: svgContent.startsWith('data:') ? svgContent : `data:image/svg+xml;base64,${Buffer.from(svgContent, 'utf8').toString('base64')}`,
+              contentType: 'image/svg+xml',
+              format: 'svg',
+              chartType: 'natal',
+              subject: subjectId,
+              scope: 'natal_wheel'
+            };
+          }
+        }
+      } catch {
+        // Not JSON, ignore
+      }
+    }
+
+    console.warn(`[Render] Could not parse natal chart response for ${subject.name}`);
+    return null;
+  } catch (error) {
+    console.error(`[Render] Error fetching natal wheel for ${subject.name}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Fetch a rendered synastry wheel chart as PNG
+ */
+async function fetchSynastryWheelChart(
+  subjectA: { name: string; birth_data: BirthData },
+  subjectB: { name: string; birth_data: BirthData },
+  apiKey: string
+): Promise<ChartAsset | null> {
+  const payload = {
+    subject1: subjectA,
+    subject2: subjectB,
+    options: {
+      house_system: 'P',
+      zodiac_type: 'Tropic',
+      active_points: ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto']
+    },
+    render_options: {
+      format: 'png',
+      theme: 'dark',
+      width: 1200,  // High resolution for downloads
+      scale: 2.0    // Retina quality
+    }
+  };
+
+  try {
+    const url = `${API_BASE}/render/synastry`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-rapidapi-key': apiKey,
+        'x-rapidapi-host': API_HOST
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      console.warn(`[Render] Synastry chart render failed: ${response.status}`);
+      return null;
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    
+    if (contentType.includes('svg') || contentType.includes('xml')) {
+      const svgText = await response.text();
+      if (svgText.includes('<svg') || svgText.includes('<?xml')) {
+        const base64 = Buffer.from(svgText, 'utf8').toString('base64');
+        return {
+          id: `synastry_wheel_${Date.now()}`,
+          url: `data:image/svg+xml;base64,${base64}`,
+          contentType: 'image/svg+xml',
+          format: 'svg',
+          chartType: 'synastry',
+          subject: 'synastry',
+          scope: 'synastry_wheel'
+        };
+      }
+    } else if (contentType.includes('image/png') || contentType.includes('image/jpeg') || contentType.includes('image/webp')) {
+      const arrayBuffer = await response.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      const format = contentType.includes('png') ? 'png' : contentType.includes('jpeg') ? 'jpg' : 'webp';
+      return {
+        id: `synastry_wheel_${Date.now()}`,
+        url: `data:${contentType};base64,${base64}`,
+        contentType,
+        format,
+        chartType: 'synastry',
+        subject: 'synastry',
+        scope: 'synastry_wheel'
+      };
+    } else {
+      // Try JSON wrapper
+      const text = await response.text();
+      try {
+        const json = JSON.parse(text);
+        if (json.chart_url || json.image_url || json.url) {
+          const chartUrl = json.chart_url || json.image_url || json.url;
+          return {
+            id: `synastry_wheel_${Date.now()}`,
+            url: chartUrl,
+            contentType: 'image/svg+xml',
+            format: 'svg',
+            chartType: 'synastry',
+            subject: 'synastry',
+            scope: 'synastry_wheel'
+          };
+        }
+        if (json.svg || json.chart || json.image) {
+          const svgContent = json.svg || json.chart || json.image;
+          if (typeof svgContent === 'string' && (svgContent.includes('<svg') || svgContent.startsWith('data:'))) {
+            return {
+              id: `synastry_wheel_${Date.now()}`,
+              url: svgContent.startsWith('data:') ? svgContent : `data:image/svg+xml;base64,${Buffer.from(svgContent, 'utf8').toString('base64')}`,
+              contentType: 'image/svg+xml',
+              format: 'svg',
+              chartType: 'synastry',
+              subject: 'synastry',
+              scope: 'synastry_wheel'
+            };
+          }
+        }
+      } catch {
+        // Not JSON
+      }
+    }
+
+    console.warn(`[Render] Could not parse synastry chart response`);
+    return null;
+  } catch (error) {
+    console.error(`[Render] Error fetching synastry wheel:`, error);
+    return null;
   }
 }
 
@@ -307,6 +548,43 @@ export async function POST(request: Request) {
       );
     }
 
+    // 5c. Fetch Wheel Chart Assets (in parallel)
+    const chartAssetsA: ChartAsset[] = [];
+    const chartAssetsB: ChartAsset[] = [];
+    let synastryChartAssets: ChartAsset[] = [];
+
+    // Only fetch wheel charts if explicitly requested or for snapshot reports
+    const includeChartAssets = body.include_chart_assets !== false;
+    
+    if (includeChartAssets) {
+      const wheelPromises: Promise<ChartAsset | null>[] = [
+        fetchNatalWheelChart(subjectA, apiKey, 'person_a')
+      ];
+      
+      if (personBData) {
+        const subjectB = buildSubjectPayload(body.personB.name, personBData);
+        wheelPromises.push(fetchNatalWheelChart(subjectB, apiKey, 'person_b'));
+        wheelPromises.push(fetchSynastryWheelChart(subjectA, subjectB, apiKey));
+      }
+
+      const wheelResults = await Promise.all(wheelPromises);
+      
+      // Person A natal wheel
+      if (wheelResults[0]) {
+        chartAssetsA.push(wheelResults[0]);
+      }
+      
+      // Person B natal wheel (if relational)
+      if (personBData && wheelResults[1]) {
+        chartAssetsB.push(wheelResults[1]);
+      }
+      
+      // Synastry wheel (if relational)
+      if (personBData && wheelResults[2]) {
+        synastryChartAssets = [wheelResults[2]];
+      }
+    }
+
     // 5a. Determine Report Type (Four Report Types per spec)
     const hasTransits = !!(body.window?.start && body.window?.end);
     const isRelational = !!personBData;
@@ -402,7 +680,8 @@ export async function POST(request: Request) {
           cusps: relocationDataA ? relocationDataA.cusps : chartA.cusps,
           transitsByDate: transitsByDateA
         },
-        summary: calculatePersonSummary(transitsByDateA)
+        summary: calculatePersonSummary(transitsByDateA),
+        chart_assets: chartAssetsA
       },
 
       ...(personBData && {
@@ -415,7 +694,8 @@ export async function POST(request: Request) {
             cusps: relocationDataB ? relocationDataB.cusps : chartB?.cusps,
             transitsByDate: transitsByDateB
           },
-          summary: calculatePersonSummary(transitsByDateB)
+          summary: calculatePersonSummary(transitsByDateB),
+          chart_assets: chartAssetsB
         }
       }),
       
@@ -423,8 +703,14 @@ export async function POST(request: Request) {
       ...(synastryData && {
         synastry: {
           aspects: synastryData.aspects,
-          summary: synastryData.summary
+          summary: synastryData.summary,
+          chart_assets: synastryChartAssets
         }
+      }),
+
+      // Top-level synastry chart assets for easier access
+      ...(synastryChartAssets.length > 0 && {
+        synastry_chart_assets: synastryChartAssets
       }),
 
       balance_meter: calculateCombinedBalanceMeter(transitsByDateA, transitsByDateB),
