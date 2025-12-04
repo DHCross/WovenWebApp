@@ -361,7 +361,19 @@ export async function POST(req: Request) {
                   return NextResponse.json({ ok: false, error: 'Access denied', reason: allow.reason }, { status: 403 });
                 }
               } catch (err: any) {
-                return NextResponse.json({ ok: false, error: 'Invalid token', detail: err?.message || String(err) }, { status: 401 });
+                const errMsg = err?.message || String(err);
+                console.error('[Raven Auth] Token verification failed:', errMsg);
+                // Surface specific JWT errors for debugging
+                if (errMsg.includes('jwt audience invalid')) {
+                  return NextResponse.json({ ok: false, error: 'Token audience mismatch', detail: 'Check AUTH0_AUDIENCE matches your Auth0 API identifier' }, { status: 401 });
+                }
+                if (errMsg.includes('jwt expired')) {
+                  return NextResponse.json({ ok: false, error: 'Token expired', detail: 'Please sign out and sign back in' }, { status: 401 });
+                }
+                if (errMsg.includes('jwt issuer invalid')) {
+                  return NextResponse.json({ ok: false, error: 'Token issuer mismatch', detail: 'Check AUTH0_DOMAIN configuration' }, { status: 401 });
+                }
+                return NextResponse.json({ ok: false, error: 'Invalid token', detail: errMsg }, { status: 401 });
               }
 
               // Extract names for personalization
@@ -1090,7 +1102,19 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
         return NextResponse.json({ ok: false, error: 'Access denied', reason: allow.reason }, { status: 403 });
       }
     } catch (err: any) {
-      return NextResponse.json({ ok: false, error: 'Invalid token', detail: err?.message || String(err) }, { status: 401 });
+      const errMsg = err?.message || String(err);
+      console.error('[Raven Auth] Token verification failed:', errMsg);
+      // Surface specific JWT errors for debugging
+      if (errMsg.includes('jwt audience invalid')) {
+        return NextResponse.json({ ok: false, error: 'Token audience mismatch', detail: 'Check AUTH0_AUDIENCE matches your Auth0 API identifier' }, { status: 401 });
+      }
+      if (errMsg.includes('jwt expired')) {
+        return NextResponse.json({ ok: false, error: 'Token expired', detail: 'Please sign out and sign back in' }, { status: 401 });
+      }
+      if (errMsg.includes('jwt issuer invalid')) {
+        return NextResponse.json({ ok: false, error: 'Token issuer mismatch', detail: 'Check AUTH0_DOMAIN configuration' }, { status: 401 });
+      }
+      return NextResponse.json({ ok: false, error: 'Invalid token', detail: errMsg }, { status: 401 });
     }
 
     const encoder = new TextEncoder();

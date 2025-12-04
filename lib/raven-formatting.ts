@@ -43,6 +43,7 @@ export const formatFriendlyErrorMessage = (rawMessage: string): string => {
   try {
     const parsed = JSON.parse(text);
     const reason = parsed?.reason || parsed?.error || parsed?.detail || '';
+    const detail = parsed?.detail || '';
     const status = parsed?.status || parsed?.code || undefined;
     if (reason) {
       const r = String(reason).toLowerCase();
@@ -52,8 +53,18 @@ export const formatFriendlyErrorMessage = (rawMessage: string): string => {
       if (r.includes('domain_mismatch')) {
         return "Access blocked: your account's email domain isn't allowed. Ask the project owner to update the allowlist or use an approved email.";
       }
+      if (r.includes('audience mismatch') || r.includes('jwt audience')) {
+        return "Authentication error: Token audience mismatch. The AUTH0_AUDIENCE in your server config may not match your Auth0 API identifier.";
+      }
+      if (r.includes('token expired') || r.includes('jwt expired')) {
+        return "Your session has expired. Please sign out and sign back in to continue.";
+      }
+      if (r.includes('issuer mismatch') || r.includes('jwt issuer')) {
+        return "Authentication error: Token issuer mismatch. Check that AUTH0_DOMAIN is configured correctly.";
+      }
       if (/missing|invalid token|invalid token/i.test(r) || status === 401) {
-        return "Authentication failed: your session token is invalid or expired. Please sign out and sign back in, then try again.";
+        const hint = detail ? ` (${detail})` : '';
+        return `Authentication failed: your session token is invalid or expired${hint}. Please sign out and sign back in, then try again.`;
       }
       // Fallthrough to include the reason text when it's informative
       return `I'm having trouble responding: ${String(parsed.error || parsed.detail || parsed.reason)}`;
