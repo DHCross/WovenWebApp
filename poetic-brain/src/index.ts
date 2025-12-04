@@ -1206,7 +1206,31 @@ export function processMirrorDirective(payload: InputPayload): {
   };
 
   // Generate solo mirror for Person A (most common path)
-  if (personA) {
+  // DEFENSIVE LAYER 2: Graceful degradation when personA is missing or incomplete
+  if (!personA || !personA.name) {
+    // Generate informative fallback when person_a is missing entirely
+    // This catches the case where the payload has person_a: null or person_a: {}
+    narratives.solo_mirror_a = `## Solo Mirror: Chart Data Missing
+
+I'm ready to generate your reading, but the chart geometry didn't arrive completely. This usually means:
+
+- The Math Brain report wasn't fully generated
+- There's a connection issue between systems  
+- The birth data wasn't fully captured
+
+**What you can do:**
+- Return to Math Brain and regenerate your chart
+- Check that all required fields (name, date, time, location) were filled
+- If the issue persists, try refreshing the page
+
+I'm here when you're ready. Feel free to ask questions in the meantime—I can still discuss patterns, archetypes, and general navigation.
+
+If this keeps happening, you can describe the issue by typing "report issue" and I'll help you document it.
+
+---
+
+*This is a data availability issue, not an error in your chart.*`;
+  } else {
     narratives.solo_mirror_a = generateSoloMirror(
       personA,
       chartA,

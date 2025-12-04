@@ -331,6 +331,22 @@ export async function POST(req: Request) {
           if (mirrorContext) {
         try {
           const content = typeof mirrorContext.content === 'string' ? JSON.parse(mirrorContext.content) : mirrorContext.content;
+              
+              // DEFENSIVE LAYER 1: Input validation before calling Poetic Brain
+              // Log incomplete payloads for debugging but don't block - let Poetic Brain handle gracefully
+              if (!content.person_a) {
+                console.warn('[Raven] Mirror Directive missing person_a entirely', {
+                  hasPersonA: false,
+                  format: content._format,
+                  keys: Object.keys(content).slice(0, 10),
+                });
+              } else if (!content.person_a.name) {
+                console.warn('[Raven] Mirror Directive person_a missing name', {
+                  hasPersonA: true,
+                  personAKeys: Object.keys(content.person_a).slice(0, 10),
+                });
+              }
+              
               // If caller explicitly requested Solo mode, sanitize the directive to remove person_b
               const sanitized = sanitizeDirectiveForMode(content, resolvedOptions);
               const usedContent = sanitized.content;
@@ -511,6 +527,38 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
                   'Cache-Control': 'no-cache',
                   'Connection': 'keep-alive'
                 }
+              });
+            } else {
+              // DEFENSIVE LAYER 3: Safety net fallback
+              // Poetic Brain processed the directive but produced empty narrative sections
+              // This is the last-resort catch for edge cases like:
+              // - Network corruption mid-stream
+              // - Unexpected undefined/null in places we didn't anticipate
+              // - Future refactoring that breaks assumptions
+              // Layer 2 (Poetic Brain) should catch most cases with better messaging
+              console.warn('[Raven] Poetic Brain returned empty narrative sections', {
+                hasSoloA: Boolean(result.narrative_sections.solo_mirror_a),
+                hasSoloB: Boolean(result.narrative_sections.solo_mirror_b),
+                hasRelational: Boolean(result.narrative_sections.relational_engine),
+                hasWeather: Boolean(result.narrative_sections.weather_overlay),
+              });
+              
+              const contextName = mirrorContext.name || 'the uploaded report';
+              const fallbackMessage = `I received ${contextName} and recognized it as a Mirror Directive, but I couldn't extract the chart geometry needed to generate the reading. This usually means the aspect data is in an unexpected format or location within the JSON.\n\nYou can:\n1. Re-export from Math Brain using the "Export to Poetic Brain" option\n2. Ask me a specific question about the report—I can still read directly from it\n\nWhat would you like to do?`;
+              
+              appendHistoryEntry(sessionLog, 'user', textInput || 'Mirror report upload');
+              appendHistoryEntry(sessionLog, 'raven', fallbackMessage);
+              updateSession(sid, () => { });
+              
+              const prov = stampProvenance({ source: 'Poetic Brain (Empty Narrative Fallback)' });
+              return NextResponse.json({
+                intent: 'conversation',
+                ok: true,
+                draft: { conversation: fallbackMessage },
+                prov,
+                sessionId: sid,
+                probe: null,
+                hook: 'Report Needs Attention',
               });
             }
           }
