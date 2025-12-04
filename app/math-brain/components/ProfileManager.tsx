@@ -131,6 +131,7 @@ export default function ProfileManager({
             </div>
           ) : (
             <button
+              type="button"
               onClick={() => handleSaveClick('A')}
               disabled={
                 loading ||
@@ -154,6 +155,7 @@ export default function ProfileManager({
             </div>
           ) : (
             <button
+              type="button"
               onClick={() => handleSaveClick('B')}
               disabled={
                 loading ||
@@ -246,6 +248,7 @@ export default function ProfileManager({
                     >
                       <div className="flex items-start justify-between gap-3">
                         <button
+                          type="button"
                           onClick={() => toggleExpanded(profile.id)}
                           className="flex-1 min-w-0 text-left"
                           aria-expanded={isExpanded}
@@ -271,6 +274,7 @@ export default function ProfileManager({
                         </button>
                         <div className="flex gap-1 flex-shrink-0">
                           <button
+                            type="button"
                             onClick={() => onLoadProfile(profile, 'A')}
                             className="rounded px-2 py-1 text-xs bg-blue-700/30 text-blue-200 hover:bg-blue-700/40 border border-blue-600/50 transition"
                             title="Load as Person A"
@@ -278,6 +282,7 @@ export default function ProfileManager({
                             → A
                           </button>
                           <button
+                            type="button"
                             onClick={() => onLoadProfile(profile, 'B')}
                             className="rounded px-2 py-1 text-xs bg-purple-700/30 text-purple-200 hover:bg-purple-700/40 border border-purple-600/50 transition"
                             title="Load as Person B"
@@ -285,6 +290,7 @@ export default function ProfileManager({
                             → B
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleDeleteClick(profile.id)}
                             className="rounded px-2 py-1 text-xs bg-rose-700/30 text-rose-200 hover:bg-rose-700/40 border border-rose-600/50 transition"
                             title="Delete profile"
@@ -364,12 +370,14 @@ export default function ProfileManager({
             </div>
             <div className="flex gap-2 justify-end">
               <button
+                type="button"
                 onClick={() => setShowSaveModal(false)}
                 className="rounded-md border border-slate-600 bg-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-600 transition"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleSaveConfirm}
                 disabled={!saveName.trim()}
                 className="rounded-md border border-emerald-600 bg-emerald-700 px-4 py-2 text-sm text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
@@ -393,12 +401,14 @@ export default function ProfileManager({
             </p>
             <div className="flex gap-2 justify-end">
               <button
+                type="button"
                 onClick={() => setShowDeleteConfirm(null)}
                 className="rounded-md border border-slate-600 bg-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-600 transition"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleDeleteConfirm}
                 className="rounded-md border border-rose-600 bg-rose-700 px-4 py-2 text-sm text-white hover:bg-rose-600 transition"
               >
