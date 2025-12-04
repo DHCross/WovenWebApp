@@ -412,6 +412,52 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
     return true;
   }, [wheelChart]);
 
+  // For lightbox, use a blob URL if the data URI is large (prevents re-parsing)
+  const lightboxUrl = useMemo(() => {
+    if (!wheelChart?.url) return null;
+    // For regular URLs, use as-is
+    if (!wheelChart.url.startsWith('data:')) return wheelChart.url;
+    
+    // For data URIs over 500KB, convert to blob URL for better performance
+    if (wheelChart.url.length > 500 * 1024) {
+      try {
+        const [header, base64] = wheelChart.url.split(',');
+        const mimeMatch = header.match(/data:([^;]+)/);
+        const mime = mimeMatch ? mimeMatch[1] : 'image/svg+xml';
+        
+        // Decode base64 or URI-encoded data
+        let binaryData: string;
+        if (header.includes('base64')) {
+          binaryData = atob(base64);
+        } else {
+          binaryData = decodeURIComponent(base64);
+        }
+        
+        const bytes = new Uint8Array(binaryData.length);
+        for (let i = 0; i < binaryData.length; i++) {
+          bytes[i] = binaryData.charCodeAt(i);
+        }
+        
+        const blob = new Blob([bytes], { type: mime });
+        return URL.createObjectURL(blob);
+      } catch (e) {
+        console.warn('[SnapshotDisplay] Failed to create blob URL for lightbox:', e);
+        return wheelChart.url;
+      }
+    }
+    
+    return wheelChart.url;
+  }, [wheelChart?.url]);
+
+  // Cleanup blob URL when component unmounts or URL changes
+  useEffect(() => {
+    return () => {
+      if (lightboxUrl && lightboxUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(lightboxUrl);
+      }
+    };
+  }, [lightboxUrl]);
+
   // Extract provenance
   const houseSystem =
     result?.provenance?.house_system_name ||
@@ -810,7 +856,7 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
       </details>
 
       {/* LIGHTBOX MODAL */}
-      {isLightboxOpen && wheelChart?.url && (
+      {isLightboxOpen && lightboxUrl && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
           onClick={() => setIsLightboxOpen(false)}
@@ -829,7 +875,7 @@ export default function SnapshotDisplay({ result, location, timestamp }: Snapsho
             
             {/* Full-size image */}
             <img
-              src={wheelChart.url}
+              src={lightboxUrl}
               alt={isRelational ? 'Synastry Chart (Full Size)' : 'Natal Chart (Full Size)'}
               className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
               onClick={(e) => e.stopPropagation()}

@@ -351,29 +351,59 @@ export async function POST(req: Request) {
               // === Auth check before LLM call ===
               const authHeader = (req as any).headers?.get ? (req as any).headers.get('authorization') : undefined;
               if (!authHeader || !authHeader.startsWith('Bearer ')) {
-                return NextResponse.json({ ok: false, error: 'Unauthorized. Missing Bearer token.' }, { status: 401 });
+                return NextResponse.json({ 
+                  ok: false, 
+                  error: 'Unauthorized', 
+                  detail: 'Missing Bearer token in Authorization header',
+                  hint: 'Please sign in to access the Poetic Brain'
+                }, { status: 401 });
               }
               const token = authHeader.split(' ')[1];
               try {
                 const decoded = await verifyToken(token);
                 const allow = checkAllowlist(decoded);
                 if (!allow.allowed) {
-                  return NextResponse.json({ ok: false, error: 'Access denied', reason: allow.reason }, { status: 403 });
+                  return NextResponse.json({ 
+                    ok: false, 
+                    error: 'Access denied', 
+                    reason: allow.reason,
+                    hint: 'Contact the project owner to request access'
+                  }, { status: 403 });
                 }
               } catch (err: any) {
                 const errMsg = err?.message || String(err);
                 console.error('[Raven Auth] Token verification failed:', errMsg);
                 // Surface specific JWT errors for debugging
                 if (errMsg.includes('jwt audience invalid')) {
-                  return NextResponse.json({ ok: false, error: 'Token audience mismatch', detail: 'Check AUTH0_AUDIENCE matches your Auth0 API identifier' }, { status: 401 });
+                  return NextResponse.json({ 
+                    ok: false, 
+                    error: 'Token audience mismatch', 
+                    detail: 'The AUTH0_AUDIENCE environment variable does not match your Auth0 API identifier',
+                    hint: 'Check server configuration: AUTH0_AUDIENCE must match the API Identifier in Auth0 Dashboard > APIs'
+                  }, { status: 401 });
                 }
                 if (errMsg.includes('jwt expired')) {
-                  return NextResponse.json({ ok: false, error: 'Token expired', detail: 'Please sign out and sign back in' }, { status: 401 });
+                  return NextResponse.json({ 
+                    ok: false, 
+                    error: 'Token expired', 
+                    detail: 'Your session token has expired',
+                    hint: 'Sign out and sign back in to get a fresh token'
+                  }, { status: 401 });
                 }
                 if (errMsg.includes('jwt issuer invalid')) {
-                  return NextResponse.json({ ok: false, error: 'Token issuer mismatch', detail: 'Check AUTH0_DOMAIN configuration' }, { status: 401 });
+                  return NextResponse.json({ 
+                    ok: false, 
+                    error: 'Token issuer mismatch', 
+                    detail: 'The AUTH0_DOMAIN environment variable does not match the token issuer',
+                    hint: 'Check server configuration: AUTH0_DOMAIN should be your tenant domain (e.g., tenant.us.auth0.com) without https://'
+                  }, { status: 401 });
                 }
-                return NextResponse.json({ ok: false, error: 'Invalid token', detail: errMsg }, { status: 401 });
+                return NextResponse.json({ 
+                  ok: false, 
+                  error: 'Invalid token', 
+                  detail: errMsg,
+                  hint: 'Try signing out and back in. If the problem persists, contact the project owner.'
+                }, { status: 401 });
               }
 
               // Extract names for personalization
@@ -1092,29 +1122,59 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
     // === Auth: verify caller before invoking Perplexity ===
     const authHeader = (req as any).headers?.get ? (req as any).headers.get('authorization') : undefined;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ ok: false, error: 'Unauthorized. Missing Bearer token.' }, { status: 401 });
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'Unauthorized', 
+        detail: 'Missing Bearer token in Authorization header',
+        hint: 'Please sign in to access the Poetic Brain'
+      }, { status: 401 });
     }
     const token = authHeader.split(' ')[1];
     try {
       const decoded = await verifyToken(token);
       const allow = checkAllowlist(decoded);
       if (!allow.allowed) {
-        return NextResponse.json({ ok: false, error: 'Access denied', reason: allow.reason }, { status: 403 });
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Access denied', 
+          reason: allow.reason,
+          hint: 'Contact the project owner to request access'
+        }, { status: 403 });
       }
     } catch (err: any) {
       const errMsg = err?.message || String(err);
       console.error('[Raven Auth] Token verification failed:', errMsg);
       // Surface specific JWT errors for debugging
       if (errMsg.includes('jwt audience invalid')) {
-        return NextResponse.json({ ok: false, error: 'Token audience mismatch', detail: 'Check AUTH0_AUDIENCE matches your Auth0 API identifier' }, { status: 401 });
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Token audience mismatch', 
+          detail: 'The AUTH0_AUDIENCE environment variable does not match your Auth0 API identifier',
+          hint: 'Check server configuration: AUTH0_AUDIENCE must match the API Identifier in Auth0 Dashboard > APIs'
+        }, { status: 401 });
       }
       if (errMsg.includes('jwt expired')) {
-        return NextResponse.json({ ok: false, error: 'Token expired', detail: 'Please sign out and sign back in' }, { status: 401 });
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Token expired', 
+          detail: 'Your session token has expired',
+          hint: 'Sign out and sign back in to get a fresh token'
+        }, { status: 401 });
       }
       if (errMsg.includes('jwt issuer invalid')) {
-        return NextResponse.json({ ok: false, error: 'Token issuer mismatch', detail: 'Check AUTH0_DOMAIN configuration' }, { status: 401 });
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Token issuer mismatch', 
+          detail: 'The AUTH0_DOMAIN environment variable does not match the token issuer',
+          hint: 'Check server configuration: AUTH0_DOMAIN should be your tenant domain (e.g., tenant.us.auth0.com) without https://'
+        }, { status: 401 });
       }
-      return NextResponse.json({ ok: false, error: 'Invalid token', detail: errMsg }, { status: 401 });
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'Invalid token', 
+        detail: errMsg,
+        hint: 'Try signing out and back in. If the problem persists, contact the project owner.'
+      }, { status: 401 });
     }
 
     const encoder = new TextEncoder();

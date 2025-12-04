@@ -1,0 +1,158 @@
+/* eslint-disable no-console */
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createAuth0Client, Auth0Client } from '@auth0/auth0-spa-js';
+import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from '../lib/auth';
+
+const AUTH_TOKEN_KEY = 'auth.token';
+
+// Cache the Auth0 client instance to avoid re-creating
+let auth0ClientPromise: Promise<Auth0Client | null> | null = null;
+let cachedAudience: string | null = null;
+
+async function getAuth0Client(): Promise<Auth0Client | null> {
+  if (auth0ClientPromise) return auth0ClientPromise;
+  
+  auth0ClientPromise = (async (): Promise<Auth0Client | null> => {
+    try {
+      const res = await fetch('/api/auth-config');
+      if (!res.ok) throw new Error(`Auth config failed: ${res.status}`);
+      const config = await res.json();
+      
+      const domain = normalizeAuth0Domain(config?.domain);
+      const clientId = normalizeAuth0ClientId(config?.clientId);
+      const audience = normalizeAuth0Audience(config?.audience ?? null);
+      
+      if (!domain || !clientId) {
+        throw new Error('Invalid Auth0 config');
+      }
+      
+      cachedAudience = audience;
+      
+      const redirect_uri = getRedirectUri();
+      const authorizationParams: Record<string, any> = { redirect_uri };
+      if (audience) {
+        authorizationParams.audience = audience;
+      }
+      
+      return await createAuth0Client({
+        domain,
+        clientId,
+        cacheLocation: 'localstorage',
+        useRefreshTokens: true,
+        useRefreshTokensFallback: true,
+        authorizationParams
+      });
+    } catch (e) {
+      console.error('[useAuth] Failed to initialize Auth0 client:', e);
+      auth0ClientPromise = null;
+      return null;
+    }
+  })();
+  
+  return auth0ClientPromise;
+}
+
+/**
+ * Hook for getting fresh auth tokens.
+ * This should be used instead of reading directly from localStorage.
+ */
+export function useAuth() {
+  const [isReady, setIsReady] = useState(false);
+  const clientRef = useRef<Auth0Client | null>(null);
+  
+  useEffect(() => {
+    let cancelled = false;
+    
+    getAuth0Client().then((client) => {
+      if (!cancelled && client) {
+        clientRef.current = client;
+        setIsReady(true);
+      }
+    });
+    
+    return () => { cancelled = true; };
+  }, []);
+  
+  /**
+   * Gets a fresh access token, refreshing if necessary.
+   * This should be called before each authenticated API request.
+   */
+  const getAccessToken = useCallback(async (): Promise<string | null> => {
+    const client = clientRef.current;
+    if (!client) {
+      // Fallback to stored token if client not ready
+      return typeof window !== 'undefined' 
+        ? window.localStorage.getItem(AUTH_TOKEN_KEY) 
+        : null;
+    }
+    
+    try {
+      // getTokenSilently will automatically use cached token if valid,
+      // or refresh using the refresh token if expired
+      const token = await client.getTokenSilently({
+        authorizationParams: {
+          audience: cachedAudience || undefined,
+          scope: 'openid profile email'
+        }
+      });
+      
+      // Update localStorage for components that still read from it
+      if (token && typeof window !== 'undefined') {
+        window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+      }
+      
+      return token;
+    } catch (error) {
+      console.warn('[useAuth] Failed to get token silently:', error);
+      
+      // If refresh fails, try to return cached token as last resort
+      // (it might still work if the error was transient)
+      return typeof window !== 'undefined' 
+        ? window.localStorage.getItem(AUTH_TOKEN_KEY) 
+        : null;
+    }
+  }, []);
+  
+  return {
+    isReady,
+    getAccessToken
+  };
+}
+
+/**
+ * Non-hook version for use in callbacks or outside React components.
+ * Attempts to refresh the token using the cached Auth0 client.
+ */
+export async function getAccessTokenAsync(): Promise<string | null> {
+  const client = await getAuth0Client();
+  
+  if (!client) {
+    return typeof window !== 'undefined' 
+      ? window.localStorage.getItem(AUTH_TOKEN_KEY) 
+      : null;
+  }
+  
+  try {
+    const token = await client.getTokenSilently({
+      authorizationParams: {
+        audience: cachedAudience || undefined,
+        scope: 'openid profile email'
+      }
+    });
+    
+    if (token && typeof window !== 'undefined') {
+      window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+    }
+    
+    return token;
+  } catch (error) {
+    console.warn('[getAccessTokenAsync] Failed to get token:', error);
+    return typeof window !== 'undefined' 
+      ? window.localStorage.getItem(AUTH_TOKEN_KEY) 
+      : null;
+  }
+}
+
+export default useAuth;

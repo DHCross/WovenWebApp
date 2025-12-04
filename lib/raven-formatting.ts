@@ -25,7 +25,7 @@ const INITIAL_PROBE_PATTERNS = [
   /feel accurate/i,
 ];
 
-export const formatFriendlyErrorMessage = (rawMessage: string): string => {
+export const formatFriendlyErrorMessage = (rawMessage: string, httpStatus?: number): string => {
   const text = rawMessage.trim();
   if (!text) {
     return "I reached for the mirror but nothing answered. Try again in a moment.";
@@ -39,12 +39,13 @@ export const formatFriendlyErrorMessage = (rawMessage: string): string => {
   if (/failed to reach raven api/i.test(text) || /request failed/i.test(text)) {
     return "I'm having trouble reaching my poetic voice right now. Give me a moment and try again, or upload another chart for me to hold.";
   }
-  // Try to detect structured server responses (e.g. { error, reason })
+  // Try to detect structured server responses (e.g. { error, reason, hint })
   try {
     const parsed = JSON.parse(text);
     const reason = parsed?.reason || parsed?.error || parsed?.detail || '';
     const detail = parsed?.detail || '';
-    const status = parsed?.status || parsed?.code || undefined;
+    const hint = parsed?.hint || '';
+    const status = httpStatus || parsed?.status || parsed?.code;
     if (reason) {
       const r = String(reason).toLowerCase();
       if (r.includes('email_not_in_allowlist')) {
@@ -63,11 +64,14 @@ export const formatFriendlyErrorMessage = (rawMessage: string): string => {
         return "Authentication error: Token issuer mismatch. Check that AUTH0_DOMAIN is configured correctly.";
       }
       if (/missing|invalid token|invalid token/i.test(r) || status === 401) {
-        const hint = detail ? ` (${detail})` : '';
-        return `Authentication failed: your session token is invalid or expired${hint}. Please sign out and sign back in, then try again.`;
+        const actionHint = hint || detail || '';
+        const suffix = actionHint ? ` ${actionHint}` : '';
+        return `Authentication failed: your session token is invalid or expired.${suffix} Please sign out and sign back in, then try again.`;
       }
-      // Fallthrough to include the reason text when it's informative
-      return `I'm having trouble responding: ${String(parsed.error || parsed.detail || parsed.reason)}`;
+      // Fallthrough: include the error reason and any helpful hint from the server
+      const errorCore = String(parsed.error || parsed.detail || parsed.reason);
+      const actionTip = hint ? `\n\n${hint}` : '';
+      return `I'm having trouble responding: ${errorCore}${actionTip}`;
     }
   } catch (e) {
     // Not JSON — continue to legacy text checks

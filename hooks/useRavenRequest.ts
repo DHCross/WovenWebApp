@@ -30,6 +30,7 @@ import type {
   ValidationState,
 } from "@/lib/validation/types";
 import { parseValidationPoints } from "@/lib/validation/parseValidationPoints";
+import { getAccessTokenAsync } from "./useAuth";
 
 export interface UseRavenRequestArgs {
   personaMode: PersonaMode;
@@ -62,20 +63,20 @@ export function useRavenRequest({
   const abortRef = useRef<AbortController | null>(null);
 
   const commitError = useCallback(
-    (messageId: string, message: string) => {
-      const friendly = formatFriendlyErrorMessage(message);
+    (messageId: string, message: string, httpStatus?: number) => {
+      const friendly = formatFriendlyErrorMessage(message, httpStatus);
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === messageId
             ? {
               ...msg,
-              html: `<div class="raven-error"><p class="text-rose-400">${escapeHtml(
+              html: `<div class="raven-error"><p class="text-rose-400" style="white-space: pre-line;">${escapeHtml(
                 friendly,
               )}</p></div>`,
               climate: "VOICE · Realignment",
               hook: message.toLowerCase().includes("osr_detected")
                 ? "Let's Try Again"
-                : msg.hook,
+                : "Issue Detected",
               rawText: friendly,
             }
             : msg,
@@ -190,6 +191,9 @@ export function useRavenRequest({
           mergedPayload = { ...mergedPayload, persona: personaMode };
         }
 
+        // Get a fresh access token (will refresh if expired)
+        const accessToken = await getAccessTokenAsync();
+        
         const response = await fetchWithRetry(
           "/api/raven",
           {
@@ -197,9 +201,7 @@ export function useRavenRequest({
             headers: {
               "Content-Type": "application/json",
               "X-Request-Id": generateId(),
-              ...(typeof window !== "undefined" && window.localStorage.getItem("auth.token")
-                ? { Authorization: `Bearer ${window.localStorage.getItem("auth.token")}` }
-                : {}),
+              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
             },
             body: JSON.stringify(mergedPayload),
             signal: controller.signal,
@@ -315,8 +317,16 @@ export function useRavenRequest({
           }));
 
         if (!response.ok || !data?.ok) {
-          const errorMessage = data?.error || `Request failed (${response.status})`;
-          commitError(placeholderId, errorMessage);
+          // Pass the full error data as JSON so the formatter can extract all details
+          // Note: API returns 'detail' but RavenDraftResponse type uses 'details'
+          const errorPayload = {
+            error: data?.error || `Request failed`,
+            detail: (data as any)?.detail || (data as any)?.details,
+            reason: (data as any)?.reason,
+            hint: (data as any)?.hint,
+            status: response.status,
+          };
+          commitError(placeholderId, JSON.stringify(errorPayload), response.status);
           return null;
         }
 
