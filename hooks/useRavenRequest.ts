@@ -61,7 +61,7 @@ export function useRavenRequest({
   const [typing, setTyping] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  const commitError = useCallback(
+const commitError = useCallback(
     (messageId: string, message: string) => {
       const friendly = formatFriendlyErrorMessage(message);
       setMessages((prev) =>
@@ -84,6 +84,17 @@ export function useRavenRequest({
     },
     [setMessages],
   );
+
+  const getAuthToken = useCallback((): string | null => {
+    if (typeof window === "undefined") return null;
+    try {
+      const token = window.localStorage.getItem("auth.token");
+      if (typeof token === "string" && token.trim()) return token;
+    } catch {
+      // Ignore token read failures
+    }
+    return null;
+  }, []);
 
   const updateMessage = useCallback(
     (messageId: string, updates: Partial<Message>) => {
@@ -190,14 +201,21 @@ export function useRavenRequest({
           mergedPayload = { ...mergedPayload, persona: personaMode };
         }
 
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          "X-Request-Id": generateId(),
+        };
+
+        const token = getAuthToken();
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
         const response = await fetchWithRetry(
           "/api/raven",
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Request-Id": generateId(),
-            },
+            headers,
             body: JSON.stringify(mergedPayload),
             signal: controller.signal,
           },
