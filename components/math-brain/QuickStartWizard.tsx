@@ -312,9 +312,9 @@ export function QuickStartWizard({
               <button
                 type="button"
                 onClick={onSwitchToAdvanced}
-                className="px-4 py-2 text-xs text-slate-500 hover:text-slate-300 transition"
+                className="px-4 py-2 text-sm text-slate-400 hover:text-emerald-400 border border-slate-700 hover:border-emerald-500/50 rounded-lg transition"
               >
-                Advanced mode →
+                ⚙️ Advanced Form
               </button>
             )}
           </div>

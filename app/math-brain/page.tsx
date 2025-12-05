@@ -993,11 +993,21 @@ export default function MathBrainPage() {
   // Quick Start wizard mode - simplified 3-step flow for new users
   const [showQuickStart, setShowQuickStart] = useState<boolean>(false);
   
-  // Check if user prefers quick start mode
+  // Check if user prefers quick start mode (skip if they have saved profiles)
   useEffect(() => {
+    // Wait for profiles to load before deciding
+    if (profilesLoading) return;
+    
     try {
       const prefersQuickStart = localStorage.getItem('mb.prefersQuickStart');
       const hasGeneratedReport = localStorage.getItem('mb.hasGeneratedReport');
+      
+      // Skip wizard if user has saved profiles (returning user)
+      if (profiles.length > 0) {
+        setShowQuickStart(false);
+        return;
+      }
+      
       // Default to quick start for first-time users
       if (!hasGeneratedReport && prefersQuickStart !== 'false') {
         setShowQuickStart(true);
@@ -1005,7 +1015,7 @@ export default function MathBrainPage() {
     } catch {
       // Ignore localStorage errors
     }
-  }, []);
+  }, [profilesLoading, profiles.length]);
 
   // Check if user is first-time (never generated a report)
   useEffect(() => {
@@ -1039,10 +1049,10 @@ export default function MathBrainPage() {
     }
   }, []);
 
-  // Handle Quick Start wizard completion - populate form with wizard data
+  // Handle Quick Start wizard completion - populate form and generate report
   const handleQuickStartComplete = useCallback((data: QuickStartData) => {
-    setPersonA((prev) => ({
-      ...prev,
+    const newPersonA = {
+      ...personA,
       name: data.name,
       year: data.year,
       month: data.month,
@@ -1054,20 +1064,27 @@ export default function MathBrainPage() {
       latitude: data.city?.lat.toString() ?? '',
       longitude: data.city?.lng.toString() ?? '',
       timezone: data.timezone,
-    }));
+    };
+    setPersonA(newPersonA);
     // Update coordinates input field
     setACoordsInput(data.coordinates);
     setACoordsValid(true);
     setACoordsError(null);
-    // Exit quick start mode
+    // Exit quick start mode and show advanced form
     setShowQuickStart(false);
     // Mark preference for next time
     try {
       localStorage.setItem('mb.prefersQuickStart', 'true');
+      localStorage.setItem('mb.hasGeneratedReport', 'true');
     } catch {
       // Ignore
     }
-  }, []);
+    // Auto-trigger report generation after a short delay to let state settle
+    setTimeout(() => {
+      // Scroll to where results will appear
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 100);
+  }, [personA]);
 
   // Switch from quick start to advanced mode
   const handleSwitchToAdvanced = useCallback(() => {

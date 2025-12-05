@@ -315,26 +315,33 @@ export function CityAutocomplete({
             </button>
           </div>
           
-          <p className="text-xs text-slate-400 mb-3">
-            Get coordinates from{' '}
-            <a 
-              href="https://www.astro-seek.com" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-emerald-400 hover:text-emerald-300 underline"
-            >
-              Astro-Seek
-            </a>
-            {' '}or{' '}
-            <a 
-              href="https://www.google.com/maps" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-emerald-400 hover:text-emerald-300 underline"
-            >
-              Google Maps
-            </a>
-          </p>
+          <div className="text-xs text-slate-400 mb-3 space-y-2">
+            <p className="font-medium text-slate-300">How to find coordinates:</p>
+            <ol className="list-decimal list-inside space-y-1 text-slate-500">
+              <li>
+                <strong className="text-slate-400">Google Search:</strong> Type{' '}
+                <code className="px-1 py-0.5 bg-slate-900 rounded text-emerald-400">"Bryn Mawr PA coordinates"</code>
+              </li>
+              <li>
+                <strong className="text-slate-400">Google Maps:</strong> Right-click any location → copy coordinates
+              </li>
+              <li>
+                <strong className="text-slate-400">Ask AI:</strong> "What are the lat/long coordinates for Bryn Mawr, PA?"
+              </li>
+            </ol>
+            <p className="text-slate-500 pt-1">
+              Or use{' '}
+              <a 
+                href="https://www.astro-seek.com/birth-chart-horoscope-online" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-emerald-400 hover:text-emerald-300 underline"
+              >
+                Astro-Seek
+              </a>
+              {' '}— enter your city there, then copy the coordinates shown.
+            </p>
+          </div>
 
           <div>
             <label className="block text-xs text-slate-400 mb-1">City Name</label>
