@@ -1049,7 +1049,7 @@ export default function MathBrainPage() {
     }
   }, []);
 
-  // Handle Quick Start wizard completion - populate form and generate report
+  // Handle Quick Start wizard completion - populate form (don't auto-generate)
   const handleQuickStartComplete = useCallback((data: QuickStartData) => {
     const newPersonA = {
       ...personA,
@@ -1075,14 +1075,12 @@ export default function MathBrainPage() {
     // Mark preference for next time
     try {
       localStorage.setItem('mb.prefersQuickStart', 'true');
-      localStorage.setItem('mb.hasGeneratedReport', 'true');
     } catch {
       // Ignore
     }
-    // Auto-trigger report generation after a short delay to let state settle
+    // Scroll to form so user can review, add Person B, or generate
     setTimeout(() => {
-      // Scroll to where results will appear
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 100);
   }, [personA]);
 

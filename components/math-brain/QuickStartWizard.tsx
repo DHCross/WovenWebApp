@@ -329,7 +329,7 @@ export function QuickStartWizard({
                 : 'bg-slate-800 text-slate-500 cursor-not-allowed'
             }`}
           >
-            {isLastStep ? 'Generate Reading →' : 'Continue →'}
+            {isLastStep ? 'Continue to Chart →' : 'Continue →'}
           </button>
         </div>
       </div>
