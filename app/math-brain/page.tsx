@@ -1467,6 +1467,27 @@ export default function MathBrainPage() {
   const [showSaveChartModal, setShowSaveChartModal] = useState<boolean>(false);
   const [saveChartName, setSaveChartName] = useState<string>("");
 
+  // Birth date slugs for filenames
+  const personABirthSlug = useMemo(() => {
+    const y = personA.year || '';
+    const m = personA.month?.padStart(2, '0') || '';
+    const d = personA.day?.padStart(2, '0') || '';
+    if (y && m && d) {
+      return `${y}-${m}-${d}`;
+    }
+    return '';
+  }, [personA.year, personA.month, personA.day]);
+
+  const personBBirthSlug = useMemo(() => {
+    const y = personB.year || '';
+    const m = personB.month?.padStart(2, '0') || '';
+    const d = personB.day?.padStart(2, '0') || '';
+    if (y && m && d) {
+      return `${y}-${m}-${d}`;
+    }
+    return '';
+  }, [personB.year, personB.month, personB.day]);
+
   const personASlug = useMemo(() => {
     const sourceName =
       (result as any)?.person_a?.details?.name ||
@@ -1540,11 +1561,21 @@ export default function MathBrainPage() {
   );
 
   // User-friendly filename helper (Raven Calder naming system)
+  // Format: PersonA_BirthDate_[PersonB_BirthDate_]ReportType_DateRange
   const friendlyFilename = useCallback(
     (type: 'directive' | 'dashboard' | 'symbolic-weather' | 'weather-log' | 'engine-config' | 'ai-bundle') => {
-      const duo = includePersonB
-        ? `${personASlug}-${personBSlug}`
+      // Build person identifier with birth date
+      const personAPart = personABirthSlug 
+        ? `${personASlug}_${personABirthSlug}`
         : personASlug;
+      const personBPart = personBBirthSlug
+        ? `${personBSlug}_${personBBirthSlug}`
+        : personBSlug;
+      
+      const peoplePart = includePersonB
+        ? `${personAPart}_${personBPart}`
+        : personAPart;
+      
       const dateStr = dateRangeSlug || 'no-dates';
 
       const nameMap = {
@@ -1556,9 +1587,9 @@ export default function MathBrainPage() {
         'ai-bundle': 'AI_Bundle',
       };
 
-      return `${nameMap[type]}_${duo}_${dateStr}`;
+      return `${peoplePart}_${nameMap[type]}_${dateStr}`;
     },
-    [includePersonB, personASlug, personBSlug, dateRangeSlug]
+    [includePersonB, personASlug, personBSlug, personABirthSlug, personBBirthSlug, dateRangeSlug]
   );
 
   const toggleLayerVisibility = useCallback((key: keyof LayerVisibility) => {
