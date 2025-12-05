@@ -41,6 +41,7 @@ import type { SeismographMap } from "../../lib/health-data-types";
 import { computeOverflowDetailFromDay, firstFinite } from "../../lib/math-brain/overflow-detail";
 import { useUserProfiles, type BirthProfile } from "./hooks/useUserProfiles";
 import ProfileManager from "./components/ProfileManager";
+import { QuickStartWizard, type QuickStartData } from "../../components/math-brain";
 
 export const dynamic = "force-dynamic";
 
@@ -988,6 +989,23 @@ export default function MathBrainPage() {
   // First-time user guide state
   const [showGettingStarted, setShowGettingStarted] = useState<boolean>(false);
   const [showHowItWorks, setShowHowItWorks] = useState<boolean>(false);
+  
+  // Quick Start wizard mode - simplified 3-step flow for new users
+  const [showQuickStart, setShowQuickStart] = useState<boolean>(false);
+  
+  // Check if user prefers quick start mode
+  useEffect(() => {
+    try {
+      const prefersQuickStart = localStorage.getItem('mb.prefersQuickStart');
+      const hasGeneratedReport = localStorage.getItem('mb.hasGeneratedReport');
+      // Default to quick start for first-time users
+      if (!hasGeneratedReport && prefersQuickStart !== 'false') {
+        setShowQuickStart(true);
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, []);
 
   // Check if user is first-time (never generated a report)
   useEffect(() => {
@@ -1019,6 +1037,51 @@ export default function MathBrainPage() {
     } catch {
       setShowGettingStarted(false);
     }
+  }, []);
+
+  // Handle Quick Start wizard completion - populate form with wizard data
+  const handleQuickStartComplete = useCallback((data: QuickStartData) => {
+    setPersonA((prev) => ({
+      ...prev,
+      name: data.name,
+      year: data.year,
+      month: data.month,
+      day: data.day,
+      hour: data.hour,
+      minute: data.minute,
+      city: data.cityName,
+      state: data.state,
+      latitude: data.city?.lat.toString() ?? '',
+      longitude: data.city?.lng.toString() ?? '',
+      timezone: data.timezone,
+    }));
+    // Update coordinates input field
+    setACoordsInput(data.coordinates);
+    setACoordsValid(true);
+    setACoordsError(null);
+    // Exit quick start mode
+    setShowQuickStart(false);
+    // Mark preference for next time
+    try {
+      localStorage.setItem('mb.prefersQuickStart', 'true');
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  // Switch from quick start to advanced mode
+  const handleSwitchToAdvanced = useCallback(() => {
+    setShowQuickStart(false);
+    try {
+      localStorage.setItem('mb.prefersQuickStart', 'false');
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  // Switch back to quick start mode
+  const handleSwitchToQuickStart = useCallback(() => {
+    setShowQuickStart(true);
   }, []);
 
   // User profiles hook
@@ -5042,6 +5105,28 @@ export default function MathBrainPage() {
           )}
         </div>
 
+        {/* Quick Start Wizard for first-time/casual users */}
+        {showQuickStart && (
+          <div className="mt-10 print:hidden">
+            <QuickStartWizard
+              onComplete={handleQuickStartComplete}
+              onSwitchToAdvanced={() => setShowQuickStart(false)}
+            />
+          </div>
+        )}
+
+        {/* Advanced form for power users */}
+        {!showQuickStart && (
+          <>
+            <div className="mt-6 flex justify-center print:hidden">
+              <button
+                type="button"
+                onClick={() => setShowQuickStart(true)}
+                className="text-sm text-slate-400 hover:text-slate-200 underline underline-offset-2"
+              >
+                ← Back to Quick Start
+              </button>
+            </div>
         <form onSubmit={(e) => e.preventDefault()} className="mt-10 print:hidden">
           {debugMode && (
             <div className="mb-4 rounded-md border border-slate-600 bg-slate-900/60 p-3 text-xs text-slate-200">
@@ -5638,6 +5723,8 @@ export default function MathBrainPage() {
             </div>
           </div>
         </form>
+          </>
+        )}
 
         {error && (
           <div className="mt-6 rounded-md border border-red-700 bg-red-900/30 p-4 text-red-200">
