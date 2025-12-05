@@ -36,6 +36,14 @@ export function CityAutocomplete({
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [error, setError] = useState<string | null>(null);
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [apiUnavailable, setApiUnavailable] = useState(false);
+  
+  // Manual entry fields
+  const [manualCity, setManualCity] = useState('');
+  const [manualLat, setManualLat] = useState('');
+  const [manualLng, setManualLng] = useState('');
+  const [manualTimezone, setManualTimezone] = useState('America/New_York');
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -69,9 +77,10 @@ export function CityAutocomplete({
         setIsOpen(data.results?.length > 0);
         setHighlightedIndex(-1);
       }
-    } catch (err) {
-      // Error handling - error state is set above
-      setError('Unable to search cities. Please try again.');
+    } catch {
+      // Error handling - API likely not configured
+      setError('City search unavailable');
+      setApiUnavailable(true);
       setResults([]);
     } finally {
       setIsLoading(false);
@@ -168,6 +177,43 @@ export function CityAutocomplete({
     }
   }, [value]);
 
+  // Handle manual entry submission
+  const handleManualSubmit = useCallback(() => {
+    const lat = parseFloat(manualLat);
+    const lng = parseFloat(manualLng);
+    
+    if (!manualCity.trim()) {
+      setError('Please enter a city name');
+      return;
+    }
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+      setError('Latitude must be between -90 and 90');
+      return;
+    }
+    if (isNaN(lng) || lng < -180 || lng > 180) {
+      setError('Longitude must be between -180 and 180');
+      return;
+    }
+
+    const manualResult: CityResult = {
+      id: Date.now(), // Unique ID for manual entries
+      name: manualCity.trim(),
+      lat,
+      lng,
+      country: 'Manual',
+      countryName: 'Manual Entry',
+      adminCode: null,
+      adminName: null,
+      population: 0,
+      timezone: manualTimezone,
+    };
+
+    onChange(manualResult);
+    setShowManualEntry(false);
+    setError(null);
+    setQuery(`${manualResult.name} (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+  }, [manualCity, manualLat, manualLng, manualTimezone, onChange]);
+
   const formatCityLabel = (city: CityResult) => {
     const parts = [city.name];
     if (city.adminName) parts.push(city.adminName);
@@ -225,9 +271,136 @@ export function CityAutocomplete({
         </div>
       </div>
 
-      {/* Error message */}
+      {/* Error message with manual entry option */}
       {error && (
-        <p className="mt-2 text-sm text-red-400">{error}</p>
+        <div className="mt-2">
+          <p className="text-sm text-red-400">{error}</p>
+          {apiUnavailable && !showManualEntry && (
+            <button
+              type="button"
+              onClick={() => setShowManualEntry(true)}
+              className="mt-1 text-sm text-emerald-400 hover:text-emerald-300 underline underline-offset-2"
+            >
+              Enter coordinates manually →
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Manual entry link (always available) */}
+      {!showManualEntry && !error && !value && (
+        <button
+          type="button"
+          onClick={() => setShowManualEntry(true)}
+          className="mt-2 text-xs text-slate-500 hover:text-slate-400 underline underline-offset-2"
+        >
+          Or enter coordinates manually
+        </button>
+      )}
+
+      {/* Manual entry form */}
+      {showManualEntry && (
+        <div className="mt-4 p-4 rounded-xl border border-slate-700 bg-slate-800/50 space-y-3">
+          <div className="flex justify-between items-center mb-2">
+            <p className="text-sm font-medium text-slate-300">Manual Location Entry</p>
+            <button
+              type="button"
+              onClick={() => {
+                setShowManualEntry(false);
+                setError(null);
+              }}
+              className="text-xs text-slate-500 hover:text-slate-400"
+            >
+              ✕ Cancel
+            </button>
+          </div>
+          
+          <p className="text-xs text-slate-400 mb-3">
+            Get coordinates from{' '}
+            <a 
+              href="https://www.astro-seek.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-emerald-400 hover:text-emerald-300 underline"
+            >
+              Astro-Seek
+            </a>
+            {' '}or{' '}
+            <a 
+              href="https://www.google.com/maps" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-emerald-400 hover:text-emerald-300 underline"
+            >
+              Google Maps
+            </a>
+          </p>
+
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">City Name</label>
+            <input
+              type="text"
+              value={manualCity}
+              onChange={(e) => setManualCity(e.target.value)}
+              placeholder="e.g., Bryn Mawr"
+              className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900/80 text-slate-100 placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 outline-none text-sm"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Latitude</label>
+              <input
+                type="text"
+                value={manualLat}
+                onChange={(e) => setManualLat(e.target.value)}
+                placeholder="e.g., 40.0210"
+                className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900/80 text-slate-100 placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 outline-none text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Longitude</label>
+              <input
+                type="text"
+                value={manualLng}
+                onChange={(e) => setManualLng(e.target.value)}
+                placeholder="e.g., -75.3144"
+                className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900/80 text-slate-100 placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 outline-none text-sm"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Timezone</label>
+            <select
+              value={manualTimezone}
+              onChange={(e) => setManualTimezone(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900/80 text-slate-100 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 outline-none text-sm"
+            >
+              <option value="America/New_York">Eastern (America/New_York)</option>
+              <option value="America/Chicago">Central (America/Chicago)</option>
+              <option value="America/Denver">Mountain (America/Denver)</option>
+              <option value="America/Los_Angeles">Pacific (America/Los_Angeles)</option>
+              <option value="America/Phoenix">Arizona (America/Phoenix)</option>
+              <option value="America/Anchorage">Alaska (America/Anchorage)</option>
+              <option value="Pacific/Honolulu">Hawaii (Pacific/Honolulu)</option>
+              <option value="Europe/London">London (Europe/London)</option>
+              <option value="Europe/Paris">Paris (Europe/Paris)</option>
+              <option value="Europe/Berlin">Berlin (Europe/Berlin)</option>
+              <option value="Asia/Tokyo">Tokyo (Asia/Tokyo)</option>
+              <option value="Australia/Sydney">Sydney (Australia/Sydney)</option>
+              <option value="UTC">UTC</option>
+            </select>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleManualSubmit}
+            className="w-full mt-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors text-sm"
+          >
+            Use This Location
+          </button>
+        </div>
       )}
 
       {/* Dropdown results */}
