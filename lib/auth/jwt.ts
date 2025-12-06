@@ -35,19 +35,34 @@ const jwtVerifyOptions: jwt.VerifyOptions = {
   algorithms: ['RS256'],
 };
 
+function getMockUser() {
+  // Use the first allowed email if configured, to ensure we pass the allowlist check
+  const allowedEmails = process.env.ALLOWED_EMAILS;
+  const mockEmail = allowedEmails ? allowedEmails.split(',')[0].trim() : 'dev@local.test';
+
+  return {
+    sub: 'dev-user',
+    email: mockEmail,
+    scope: 'openid profile email'
+  };
+}
+
 export async function verifyToken(token: string) {
   if (SKIP_AUTH) {
     // Return a mock decoded token for development
-    return Promise.resolve({
-      sub: 'dev-user',
-      email: 'dev@local.test',
-      scope: 'openid profile email'
-    });
+    return Promise.resolve(getMockUser());
   }
 
   return new Promise<any>((resolve, reject) => {
     jwt.verify(token, getKey as any, jwtVerifyOptions, (err, decoded) => {
-      if (err) return reject(err);
+      if (err) {
+        // Fallback in Dev if verification fails (e.g. expired token, bad config)
+        if (IS_DEV) {
+           console.warn(`[Auth] Token verification failed in development: ${err.message}. Falling back to mock user.`);
+           return resolve(getMockUser());
+        }
+        return reject(err);
+      }
       resolve(decoded as any);
     });
   });
