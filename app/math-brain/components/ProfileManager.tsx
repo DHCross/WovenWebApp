@@ -220,194 +220,290 @@ export default function ProfileManager({
           </div>
         </div>
 
-        {showProfilesList && (
-          <>
-            {loading && (
-              <div className="text-sm text-slate-400 py-4 text-center">
-                Loading profiles...
-              </div>
-            )}
 
-            {!loading && profiles.length === 0 && (
-              <div className="text-sm text-slate-400 py-4 text-center">
-                No saved profiles yet. Save Person A or B above to get started!
-              </div>
-            )}
-
-            {!loading && profiles.length > 0 && (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {sortedProfiles.map(profile => {
-                  const isExpanded = expandedProfiles.has(profile.id);
-
-                  return (
-                    <div
-                      key={profile.id}
-                      className="rounded-md border border-slate-700 bg-slate-800/60 p-3 hover:bg-slate-800/80 transition"
+        {
+          showProfilesList && (
+            <>
+              {/* Export / Import Controls (Backup) */}
+              {!loading && (
+                <div className="mb-3 px-1">
+                  <div className="flex flex-wrap items-center gap-2 pb-3 border-b border-slate-700/50">
+                    <button
+                      onClick={() => {
+                        try {
+                          const dataStr = JSON.stringify(profiles, null, 2);
+                          const blob = new Blob([dataStr], { type: 'application/json' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          const dateInfo = new Date().toISOString().split('T')[0];
+                          a.href = url;
+                          a.download = `woven_profiles_backup_${dateInfo}.json`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                        } catch (e) {
+                          console.error('Export failed', e);
+                          alert('Failed to export profiles.');
+                        }
+                      }}
+                      className="text-xs px-2 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-slate-200 transition"
+                      title="Download all profiles as a JSON file backup"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <button
-                          onClick={() => toggleExpanded(profile.id)}
-                          className="flex-1 min-w-0 text-left"
-                          aria-expanded={isExpanded}
-                          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${profile.name} details`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className={`text-xs transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
-                            <span className="font-medium text-slate-100 truncate">{profile.name}</span>
-                          </div>
-                          <div className="text-xs text-slate-400 mt-1">
-                            {profile.birthDate} {profile.birthTime && `• ${profile.birthTime}`}
-                          </div>
-                          {sortBy === 'relationship' && profile.relationship_type && (
-                            <div className="text-[10px] text-blue-400 mt-1">
-                              {profile.relationship_type}
-                            </div>
-                          )}
-                          {!isExpanded && (
-                            <div className="text-[11px] text-slate-500 mt-0.5 truncate">
-                              {profile.birthCity}{profile.birthState && `, ${profile.birthState}`}
-                            </div>
-                          )}
-                        </button>
-                        <div className="flex gap-1 flex-shrink-0">
-                          <button
-                            onClick={() => onLoadProfile(profile, 'A')}
-                            className="rounded px-2 py-1 text-xs bg-blue-700/30 text-blue-200 hover:bg-blue-700/40 border border-blue-600/50 transition"
-                            title="Load as Person A"
-                          >
-                            → A
-                          </button>
-                          <button
-                            onClick={() => onLoadProfile(profile, 'B')}
-                            className="rounded px-2 py-1 text-xs bg-purple-700/30 text-purple-200 hover:bg-purple-700/40 border border-purple-600/50 transition"
-                            title="Load as Person B"
-                          >
-                            → B
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(profile.id)}
-                            className="rounded px-2 py-1 text-xs bg-rose-700/30 text-rose-200 hover:bg-rose-700/40 border border-rose-600/50 transition"
-                            title="Delete profile"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
+                      ⬇ Export Backup
+                    </button>
+                    <div className="relative group">
+                      <input
+                        type="file"
+                        accept=".json"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = (evt) => {
+                            try {
+                              const str = evt.target?.result as string;
+                              const imported = JSON.parse(str);
+                              if (Array.isArray(imported)) {
+                                if (!isAuthenticated) {
+                                  // Local storage restore
+                                  const existingData = localStorage.getItem('woven_user_profiles');
+                                  const existing = existingData ? JSON.parse(existingData) : [];
 
-                      {isExpanded && (
-                        <div className="mt-2 space-y-1 text-xs text-slate-400">
-                          {profile.relationship_type && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-slate-500">Relationship:</span>
-                              <span className="text-blue-300">{profile.relationship_type}</span>
+                                  // Merge logic: overwrite by ID, append new
+                                  const merged = [...existing];
+                                  let added = 0;
+                                  let updated = 0;
+
+                                  imported.forEach((p: any) => {
+                                    if (!p.id || !p.name) return;
+                                    const idx = merged.findIndex(e => e.id === p.id);
+                                    if (idx === -1) {
+                                      merged.push(p);
+                                      added++;
+                                    } else {
+                                      merged[idx] = p;
+                                      updated++;
+                                    }
+                                  });
+
+                                  localStorage.setItem('woven_user_profiles', JSON.stringify(merged));
+                                  alert(`Import successful!\nAdded: ${added}\nUpdated: ${updated}\n\nPage will refresh to load changes.`);
+                                  window.location.reload();
+                                } else {
+                                  alert('Import is only available in local mode (when signed out) for now.');
+                                }
+                              } else {
+                                alert('Invalid backup file format (must be an array).');
+                              }
+                            } catch (err) {
+                              console.error('Import parse error', err);
+                              alert('Failed to parse backup file.');
+                            }
+                          };
+                          reader.readAsText(file);
+                          e.target.value = ''; // Reset
+                        }}
+                      />
+                      <button className="text-xs px-2 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700 group-hover:bg-slate-700 group-hover:text-slate-200 transition">
+                        ⬆ Import Backup
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
+              }
+
+              {
+                !loading && profiles.length === 0 && (
+                  <div className="text-sm text-slate-400 py-4 text-center">
+                    No saved profiles yet. Save Person A or B above to get started!
+                  </div>
+                )
+              }
+
+              {
+                !loading && profiles.length > 0 && (
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {sortedProfiles.map(profile => {
+                      const isExpanded = expandedProfiles.has(profile.id);
+
+                      return (
+                        <div
+                          key={profile.id}
+                          className="rounded-md border border-slate-700 bg-slate-800/60 p-3 hover:bg-slate-800/80 transition"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <button
+                              onClick={() => toggleExpanded(profile.id)}
+                              className="flex-1 min-w-0 text-left"
+                              aria-expanded={isExpanded}
+                              aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${profile.name} details`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={`text-xs transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
+                                <span className="font-medium text-slate-100 truncate">{profile.name}</span>
+                              </div>
+                              <div className="text-xs text-slate-400 mt-1">
+                                {profile.birthDate} {profile.birthTime && `• ${profile.birthTime}`}
+                              </div>
+                              {sortBy === 'relationship' && profile.relationship_type && (
+                                <div className="text-[10px] text-blue-400 mt-1">
+                                  {profile.relationship_type}
+                                </div>
+                              )}
+                              {!isExpanded && (
+                                <div className="text-[11px] text-slate-500 mt-0.5 truncate">
+                                  {profile.birthCity}{profile.birthState && `, ${profile.birthState}`}
+                                </div>
+                              )}
+                            </button>
+                            <div className="flex gap-1 flex-shrink-0">
+                              <button
+                                onClick={() => onLoadProfile(profile, 'A')}
+                                className="rounded px-2 py-1 text-xs bg-blue-700/30 text-blue-200 hover:bg-blue-700/40 border border-blue-600/50 transition"
+                                title="Load as Person A"
+                              >
+                                → A
+                              </button>
+                              <button
+                                onClick={() => onLoadProfile(profile, 'B')}
+                                className="rounded px-2 py-1 text-xs bg-purple-700/30 text-purple-200 hover:bg-purple-700/40 border border-purple-600/50 transition"
+                                title="Load as Person B"
+                              >
+                                → B
+                              </button>
+                              <button
+                                onClick={() => handleDeleteClick(profile.id)}
+                                className="rounded px-2 py-1 text-xs bg-rose-700/30 text-rose-200 hover:bg-rose-700/40 border border-rose-600/50 transition"
+                                title="Delete profile"
+                              >
+                                ✕
+                              </button>
                             </div>
-                          )}
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-500">Birthplace:</span>
-                            <span className="truncate">
-                              {profile.birthCity}
-                              {profile.birthState && `, ${profile.birthState}`}
-                              {profile.birthCountry && ` • ${profile.birthCountry}`}
-                            </span>
                           </div>
-                          {profile.timezone && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-slate-500">Timezone:</span>
-                              <span className="truncate">{profile.timezone}</span>
+
+                          {isExpanded && (
+                            <div className="mt-2 space-y-1 text-xs text-slate-400">
+                              {profile.relationship_type && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-slate-500">Relationship:</span>
+                                  <span className="text-blue-300">{profile.relationship_type}</span>
+                                </div>
+                              )}
+                              <div className="flex items-center gap-2">
+                                <span className="text-slate-500">Birthplace:</span>
+                                <span className="truncate">
+                                  {profile.birthCity}
+                                  {profile.birthState && `, ${profile.birthState}`}
+                                  {profile.birthCountry && ` • ${profile.birthCountry}`}
+                                </span>
+                              </div>
+                              {profile.timezone && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-slate-500">Timezone:</span>
+                                  <span className="truncate">{profile.timezone}</span>
+                                </div>
+                              )}
+                              {(profile.lat != null || profile.lng != null) && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-slate-500">Lat / Long:</span>
+                                  <span className="truncate">
+                                    {profile.lat ?? profile.latitude} / {profile.lng ?? profile.longitude}
+                                  </span>
+                                </div>
+                              )}
+                              {profile.notes && (
+                                <div className="italic text-slate-500">{profile.notes}</div>
+                              )}
                             </div>
-                          )}
-                          {(profile.lat != null || profile.lng != null) && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-slate-500">Lat / Long:</span>
-                              <span className="truncate">
-                                {profile.lat ?? profile.latitude} / {profile.lng ?? profile.longitude}
-                              </span>
-                            </div>
-                          )}
-                          {profile.notes && (
-                            <div className="italic text-slate-500">{profile.notes}</div>
                           )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
-      </div>
+                      );
+                    })}
+                  </div>
+                )
+              }
+            </>
+          )
+        }
+      </div >
 
       {/* Save Modal */}
-      {showSaveModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold text-slate-100 mb-4">
-              Save Person {saveSlot} Profile
-            </h3>
-            <div className="mb-4">
-              <label className="block text-sm text-slate-300 mb-2">
-                Profile Name
-              </label>
-              <input
-                type="text"
-                value={saveName}
-                onChange={(e) => setSaveName(e.target.value)}
-                placeholder="e.g., Dan, Carrie, Mom..."
-                className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSaveConfirm();
-                  if (e.key === 'Escape') setShowSaveModal(false);
-                }}
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setShowSaveModal(false)}
-                className="rounded-md border border-slate-600 bg-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-600 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveConfirm}
-                disabled={!saveName.trim()}
-                className="rounded-md border border-emerald-600 bg-emerald-700 px-4 py-2 text-sm text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                Save Profile
-              </button>
+      {
+        showSaveModal && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 max-w-md w-full">
+              <h3 className="text-lg font-semibold text-slate-100 mb-4">
+                Save Person {saveSlot} Profile
+              </h3>
+              <div className="mb-4">
+                <label className="block text-sm text-slate-300 mb-2">
+                  Profile Name
+                </label>
+                <input
+                  type="text"
+                  value={saveName}
+                  onChange={(e) => setSaveName(e.target.value)}
+                  placeholder="e.g., Dan, Carrie, Mom..."
+                  className="w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveConfirm();
+                    if (e.key === 'Escape') setShowSaveModal(false);
+                  }}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setShowSaveModal(false)}
+                  className="rounded-md border border-slate-600 bg-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-600 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveConfirm}
+                  disabled={!saveName.trim()}
+                  className="rounded-md border border-emerald-600 bg-emerald-700 px-4 py-2 text-sm text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  Save Profile
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold text-slate-100 mb-4">
-              Delete Profile?
-            </h3>
-            <p className="text-sm text-slate-300 mb-6">
-              Are you sure you want to delete this profile? This action cannot be undone.
-            </p>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setShowDeleteConfirm(null)}
-                className="rounded-md border border-slate-600 bg-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-600 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                className="rounded-md border border-rose-600 bg-rose-700 px-4 py-2 text-sm text-white hover:bg-rose-600 transition"
-              >
-                Delete
-              </button>
+      {
+        showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 max-w-md w-full">
+              <h3 className="text-lg font-semibold text-slate-100 mb-4">
+                Delete Profile?
+              </h3>
+              <p className="text-sm text-slate-300 mb-6">
+                Are you sure you want to delete this profile? This action cannot be undone.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setShowDeleteConfirm(null)}
+                  className="rounded-md border border-slate-600 bg-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-600 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="rounded-md border border-rose-600 bg-rose-700 px-4 py-2 text-sm text-white hover:bg-rose-600 transition"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }

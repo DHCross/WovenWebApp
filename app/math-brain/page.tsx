@@ -355,7 +355,8 @@ const POETIC_BRAIN_ENABLED = (() => {
 
 const AUTH_ENABLED = (() => {
   const raw = process.env.NEXT_PUBLIC_ENABLE_AUTH;
-  if (typeof raw !== 'string') return true;
+  // Default to false (open access)
+  if (typeof raw !== 'string') return false;
   const normalized = raw.trim().toLowerCase();
   if (normalized === '' || normalized === 'false' || normalized === '0' || normalized === 'off') {
     return false;
