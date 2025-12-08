@@ -6,10 +6,11 @@ import jwksClient from 'jwks-rsa';
 const IS_DEV = process.env.NODE_ENV === 'development';
 const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN;
 const IS_DUMMY_CONFIG = AUTH0_DOMAIN === 'dummy.auth0.com';
-const SKIP_AUTH = IS_DEV && (!AUTH0_DOMAIN || IS_DUMMY_CONFIG);
+const MB_MOCK = process.env.MB_MOCK === 'true' || process.env.MB_MOCK === '1';
+const SKIP_AUTH = (IS_DEV && (!AUTH0_DOMAIN || IS_DUMMY_CONFIG)) || MB_MOCK;
 
 if (SKIP_AUTH) {
-  console.warn('[WARN] Auth0 configuration missing or dummy in development. Authentication will be bypassed.');
+  console.warn('[WARN] Auth0 configuration missing or dummy in development (or MB_MOCK active). Authentication will be bypassed.');
 }
 
 const client = SKIP_AUTH
@@ -51,6 +52,13 @@ export async function verifyToken(token: string) {
   if (SKIP_AUTH) {
     // Return a mock decoded token for development
     return Promise.resolve(getMockUser());
+  }
+
+  // Guard against missing config in non-dev environments
+  if (!process.env.AUTH0_DOMAIN) {
+     const msg = 'Missing AUTH0_DOMAIN in environment variables';
+     console.error(`[Auth] ${msg}`);
+     return Promise.reject(new Error(msg));
   }
 
   return new Promise<any>((resolve, reject) => {

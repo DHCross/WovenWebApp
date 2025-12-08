@@ -1193,6 +1193,14 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
       const errMsg = err?.message || String(err);
       console.error('[Raven Auth] Token verification failed:', errMsg);
       // Surface specific JWT errors for debugging
+      if (errMsg.includes('Missing AUTH0_DOMAIN')) {
+        return NextResponse.json({
+          ok: false,
+          error: 'Configuration Error',
+          detail: 'Server is missing AUTH0_DOMAIN environment variable.',
+          hint: 'Please configure AUTH0_DOMAIN in your environment settings.'
+        }, { status: 500 });
+      }
       if (errMsg.includes('jwt audience invalid')) {
         return NextResponse.json({ 
           ok: false, 
