@@ -136,11 +136,11 @@ export async function POST(req: Request) {
   try {
     const { action = 'generate', input, options = {}, sessionId } = await req.json();
     let textInput = typeof input === 'string' ? input : '';
-    
+
     // Apply relational guardrails to user input as soft guidance
     const relationalResult = enforceRelationalMirrorTone(textInput);
     textInput = relationalResult.text;
-    
+
     const resolvedOptions = (typeof options === 'object' && options !== null) ? options as Record<string, any> : {};
     let sid = typeof sessionId === 'string' && sessionId.trim() ? String(sessionId) : undefined;
     const requiresSession = action === 'export' || action === 'close' || action === 'feedback';
@@ -251,10 +251,10 @@ export async function POST(req: Request) {
         } else {
           helpMessage = `I didn't quite catch that. Could you tell me who I'm speaking with?`;
         }
-        
+
         appendHistoryEntry(sessionLog, 'raven', helpMessage);
         updateSession(sid, () => { });
-        
+
         const prov = stampProvenance({ source: 'Getting Started' });
         return NextResponse.json({
           intent: 'conversation',
@@ -328,29 +328,29 @@ export async function POST(req: Request) {
         }
       });
 
-          if (mirrorContext) {
+      if (mirrorContext) {
         try {
           const content = typeof mirrorContext.content === 'string' ? JSON.parse(mirrorContext.content) : mirrorContext.content;
-              
-              // DEFENSIVE LAYER 1: Input validation before calling Poetic Brain
-              // Log incomplete payloads for debugging but don't block - let Poetic Brain handle gracefully
-              if (!content.person_a) {
-                console.warn('[Raven] Mirror Directive missing person_a entirely', {
-                  hasPersonA: false,
-                  format: content._format,
-                  keys: Object.keys(content).slice(0, 10),
-                });
-              } else if (!content.person_a.name) {
-                console.warn('[Raven] Mirror Directive person_a missing name', {
-                  hasPersonA: true,
-                  personAKeys: Object.keys(content.person_a).slice(0, 10),
-                });
-              }
-              
-              // If caller explicitly requested Solo mode, sanitize the directive to remove person_b
-              const sanitized = sanitizeDirectiveForMode(content, resolvedOptions);
-              const usedContent = sanitized.content;
-              const result = processMirrorDirective(usedContent);
+
+          // DEFENSIVE LAYER 1: Input validation before calling Poetic Brain
+          // Log incomplete payloads for debugging but don't block - let Poetic Brain handle gracefully
+          if (!content.person_a) {
+            console.warn('[Raven] Mirror Directive missing person_a entirely', {
+              hasPersonA: false,
+              format: content._format,
+              keys: Object.keys(content).slice(0, 10),
+            });
+          } else if (!content.person_a.name) {
+            console.warn('[Raven] Mirror Directive person_a missing name', {
+              hasPersonA: true,
+              personAKeys: Object.keys(content.person_a).slice(0, 10),
+            });
+          }
+
+          // If caller explicitly requested Solo mode, sanitize the directive to remove person_b
+          const sanitized = sanitizeDirectiveForMode(content, resolvedOptions);
+          const usedContent = sanitized.content;
+          const result = processMirrorDirective(usedContent);
 
           if (result.success && result.narrative_sections) {
             // Assemble structured narrative from Poetic Brain
@@ -365,62 +365,24 @@ export async function POST(req: Request) {
 
             if (structuredNarrative.trim()) {
               // === Auth check before LLM call ===
-              const authHeader = (req as any).headers?.get ? (req as any).headers.get('authorization') : undefined;
-              if (!authHeader || !authHeader.startsWith('Bearer ')) {
-                return NextResponse.json({ 
-                  ok: false, 
-                  error: 'Unauthorized', 
-                  detail: 'Missing Bearer token in Authorization header',
-                  hint: 'Please sign in to access the Poetic Brain'
-                }, { status: 401 });
+              // POETIC_BRAIN_AUTH_ENABLED defaults to 'false' - auth is disabled until you're ready to monetize
+              const authEnabled = process.env.POETIC_BRAIN_AUTH_ENABLED === 'true';
+
+              if (authEnabled) {
+                const authHeader = (req as any).headers?.get ? (req as any).headers.get('authorization') : undefined;
+                if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                  return NextResponse.json({
+                    ok: false,
+                    error: 'Access key required',
+                    detail: 'Poetic Brain requires an access key for deep readings',
+                    hint: 'Visit ravencalder.com to purchase an access key'
+                  }, { status: 401 });
+                }
+                // TODO: When ready to monetize, add license key validation here
+                // For now, any Bearer token is accepted if auth is enabled
+                console.log('[Raven] Auth enabled - token provided');
               }
-              const token = authHeader.split(' ')[1];
-              try {
-                const decoded = await verifyToken(token);
-                const allow = checkAllowlist(decoded);
-                if (!allow.allowed) {
-                  return NextResponse.json({ 
-                    ok: false, 
-                    error: 'Access denied', 
-                    reason: allow.reason,
-                    hint: 'Contact the project owner to request access'
-                  }, { status: 403 });
-                }
-              } catch (err: any) {
-                const errMsg = err?.message || String(err);
-                console.error('[Raven Auth] Token verification failed:', errMsg);
-                // Surface specific JWT errors for debugging
-                if (errMsg.includes('jwt audience invalid')) {
-                  return NextResponse.json({ 
-                    ok: false, 
-                    error: 'Token audience mismatch', 
-                    detail: 'The AUTH0_AUDIENCE environment variable does not match your Auth0 API identifier',
-                    hint: 'Check server configuration: AUTH0_AUDIENCE must match the API Identifier in Auth0 Dashboard > APIs'
-                  }, { status: 401 });
-                }
-                if (errMsg.includes('jwt expired')) {
-                  return NextResponse.json({ 
-                    ok: false, 
-                    error: 'Token expired', 
-                    detail: 'Your session token has expired',
-                    hint: 'Sign out and sign back in to get a fresh token'
-                  }, { status: 401 });
-                }
-                if (errMsg.includes('jwt issuer invalid')) {
-                  return NextResponse.json({ 
-                    ok: false, 
-                    error: 'Token issuer mismatch', 
-                    detail: 'The AUTH0_DOMAIN environment variable does not match the token issuer',
-                    hint: 'Check server configuration: AUTH0_DOMAIN should be your tenant domain (e.g., tenant.us.auth0.com) without https://'
-                  }, { status: 401 });
-                }
-                return NextResponse.json({ 
-                  ok: false, 
-                  error: 'Invalid token', 
-                  detail: errMsg,
-                  hint: 'Try signing out and back in. If the problem persists, contact the project owner.'
-                }, { status: 401 });
-              }
+
 
               // Extract names for personalization
               const personAName = usedContent?.person_a?.name || 'the querent';
@@ -529,6 +491,7 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
                 }
               });
             } else {
+
               // DEFENSIVE LAYER 3: Safety net fallback
               // Poetic Brain processed the directive but produced empty narrative sections
               // This is the last-resort catch for edge cases like:
@@ -542,14 +505,14 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
                 hasRelational: Boolean(result.narrative_sections.relational_engine),
                 hasWeather: Boolean(result.narrative_sections.weather_overlay),
               });
-              
+
               const contextName = mirrorContext.name || 'the uploaded report';
               const fallbackMessage = `I received ${contextName} and recognized it as a Mirror Directive, but I couldn't extract the chart geometry needed to generate the reading. This usually means the aspect data is in an unexpected format or location within the JSON.\n\nYou can:\n1. Re-export from Math Brain using the "Export to Poetic Brain" option\n2. Ask me a specific question about the report—I can still read directly from it\n\nWhat would you like to do?`;
-              
+
               appendHistoryEntry(sessionLog, 'user', textInput || 'Mirror report upload');
               appendHistoryEntry(sessionLog, 'raven', fallbackMessage);
               updateSession(sid, () => { });
-              
+
               const prov = stampProvenance({ source: 'Poetic Brain (Empty Narrative Fallback)' });
               return NextResponse.json({
                 intent: 'conversation',
@@ -593,7 +556,7 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
     const effectiveInput = requestsAutoStart ? '' : textInput;
 
     const autoPlan = deriveAutoExecutionPlan(normalizedContexts, sessionLog);
-    
+
     // ==========================================================================
     // CONTEXT GATE: Initialize with subject names if we have them
     // ==========================================================================
@@ -604,13 +567,13 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
       sessionLog.contextGate = createContextGateState(subjects);
       updateSession(sid, () => { });
     }
-    
+
     // Check for subject conflicts on new uploads
     if (sessionLog.contextGate && autoPlan.personAName) {
       const newSubjects: string[] = [];
       if (autoPlan.personAName) newSubjects.push(autoPlan.personAName);
       if (autoPlan.personBName) newSubjects.push(autoPlan.personBName);
-      
+
       const conflict = detectSubjectConflict(sessionLog.contextGate.sessionSubjects, newSubjects);
       if (conflict.hasConflict && conflict.message) {
         // Update context gate with new subjects but mark as needing re-confirmation
@@ -620,10 +583,10 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
           querentRole: 'unconfirmed', // Force re-confirmation
           confirmedAt: undefined,
         };
-        
+
         appendHistoryEntry(sessionLog, 'raven', conflict.message);
         updateSession(sid, () => { });
-        
+
         const prov = stampProvenance({ source: 'Context Gate (Subject Conflict)' });
         return NextResponse.json({
           intent: 'conversation',
@@ -636,16 +599,16 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
         });
       }
     }
-    
+
     // If context gate is unconfirmed and this is the first turn with context, ask who's speaking
     const isFirstTurnWithContext = (sessionLog.turnCount ?? 0) === 0 && normalizedContexts.length > 0;
     if (isFirstTurnWithContext && sessionLog.contextGate && needsContextGate(sessionLog.contextGate)) {
       const gateQuestion = generateContextGateQuestion(sessionLog.contextGate.sessionSubjects);
-      
+
       appendHistoryEntry(sessionLog, 'raven', gateQuestion);
       sessionLog.turnCount = 1;
       updateSession(sid, () => { });
-      
+
       // Use 'Getting Started' instead of 'Context Gate' for a cleaner user experience
       // This is just a clarifying question, not a technical checkpoint
       const prov = stampProvenance({ source: 'Getting Started' });
@@ -660,7 +623,7 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
         contextGate: sessionLog.contextGate,
       });
     }
-    
+
     if (autoPlan.status === 'osr') {
       const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'that upload';
       const reason =
@@ -863,11 +826,11 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
           synergyContext = buildSynergyOpening(metadata, extractedGeo.field ? 'current Symbolic Weather' : undefined);
         }
 
-        const soloProv = stampProvenance({ 
+        const soloProv = stampProvenance({
           source: 'Math Brain (Uploaded Report)',
           baseline_type: metadata.baselineType,
           relational_scope: metadata.scope,
-          timestamp: new Date().toISOString() 
+          timestamp: new Date().toISOString()
         });
         const soloOptions = {
           ...resolvedOptions,
@@ -1168,62 +1131,23 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
     appendHistoryEntry(sessionLog, 'user', textInput);
 
     // === Auth: verify caller before invoking Perplexity ===
-    const authHeader = (req as any).headers?.get ? (req as any).headers.get('authorization') : undefined;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'Unauthorized', 
-        detail: 'Missing Bearer token in Authorization header',
-        hint: 'Please sign in to access the Poetic Brain'
-      }, { status: 401 });
+    // POETIC_BRAIN_AUTH_ENABLED defaults to 'false' - auth is disabled until you're ready to monetize
+    const authEnabled = process.env.POETIC_BRAIN_AUTH_ENABLED === 'true';
+
+    if (authEnabled) {
+      const authHeader = (req as any).headers?.get ? (req as any).headers.get('authorization') : undefined;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return NextResponse.json({
+          ok: false,
+          error: 'Access key required',
+          detail: 'Poetic Brain requires an access key',
+          hint: 'Visit ravencalder.com to purchase an access key'
+        }, { status: 401 });
+      }
+      // TODO: When ready to monetize, add license key validation here
+      console.log('[Raven] Auth enabled - token provided');
     }
-    const token = authHeader.split(' ')[1];
-    try {
-      const decoded = await verifyToken(token);
-      const allow = checkAllowlist(decoded);
-      if (!allow.allowed) {
-        return NextResponse.json({ 
-          ok: false, 
-          error: 'Access denied', 
-          reason: allow.reason,
-          hint: 'Contact the project owner to request access'
-        }, { status: 403 });
-      }
-    } catch (err: any) {
-      const errMsg = err?.message || String(err);
-      console.error('[Raven Auth] Token verification failed:', errMsg);
-      // Surface specific JWT errors for debugging
-      if (errMsg.includes('jwt audience invalid')) {
-        return NextResponse.json({ 
-          ok: false, 
-          error: 'Token audience mismatch', 
-          detail: 'The AUTH0_AUDIENCE environment variable does not match your Auth0 API identifier',
-          hint: 'Check server configuration: AUTH0_AUDIENCE must match the API Identifier in Auth0 Dashboard > APIs'
-        }, { status: 401 });
-      }
-      if (errMsg.includes('jwt expired')) {
-        return NextResponse.json({ 
-          ok: false, 
-          error: 'Token expired', 
-          detail: 'Your session token has expired',
-          hint: 'Sign out and sign back in to get a fresh token'
-        }, { status: 401 });
-      }
-      if (errMsg.includes('jwt issuer invalid')) {
-        return NextResponse.json({ 
-          ok: false, 
-          error: 'Token issuer mismatch', 
-          detail: 'The AUTH0_DOMAIN environment variable does not match the token issuer',
-          hint: 'Check server configuration: AUTH0_DOMAIN should be your tenant domain (e.g., tenant.us.auth0.com) without https://'
-        }, { status: 401 });
-      }
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'Invalid token', 
-        detail: errMsg,
-        hint: 'Try signing out and back in. If the problem persists, contact the project owner.'
-      }, { status: 401 });
-    }
+
 
     const encoder = new TextEncoder();
     const stream = await generateStream(prompt, {

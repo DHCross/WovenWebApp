@@ -1,0 +1,30 @@
+{
+  "dca39727-4962-473d-a467-8d46742a58e7": {
+    "probes": [],
+    "turnCount": 0,
+    "history": [
+      {
+        "role": "user",
+        "content": "Hello",
+        "createdAt": "2025-12-08T10:26:59.364Z"
+      }
+    ],
+    "relationalModes": {},
+    "metaConversationMode": "explanation",
+    "validationActive": false
+  },
+  "6b1536a0-00cc-489c-9ae7-1dc2b7d21f9c": {
+    "probes": [],
+    "turnCount": 0,
+    "history": [
+      {
+        "role": "user",
+        "content": "Hello, Raven",
+        "createdAt": "2025-12-08T10:37:10.618Z"
+      }
+    ],
+    "relationalModes": {},
+    "metaConversationMode": "explanation",
+    "validationActive": false
+  }
+}
