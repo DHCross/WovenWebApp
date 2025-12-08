@@ -63,6 +63,9 @@ export const formatFriendlyErrorMessage = (rawMessage: string, httpStatus?: numb
       if (r.includes('issuer mismatch') || r.includes('jwt issuer')) {
         return "Authentication error: Token issuer mismatch. Check that AUTH0_DOMAIN is configured correctly.";
       }
+      if (r.includes('missing auth0_domain')) {
+        return "Configuration Error: The server is missing the AUTH0_DOMAIN environment variable. Please ask the project owner to configure it.";
+      }
       if (/missing|invalid token|invalid token/i.test(r) || status === 401) {
         // Use hint if provided (skip redundant "sign out" instructions since we add our own)
         if (hint && !/sign.?out/i.test(hint)) {
