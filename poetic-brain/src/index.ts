@@ -1138,7 +1138,9 @@ export function processMirrorDirective(payload: InputPayload): {
   intimacy_tier?: string | null;
   report_kind?: string;
   error?: string;
+  diagnostics?: string[];
 } {
+
   // Fast path: validate format first
   // Accept both 'mirror_directive_json' and 'mirror-symbolic-weather-v1' formats
   const validFormats = ['mirror_directive_json', 'mirror-symbolic-weather-v1'];
@@ -1280,13 +1282,96 @@ If this keeps happening, you can describe the issue by typing "report issue" and
     narratives.weather_overlay = generateWeatherOverlay(weatherSource);
   }
 
+  // ==========================================================================
+  // SELF-DIAGNOSTIC: Report what went wrong if narratives are sparse
+  // ==========================================================================
+  const diagnosticIssues: string[] = [];
+
+  // Check Person A narrative quality
+  if (!narratives.solo_mirror_a || narratives.solo_mirror_a.includes('Chart Data Missing')) {
+    diagnosticIssues.push('❌ Person A chart data incomplete or missing');
+  } else if (narratives.solo_mirror_a.length < 200) {
+    diagnosticIssues.push('⚠️ Person A narrative is unusually short');
+  }
+
+  // Check mandate generation
+  const mandatesACount = mandatesA !== null ? (mandatesA as { mandates: any[] }).mandates.length : 0;
+
+
+  if (mandatesACount === 0 && personA?.name) {
+
+    diagnosticIssues.push(`❌ No mandates generated for ${personA.name} - aspect data may be missing or in wrong format`);
+  }
+
+  // Check relational content if expected
+  if (isRelational) {
+    if (!personB?.name) {
+      diagnosticIssues.push('❌ Relational mode requested but Person B name is missing');
+    }
+    if (!narratives.solo_mirror_b) {
+      diagnosticIssues.push('❌ Person B solo mirror failed to generate');
+    }
+    if (!narratives.relational_engine) {
+      diagnosticIssues.push('❌ Relational engine narrative failed to generate');
+    }
+    const synastryCount = geometry.synastryAspects?.length ?? 0;
+    if (synastryCount === 0) {
+      diagnosticIssues.push('⚠️ No synastry aspects found - cross-chart analysis will be limited');
+    }
+  }
+
+  // Check chart geometry
+  const aspectsACount = chartA.aspects?.length ?? 0;
+  const aspectsBCount = chartB?.aspects?.length ?? 0;
+  if (aspectsACount === 0) {
+    diagnosticIssues.push(`❌ Person A chart has 0 aspects - this is the likely cause of empty readings`);
+  }
+  if (isRelational && aspectsBCount === 0) {
+    diagnosticIssues.push(`❌ Person B chart has 0 aspects`);
+  }
+
+  // Log diagnostics (always, for server-side visibility)
+  if (diagnosticIssues.length > 0) {
+    console.warn('[PoeticBrain] Self-Diagnostic Report:', diagnosticIssues);
+  } else {
+    console.log('[PoeticBrain] ✓ All checks passed', {
+      soloA: narratives.solo_mirror_a?.length ?? 0,
+      soloB: narratives.solo_mirror_b?.length ?? 0,
+      relational: narratives.relational_engine?.length ?? 0,
+      weather: narratives.weather_overlay?.length ?? 0,
+    });
+  }
+
+  // If there are critical issues, append a diagnostic summary to the narrative
+  const criticalIssues = diagnosticIssues.filter(i => i.startsWith('❌'));
+  if (criticalIssues.length > 0 && narratives.solo_mirror_a) {
+    const diagnosticNote = `
+
+---
+
+**🔧 Diagnostic Report** (What I couldn't process)
+
+${criticalIssues.join('\n')}
+
+This isn't a problem with your chart—it's a data-flow issue between Math Brain and Poetic Brain. The fix is usually one of:
+1. Re-export the report from Math Brain (use "Export to Poetic Brain")
+2. Ensure all birth data fields are complete
+3. If using a saved report, try generating a fresh one
+
+Type "help" if you'd like me to walk you through recovery options.`;
+
+    narratives.solo_mirror_a += diagnosticNote;
+  }
+
   return {
     success: true,
     narrative_sections: narratives,
     intimacy_tier: intimacyTier,
     report_kind: reportKind,
+    diagnostics: diagnosticIssues.length > 0 ? diagnosticIssues : undefined,
   };
 }
+
 
 // Export helper functions for external use
 export {

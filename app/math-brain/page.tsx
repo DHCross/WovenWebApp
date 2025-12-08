@@ -989,25 +989,35 @@ export default function MathBrainPage() {
   // First-time user guide state
   const [showGettingStarted, setShowGettingStarted] = useState<boolean>(false);
   const [showHowItWorks, setShowHowItWorks] = useState<boolean>(false);
-  
+
   // Quick Start wizard mode - simplified 3-step flow for new users
   const [showQuickStart, setShowQuickStart] = useState<boolean>(false);
-  
+
+  // User profiles hook - must be declared before useEffects that depend on it
+  const {
+    profiles,
+    loading: profilesLoading,
+    error: profilesError,
+    saveProfile,
+    deleteProfile
+  } = useUserProfiles(userId);
+
   // Check if user prefers quick start mode (skip if they have saved profiles)
+
   useEffect(() => {
     // Wait for profiles to load before deciding
     if (profilesLoading) return;
-    
+
     try {
       const prefersQuickStart = localStorage.getItem('mb.prefersQuickStart');
       const hasGeneratedReport = localStorage.getItem('mb.hasGeneratedReport');
-      
+
       // Skip wizard if user has saved profiles (returning user)
       if (profiles.length > 0) {
         setShowQuickStart(false);
         return;
       }
-      
+
       // Default to quick start for first-time users
       if (!hasGeneratedReport && prefersQuickStart !== 'false') {
         setShowQuickStart(true);
@@ -1099,14 +1109,7 @@ export default function MathBrainPage() {
     setShowQuickStart(true);
   }, []);
 
-  // User profiles hook
-  const {
-    profiles,
-    loading: profilesLoading,
-    error: profilesError,
-    saveProfile,
-    deleteProfile
-  } = useUserProfiles(userId);
+
 
   const personASignature = useMemo(() => buildPersonSignature(personA), [personA]);
   const personBSignature = useMemo(() => buildPersonSignature(personB), [personB]);
@@ -1470,23 +1473,25 @@ export default function MathBrainPage() {
   // Birth date slugs for filenames
   const personABirthSlug = useMemo(() => {
     const y = personA.year || '';
-    const m = personA.month?.padStart(2, '0') || '';
-    const d = personA.day?.padStart(2, '0') || '';
-    if (y && m && d) {
+    const m = String(personA.month || '').padStart(2, '0');
+    const d = String(personA.day || '').padStart(2, '0');
+    if (y && m !== '00' && d !== '00') {
       return `${y}-${m}-${d}`;
     }
     return '';
   }, [personA.year, personA.month, personA.day]);
 
+
   const personBBirthSlug = useMemo(() => {
     const y = personB.year || '';
-    const m = personB.month?.padStart(2, '0') || '';
-    const d = personB.day?.padStart(2, '0') || '';
-    if (y && m && d) {
+    const m = String(personB.month || '').padStart(2, '0');
+    const d = String(personB.day || '').padStart(2, '0');
+    if (y && m !== '00' && d !== '00') {
       return `${y}-${m}-${d}`;
     }
     return '';
   }, [personB.year, personB.month, personB.day]);
+
 
   const personASlug = useMemo(() => {
     const sourceName =
@@ -1565,17 +1570,17 @@ export default function MathBrainPage() {
   const friendlyFilename = useCallback(
     (type: 'directive' | 'dashboard' | 'symbolic-weather' | 'weather-log' | 'engine-config' | 'ai-bundle') => {
       // Build person identifier with birth date
-      const personAPart = personABirthSlug 
+      const personAPart = personABirthSlug
         ? `${personASlug}_${personABirthSlug}`
         : personASlug;
       const personBPart = personBBirthSlug
         ? `${personBSlug}_${personBBirthSlug}`
         : personBSlug;
-      
+
       const peoplePart = includePersonB
         ? `${personAPart}_${personBPart}`
         : personAPart;
-      
+
       const dateStr = dateRangeSlug || 'no-dates';
 
       const nameMap = {
@@ -5173,602 +5178,602 @@ export default function MathBrainPage() {
                 ← Back to Quick Start
               </button>
             </div>
-        <form onSubmit={(e) => e.preventDefault()} className="mt-10 print:hidden">
-          {debugMode && (
-            <div className="mb-4 rounded-md border border-slate-600 bg-slate-900/60 p-3 text-xs text-slate-200">
-              <div className="font-medium mb-2">Debug — gating state</div>
-              <pre className="whitespace-pre-wrap break-words text-[12px]">{JSON.stringify(debugInfo, null, 2)}</pre>
-            </div>
-          )}
-          {/* Session presets toolbar */}
-          <div className="mb-4 flex flex-wrap items-center justify-end gap-3 rounded-md border border-slate-700 bg-slate-900/50 p-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => handleSaveSetupJSON()}
-                className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-                title="Save the current setup (people, dates, mode, relationship) to JSON"
-                aria-label="Save current setup to JSON"
-              >
-                Save Setup
-              </button>
-              <label
-                htmlFor={setupUploadId}
-                className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-                role="button"
-                tabIndex={0}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    fileInputRef.current?.click();
-                  }
-                }}
-              >
-                Load Setup…
-              </label>
-              <input
-                ref={fileInputRef}
-                id={setupUploadId}
-                type="file"
-                accept="application/json"
-                onChange={handleLoadSetupFromFile}
-                className="sr-only"
-                aria-label="Upload setup JSON file"
-              />
-            </div>
-            {loadError && (
-              <div className="mt-2 text-xs text-red-400">{loadError}</div>
-            )}
-          </div>
-
-          {/* Session framing copy replaces the old Mirror vs Balance fork */}
-          <section aria-labelledby="session-path-heading" className="mb-6 rounded-lg border border-slate-700 bg-slate-800/60 p-4">
-            <h3 id="session-path-heading" className="text-sm font-medium text-slate-200">Dynamic Report Flow</h3>
-            <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <p className="text-sm text-slate-300 md:max-w-xl">
-                Math Brain now runs a single dynamic report. Every session opens with a Mirror-first summary and then lets you reveal
-                Balance metrics, key geometries, and audits step-by-step after the geometry is ready.
-              </p>
-              <div className="flex flex-col gap-2 text-xs text-slate-400 md:text-right">
-                <div className="inline-flex items-center gap-2 self-start rounded-full border border-indigo-500/70 bg-indigo-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-indigo-200 md:self-end">
-                  <span>Field → Map → Voice</span>
-                </div>
-                <span>
-                  Toggle <strong>Include Transits</strong> on the right to add symbolic weather. Leave it off for natal baseline runs.
-                </span>
-              </div>
-            </div>
-          </section>
-
-          {/* Profile Manager */}
-          <Section title="📚 Saved Profiles">
-            <ProfileManager
-              profiles={profiles}
-              loading={profilesLoading}
-              onLoadProfile={handleLoadProfile}
-              onSaveCurrentProfile={handleSaveCurrentProfile}
-              onDeleteProfile={handleDeleteProfile}
-              currentPersonA={personA}
-              currentPersonB={personB}
-              isAuthenticated={isAuthenticated}
-              existingProfileForPersonA={existingProfileForPersonA}
-              existingProfileForPersonB={existingProfileForPersonB}
-            />
-          </Section>
-
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
-            {/* Left column: Person A */}
-            <Section title="Person A (required)">
-              <PersonForm
-                idPrefix="a"
-                person={personA}
-                setPerson={setPersonA}
-                coordsInput={aCoordsInput}
-                setCoordsInput={setACoordsInput}
-                coordsError={aCoordsError}
-                setCoordsError={setACoordsError}
-                setCoordsValid={setACoordsValid}
-                timezoneOptions={tzOptions}
-                allowUnknownTime={allowUnknownA}
-                showTimePolicy={timeUnknown}
-                timePolicy={timePolicy}
-                onTimePolicyChange={setTimePolicy}
-                timePolicyScopeLabel={personA.name ? `${personA.name} (Person A)` : 'Person A'}
-                requireName
-                requireBirthDate
-                requireTime
-                requireLocation
-                requireTimezone
-              />
-
-              {/* Save Person A Profile Button */}
-              {isAuthenticated && personA.year && personA.month && personA.day && (
-                <div className="mt-4 pt-4 border-t border-slate-700">
-                  {existingProfileForPersonA ? (
-                    <div className="rounded-md border border-emerald-700/60 bg-emerald-900/40 px-4 py-3 text-sm text-emerald-100 text-center">
-                      <p className="font-medium text-emerald-200">Already saved</p>
-                      <p className="text-xs text-emerald-100/80">{existingProfileForPersonA.name} is already in your saved roster with these details.</p>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const name = prompt('Enter a name for this profile:', personA.name || 'Person A');
-                          if (name) {
-                            handleSaveCurrentProfile('A', name);
-                          }
-                        }}
-                        className="w-full rounded-md bg-emerald-700/30 border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-700/40 transition-colors flex items-center justify-center gap-2"
-                      >
-                        <span>💾</span>
-                        <span>Save Person A to Profile Database</span>
-                      </button>
-                      <p className="mt-2 text-xs text-slate-400 text-center">
-                        Save this person's birth data for quick loading later
-                      </p>
-                    </>
-                  )}
+            <form onSubmit={(e) => e.preventDefault()} className="mt-10 print:hidden">
+              {debugMode && (
+                <div className="mb-4 rounded-md border border-slate-600 bg-slate-900/60 p-3 text-xs text-slate-200">
+                  <div className="font-medium mb-2">Debug — gating state</div>
+                  <pre className="whitespace-pre-wrap break-words text-[12px]">{JSON.stringify(debugInfo, null, 2)}</pre>
                 </div>
               )}
-
-              {!isAuthenticated && personA.year && personA.month && personA.day && (
-                <div className="mt-4 pt-4 border-t border-slate-700">
-                  <div className="rounded-md bg-amber-900/30 border border-amber-700 p-3 text-amber-200 text-sm">
-                    <p className="font-medium">Sign in to save profiles</p>
-                    <p className="text-xs mt-1 text-amber-300">
-                      Sign in with Google (top of page) to save Person A for later
-                    </p>
-                  </div>
-                </div>
-              )}
-            </Section>
-
-
-            {/* Left column continues: Person B (optional for relational modes) */}
-            <Section title="Person B (optional for relational)">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-slate-400">Add a second person for synastry/composite modes.</p>
-                <div className="flex items-center gap-3">
-                  <div className="inline-flex rounded-md border border-slate-700 bg-slate-800 p-1">
-                    <button type="button" onClick={copyAToB} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Copy Person A details to Person B (keeps B name)">Copy A→B</button>
-                    <div className="mx-1 h-5 w-px bg-slate-700" />
-                    <button type="button" onClick={swapAB} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Swap A/B (relationship settings unchanged)">Swap A/B</button>
-                    <div className="mx-1 h-5 w-px bg-slate-700" />
-                    <button type="button" onClick={clearB} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Clear all Person B fields">Clear B</button>
-                    <div className="mx-1 h-5 w-px bg-slate-700" />
-                    <button type="button" onClick={setBNowUTC} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Set Person B date/time to now (UTC)">Set B = Now (UTC)</button>
-                  </div>
-                  <label htmlFor="include-person-b" className="inline-flex items-center gap-2 text-sm text-slate-200 cursor-pointer">
-                    <input
-                      id="include-person-b"
-                      data-testid="include-person-b"
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
-                      checked={includePersonB}
-                      onChange={(e) => setIncludePersonB(e.target.checked)}
-                    />
-                    Include Person B
+              {/* Session presets toolbar */}
+              <div className="mb-4 flex flex-wrap items-center justify-end gap-3 rounded-md border border-slate-700 bg-slate-900/50 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSaveSetupJSON()}
+                    className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                    title="Save the current setup (people, dates, mode, relationship) to JSON"
+                    aria-label="Save current setup to JSON"
+                  >
+                    Save Setup
+                  </button>
+                  <label
+                    htmlFor={setupUploadId}
+                    className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-slate-100 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        fileInputRef.current?.click();
+                      }
+                    }}
+                  >
+                    Load Setup…
                   </label>
+                  <input
+                    ref={fileInputRef}
+                    id={setupUploadId}
+                    type="file"
+                    accept="application/json"
+                    onChange={handleLoadSetupFromFile}
+                    className="sr-only"
+                    aria-label="Upload setup JSON file"
+                  />
                 </div>
+                {loadError && (
+                  <div className="mt-2 text-xs text-red-400">{loadError}</div>
+                )}
               </div>
 
-              <div className={`mt-4 ${!includePersonB ? 'opacity-50' : ''}`}>
-                <PersonForm
-                  idPrefix="b"
-                  person={personB}
-                  setPerson={setPersonB}
-                  coordsInput={bCoordsInput}
-                  setCoordsInput={setBCoordsInput}
-                  coordsError={bCoordsError}
-                  setCoordsError={setBCoordsError}
-                  setCoordsValid={setBCoordsValid}
-                  timezoneOptions={tzOptions}
-                  allowUnknownTime={allowUnknownB}
-                  showTimePolicy={includePersonB && timeUnknownB}
-                  timePolicy={timePolicy}
-                  onTimePolicyChange={setTimePolicy}
-                  timePolicyScopeLabel={personB.name ? `${personB.name} (Person B)` : 'Person B'}
-                  disabled={!includePersonB}
-                  coordinateLabel="Birth Coordinates (B)"
-                  coordinatePlaceholder="e.g., 34°03′S, 18°25′E or -34.0500, 18.4167"
-                  normalizedFallback="—"
-                  nameInputRef={bNameRef}
-                  skipParseWhenDisabled
-                />
+              {/* Session framing copy replaces the old Mirror vs Balance fork */}
+              <section aria-labelledby="session-path-heading" className="mb-6 rounded-lg border border-slate-700 bg-slate-800/60 p-4">
+                <h3 id="session-path-heading" className="text-sm font-medium text-slate-200">Dynamic Report Flow</h3>
+                <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <p className="text-sm text-slate-300 md:max-w-xl">
+                    Math Brain now runs a single dynamic report. Every session opens with a Mirror-first summary and then lets you reveal
+                    Balance metrics, key geometries, and audits step-by-step after the geometry is ready.
+                  </p>
+                  <div className="flex flex-col gap-2 text-xs text-slate-400 md:text-right">
+                    <div className="inline-flex items-center gap-2 self-start rounded-full border border-indigo-500/70 bg-indigo-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-indigo-200 md:self-end">
+                      <span>Field → Map → Voice</span>
+                    </div>
+                    <span>
+                      Toggle <strong>Include Transits</strong> on the right to add symbolic weather. Leave it off for natal baseline runs.
+                    </span>
+                  </div>
+                </div>
+              </section>
 
-                {/* Save Person B Profile Button */}
-                {isAuthenticated && includePersonB && personB.year && personB.month && personB.day && (
-                  <div className="mt-4 pt-4 border-t border-slate-700">
-                    {existingProfileForPersonB ? (
-                      <div className="rounded-md border border-emerald-700/60 bg-emerald-900/40 px-4 py-3 text-sm text-emerald-100 text-center">
-                        <p className="font-medium text-emerald-200">Already saved</p>
-                        <p className="text-xs text-emerald-100/80">{existingProfileForPersonB.name} is already in your saved roster with these details.</p>
+              {/* Profile Manager */}
+              <Section title="📚 Saved Profiles">
+                <ProfileManager
+                  profiles={profiles}
+                  loading={profilesLoading}
+                  onLoadProfile={handleLoadProfile}
+                  onSaveCurrentProfile={handleSaveCurrentProfile}
+                  onDeleteProfile={handleDeleteProfile}
+                  currentPersonA={personA}
+                  currentPersonB={personB}
+                  isAuthenticated={isAuthenticated}
+                  existingProfileForPersonA={existingProfileForPersonA}
+                  existingProfileForPersonB={existingProfileForPersonB}
+                />
+              </Section>
+
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
+                {/* Left column: Person A */}
+                <Section title="Person A (required)">
+                  <PersonForm
+                    idPrefix="a"
+                    person={personA}
+                    setPerson={setPersonA}
+                    coordsInput={aCoordsInput}
+                    setCoordsInput={setACoordsInput}
+                    coordsError={aCoordsError}
+                    setCoordsError={setACoordsError}
+                    setCoordsValid={setACoordsValid}
+                    timezoneOptions={tzOptions}
+                    allowUnknownTime={allowUnknownA}
+                    showTimePolicy={timeUnknown}
+                    timePolicy={timePolicy}
+                    onTimePolicyChange={setTimePolicy}
+                    timePolicyScopeLabel={personA.name ? `${personA.name} (Person A)` : 'Person A'}
+                    requireName
+                    requireBirthDate
+                    requireTime
+                    requireLocation
+                    requireTimezone
+                  />
+
+                  {/* Save Person A Profile Button */}
+                  {isAuthenticated && personA.year && personA.month && personA.day && (
+                    <div className="mt-4 pt-4 border-t border-slate-700">
+                      {existingProfileForPersonA ? (
+                        <div className="rounded-md border border-emerald-700/60 bg-emerald-900/40 px-4 py-3 text-sm text-emerald-100 text-center">
+                          <p className="font-medium text-emerald-200">Already saved</p>
+                          <p className="text-xs text-emerald-100/80">{existingProfileForPersonA.name} is already in your saved roster with these details.</p>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const name = prompt('Enter a name for this profile:', personA.name || 'Person A');
+                              if (name) {
+                                handleSaveCurrentProfile('A', name);
+                              }
+                            }}
+                            className="w-full rounded-md bg-emerald-700/30 border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-700/40 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <span>💾</span>
+                            <span>Save Person A to Profile Database</span>
+                          </button>
+                          <p className="mt-2 text-xs text-slate-400 text-center">
+                            Save this person's birth data for quick loading later
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {!isAuthenticated && personA.year && personA.month && personA.day && (
+                    <div className="mt-4 pt-4 border-t border-slate-700">
+                      <div className="rounded-md bg-amber-900/30 border border-amber-700 p-3 text-amber-200 text-sm">
+                        <p className="font-medium">Sign in to save profiles</p>
+                        <p className="text-xs mt-1 text-amber-300">
+                          Sign in with Google (top of page) to save Person A for later
+                        </p>
                       </div>
-                    ) : (
-                      <>
+                    </div>
+                  )}
+                </Section>
+
+
+                {/* Left column continues: Person B (optional for relational modes) */}
+                <Section title="Person B (optional for relational)">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs text-slate-400">Add a second person for synastry/composite modes.</p>
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex rounded-md border border-slate-700 bg-slate-800 p-1">
+                        <button type="button" onClick={copyAToB} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Copy Person A details to Person B (keeps B name)">Copy A→B</button>
+                        <div className="mx-1 h-5 w-px bg-slate-700" />
+                        <button type="button" onClick={swapAB} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Swap A/B (relationship settings unchanged)">Swap A/B</button>
+                        <div className="mx-1 h-5 w-px bg-slate-700" />
+                        <button type="button" onClick={clearB} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Clear all Person B fields">Clear B</button>
+                        <div className="mx-1 h-5 w-px bg-slate-700" />
+                        <button type="button" onClick={setBNowUTC} disabled={!includePersonB} className="px-2 py-1 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Set Person B date/time to now (UTC)">Set B = Now (UTC)</button>
+                      </div>
+                      <label htmlFor="include-person-b" className="inline-flex items-center gap-2 text-sm text-slate-200 cursor-pointer">
+                        <input
+                          id="include-person-b"
+                          data-testid="include-person-b"
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
+                          checked={includePersonB}
+                          onChange={(e) => setIncludePersonB(e.target.checked)}
+                        />
+                        Include Person B
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className={`mt-4 ${!includePersonB ? 'opacity-50' : ''}`}>
+                    <PersonForm
+                      idPrefix="b"
+                      person={personB}
+                      setPerson={setPersonB}
+                      coordsInput={bCoordsInput}
+                      setCoordsInput={setBCoordsInput}
+                      coordsError={bCoordsError}
+                      setCoordsError={setBCoordsError}
+                      setCoordsValid={setBCoordsValid}
+                      timezoneOptions={tzOptions}
+                      allowUnknownTime={allowUnknownB}
+                      showTimePolicy={includePersonB && timeUnknownB}
+                      timePolicy={timePolicy}
+                      onTimePolicyChange={setTimePolicy}
+                      timePolicyScopeLabel={personB.name ? `${personB.name} (Person B)` : 'Person B'}
+                      disabled={!includePersonB}
+                      coordinateLabel="Birth Coordinates (B)"
+                      coordinatePlaceholder="e.g., 34°03′S, 18°25′E or -34.0500, 18.4167"
+                      normalizedFallback="—"
+                      nameInputRef={bNameRef}
+                      skipParseWhenDisabled
+                    />
+
+                    {/* Save Person B Profile Button */}
+                    {isAuthenticated && includePersonB && personB.year && personB.month && personB.day && (
+                      <div className="mt-4 pt-4 border-t border-slate-700">
+                        {existingProfileForPersonB ? (
+                          <div className="rounded-md border border-emerald-700/60 bg-emerald-900/40 px-4 py-3 text-sm text-emerald-100 text-center">
+                            <p className="font-medium text-emerald-200">Already saved</p>
+                            <p className="text-xs text-emerald-100/80">{existingProfileForPersonB.name} is already in your saved roster with these details.</p>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const name = prompt('Enter a name for this profile:', personB.name || 'Person B');
+                                if (name) {
+                                  handleSaveCurrentProfile('B', name);
+                                }
+                              }}
+                              className="w-full rounded-md bg-emerald-700/30 border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-700/40 transition-colors flex items-center justify-center gap-2"
+                            >
+                              <span>💾</span>
+                              <span>Save Person B to Profile Database</span>
+                            </button>
+                            <p className="mt-2 text-xs text-slate-400 text-center">
+                              Save this person's birth data for quick loading later
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {!isAuthenticated && includePersonB && personB.year && personB.month && personB.day && (
+                      <div className="mt-4 pt-4 border-t border-slate-700">
+                        <div className="rounded-md bg-amber-900/30 border border-amber-700 p-3 text-amber-200 text-sm">
+                          <p className="font-medium">Sign in to save profiles</p>
+                          <p className="text-xs mt-1 text-amber-300">
+                            Sign in with Google (top of page) to save Person B for later
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Section>
+                {/* Relationship Context (only when Person B included) */}
+                <Section title="Relationship Context" className="md:-mt-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs text-slate-400">These fields unlock when Person B is included.</p>
+                  </div>
+                  <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${!includePersonB ? 'opacity-50' : ''}`}>
+                    <div>
+                      <label htmlFor="rel-type" className="block text-sm text-slate-300">Type</label>
+                      <select
+                        id="rel-type"
+                        disabled={!includePersonB}
+                        className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
+                        value={relationshipType}
+                        onChange={(e) => { setRelationshipType(e.target.value); setRelationshipTier(""); setRelationshipRole(""); }}
+                      >
+                        <option value="PARTNER">Partner</option>
+                        <option value="FRIEND">Friend / Acquaintance</option>
+                        <option value="FAMILY">Family Member</option>
+                      </select>
+                      <div className="mt-2 text-[11px] text-slate-400">
+                        <div className="font-medium text-slate-300">Primary Relational Tiers (scope):</div>
+                        <div>• Partner — full map access, including intimacy arcs & legacy patterns.</div>
+                        <div>• Friend / Acquaintance — emotional, behavioral, social dynamics; intimacy overlays de-emphasized.</div>
+                        <div>• Family Member — legacy patterns and behavioral overlays.
+                          {' '}Select the role to clarify Person B's relationship to Person A.</div>
+                      </div>
+                    </div>
+                    {includePersonB && (
+                      <div className="sm:col-span-2">
+                        <span className="block text-sm text-slate-300">Contact State</span>
+                        <div className="mt-2 inline-flex overflow-hidden rounded-md border border-slate-600 bg-slate-900/80">
+                          <button
+                            type="button"
+                            onClick={() => setContactState('ACTIVE')}
+                            className={`px-3 py-1.5 text-sm transition ${contactState === 'ACTIVE' ? 'bg-emerald-600 text-white' : 'text-slate-200 hover:bg-slate-800'}`}
+                            aria-pressed={contactState === 'ACTIVE'}
+                          >
+                            Active
+                          </button>
+                          <div className="h-6 w-px bg-slate-700 my-1" />
+                          <button
+                            type="button"
+                            onClick={() => setContactState('LATENT')}
+                            className={`px-3 py-1.5 text-sm transition ${contactState === 'LATENT' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-800'}`}
+                            aria-pressed={contactState === 'LATENT'}
+                          >
+                            Latent
+                          </button>
+                        </div>
+                        <p className="mt-2 text-xs text-slate-400">
+                          Active treats overlays as live contact pressure; Latent logs the geometry but marks it dormant until reactivation.
+                        </p>
+                      </div>
+                    )}
+                    {relationshipType === 'PARTNER' && (
+                      <div>
+                        <label htmlFor="rel-tier" className="block text-sm text-slate-300">Intimacy Tier</label>
+                        <select
+                          id="rel-tier"
+                          disabled={!includePersonB}
+                          className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
+                          value={relationshipTier}
+                          onChange={(e) => setRelationshipTier(e.target.value)}
+                        >
+                          <option value="">Select…</option>
+                          <option value="P1">P1 — Platonic partners</option>
+                          <option value="P2">P2 — Friends-with-benefits</option>
+                          <option value="P3">P3 — Situationship (unclear/unstable)</option>
+                          <option value="P4">P4 — Low-commitment romantic or sexual</option>
+                          <option value="P5a">P5a — Committed romantic + sexual</option>
+                          <option value="P5b">P5b — Committed romantic, non-sexual</option>
+                        </select>
+                        {includePersonB && RELATIONAL_MODES.includes(mode) && !relationshipTier && (
+                          <p className="mt-1 text-xs text-amber-400">Partner relationships require an intimacy tier.</p>
+                        )}
+                      </div>
+                    )}
+                    {relationshipType === 'FAMILY' && (
+                      <div>
+                        <label htmlFor="rel-role" className="block text-sm text-slate-300">Role (Person B is…)</label>
+                        <select
+                          id="rel-role"
+                          disabled={!includePersonB}
+                          className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
+                          value={relationshipRole}
+                          onChange={(e) => setRelationshipRole(e.target.value)}
+                        >
+                          <option value="">Select…</option>
+                          <option value="Parent">Parent</option>
+                          <option value="Offspring">Offspring</option>
+                          <option value="Sibling">Sibling</option>
+                          <option value="Cousin">Cousin</option>
+                          <option value="Extended">Extended</option>
+                          <option value="Guardian">Guardian</option>
+                          <option value="Mentor">Mentor</option>
+                          <option value="Other">Other</option>
+                          <option value="Custom">Custom</option>
+                        </select>
+                        {includePersonB && RELATIONAL_MODES.includes(mode) && !relationshipRole && (
+                          <p className="mt-1 text-xs text-amber-400">Family relationships require selecting a role.</p>
+                        )}
+                      </div>
+                    )}
+                    {relationshipType === 'FRIEND' && (
+                      <div>
+                        <label htmlFor="rel-role-f" className="block text-sm text-slate-300">Role (optional)</label>
+                        <select
+                          id="rel-role-f"
+                          className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
+                          value={relationshipRole}
+                          onChange={(e) => setRelationshipRole(e.target.value)}
+                        >
+                          <option value="">—</option>
+                          <option value="Friend">Friend</option>
+                          <option value="Acquaintance">Acquaintance</option>
+                          <option value="Colleague">Colleague</option>
+                          <option value="Mentor">Mentor</option>
+                          <option value="Other">Other</option>
+                          <option value="Custom">Custom</option>
+                        </select>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="rel-ex"
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
+                        checked={exEstranged}
+                        onChange={(e) => setExEstranged(e.target.checked)}
+                        disabled={!includePersonB || relationshipType === 'FRIEND'}
+                      />
+                      <label htmlFor="rel-ex" className="text-sm text-slate-300">Ex / Estranged</label>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label htmlFor="rel-notes" className="block text-sm text-slate-300">Notes</label>
+                      <textarea
+                        id="rel-notes"
+                        disabled={!includePersonB}
+                        className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        rows={3}
+                        placeholder="Optional context (max 500 chars)"
+                        value={relationshipNotes}
+                        onChange={(e) => setRelationshipNotes(e.target.value.slice(0, 500))}
+                      />
+                    </div>
+                  </div>
+                </Section>
+
+                {/* Right column: Transits + actions */}
+                <div className="space-y-6">
+                  {/* Report Type Radio Group */}
+                  <Section title="Report Type">
+                    <div className="space-y-3">
+                      <p className="text-xs text-slate-400">Choose the astrological report structure</p>
+                      <div className="flex flex-col gap-2">
+                        {(['solo', 'synastry', 'composite'] as const).map((type) => (
+                          <label
+                            key={type}
+                            className="flex items-center gap-3 rounded-md border border-slate-700 bg-slate-800/60 px-3 py-2.5 cursor-pointer hover:bg-slate-800 transition"
+                          >
+                            <input
+                              type="radio"
+                              name="report-type"
+                              value={type}
+                              checked={reportStructure === type}
+                              onChange={(e) => {
+                                const newStructure = e.target.value as ReportStructure;
+                                setReportStructure(newStructure);
+                                // Automatically enable Person B for relational modes
+                                // Do not auto-enable Person B for relational modes
+                              }}
+                              className="h-4 w-4 border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <div>
+                              <span className="block text-sm font-medium text-slate-100 capitalize">{type}</span>
+                              <span className="block text-xs text-slate-400">
+                                {type === 'solo' && 'Individual natal chart analysis'}
+                                {type === 'synastry' && 'Relationship dynamics between two charts'}
+                                {type === 'composite' && 'Blended chart representing the relationship itself'}
+                              </span>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </Section>
+
+                  <Section title="Symbolic Weather (Transits)">
+                    <TransitControls
+                      includeTransits={includeTransits}
+                      onIncludeTransitsChange={setIncludeTransits}
+                      startDate={startDate}
+                      endDate={endDate}
+                      onStartDateChange={setStartDate}
+                      onEndDateChange={setEndDate}
+                      onUserHasSetDatesChange={setUserHasSetDates}
+                      onDateFocus={handleDateFocus}
+                      onDateTouchStart={handleDateTouchStart}
+                      step={step}
+                      onStepChange={setStep}
+                      mode={mode}
+                      onModeChange={(value) => applyMode(normalizeReportMode(value))}
+                      soloModeOption={soloModeOption}
+                      relationalModeOptions={relationalModeOptions}
+                      includePersonB={includePersonB}
+                      isRelationalMode={RELATIONAL_MODES.includes(mode)}
+                      translocation={translocation}
+                      onTranslocationChange={(value) => setTranslocation(normalizeTranslocationOption(value))}
+                      relocationOptions={relocationOptions}
+                      relocationLabels={relocationSelectLabels}
+                      relocationStatus={relocationStatus}
+                      relocationModeCaption={relocationModeCaption}
+                      relocInput={relocInput}
+                      onRelocInputChange={setRelocInput}
+                      relocCoords={relocCoords}
+                      onRelocCoordsChange={setRelocCoords}
+                      relocError={relocError}
+                      onRelocErrorChange={setRelocError}
+                      relocLabel={relocLabel}
+                      onRelocLabelChange={setRelocLabel}
+                      relocTz={relocTz}
+                      onRelocTzChange={setRelocTz}
+                      tzOptions={tzOptions}
+                      weeklyAgg={weeklyAgg}
+                      onWeeklyAggChange={setWeeklyAgg}
+                      personATimezone={personA.timezone}
+                    />
+                  </Section>
+
+                  {/* Snapshot Button */}
+                  <div className="mb-4">
+                    <SnapshotButton
+                      personA={personA}
+                      personB={includePersonB ? personB : undefined}
+                      mode={mode}
+                      isAuthenticated={isAuthenticated}
+                      disabled={loading}
+                      includePersonB={includePersonB}
+                      includeTransits={includeTransits}
+                      startDate={startDate}
+                      endDate={endDate}
+                      reportType={reportType}
+                      onSnapshot={handleSnapshotCapture}
+                      onAuthRequired={handleSnapshotAuthRequired}
+                      onDateChange={(date) => {
+                        setStartDate(date);
+                        setEndDate(date);
+                      }}
+                    />
+                    {snapshotResult && snapshotLocation && snapshotTimestamp && (
+                      <div className="mt-4">
+                        <SnapshotDisplay
+                          result={snapshotResult}
+                          location={snapshotLocation}
+                          timestamp={snapshotTimestamp}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-slate-500">
+                      All processing is geometry-first and non-deterministic. Your data isn't stored.
+                    </p>
+                    <div className="mr-2 hidden sm:flex items-center gap-2 text-[11px] text-slate-400">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5">
+                        <span className="text-slate-300">Mode:</span>
+                        <span className="text-slate-100">{mode.replace(/_/g, ' ')}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5">
+                        <span className="text-slate-300">Report:</span>
+                        <span className="text-slate-100 capitalize">{reportType}</span>
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 sm:justify-end">
+                      <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
+                        {(result || loading) && (
+                          <button
+                            type="button"
+                            onClick={clearReport}
+                            className="inline-flex items-center rounded-md px-3 py-2 text-sm text-slate-300 border border-slate-600 bg-slate-800 hover:bg-slate-700 hover:text-slate-100 transition"
+                          >
+                            {loading ? "Cancel" : "Clear Report"}
+                          </button>
+                        )}
                         <button
                           type="button"
-                          onClick={() => {
-                            const name = prompt('Enter a name for this profile:', personB.name || 'Person B');
-                            if (name) {
-                              handleSaveCurrentProfile('B', name);
-                            }
-                          }}
-                          className="w-full rounded-md bg-emerald-700/30 border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-700/40 transition-colors flex items-center justify-center gap-2"
+                          onClick={onSubmit}
+                          disabled={submitDisabled}
+                          className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-base font-semibold text-white shadow-lg disabled:opacity-50 disabled:shadow-none bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                         >
-                          <span>💾</span>
-                          <span>Save Person B to Profile Database</span>
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                          </svg>
+                          {loading ? "Mapping geometry…" : (includeTransits ? 'Generate Report' : 'Generate Report')}
                         </button>
-                        <p className="mt-2 text-xs text-slate-400 text-center">
-                          Save this person's birth data for quick loading later
+                      </div>
+                      {handoffTrimNotice && (
+                        <p className="max-w-xs text-[11px] text-amber-300 text-right sm:text-left">
+                          {handoffTrimNotice}
                         </p>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {!isAuthenticated && includePersonB && personB.year && personB.month && personB.day && (
-                  <div className="mt-4 pt-4 border-t border-slate-700">
-                    <div className="rounded-md bg-amber-900/30 border border-amber-700 p-3 text-amber-200 text-sm">
-                      <p className="font-medium">Sign in to save profiles</p>
-                      <p className="text-xs mt-1 text-amber-300">
-                        Sign in with Google (top of page) to save Person B for later
-                      </p>
+                      )}
+                      {!loading && !result && !submitDisabled && (
+                        <p className="text-xs text-emerald-400 sm:ml-1">✓ Ready to generate! Click the button above.</p>
+                      )}
                     </div>
                   </div>
-                )}
-              </div>
-            </Section>
-            {/* Relationship Context (only when Person B included) */}
-            <Section title="Relationship Context" className="md:-mt-4">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs text-slate-400">These fields unlock when Person B is included.</p>
-              </div>
-              <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${!includePersonB ? 'opacity-50' : ''}`}>
-                <div>
-                  <label htmlFor="rel-type" className="block text-sm text-slate-300">Type</label>
-                  <select
-                    id="rel-type"
-                    disabled={!includePersonB}
-                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
-                    value={relationshipType}
-                    onChange={(e) => { setRelationshipType(e.target.value); setRelationshipTier(""); setRelationshipRole(""); }}
-                  >
-                    <option value="PARTNER">Partner</option>
-                    <option value="FRIEND">Friend / Acquaintance</option>
-                    <option value="FAMILY">Family Member</option>
-                  </select>
-                  <div className="mt-2 text-[11px] text-slate-400">
-                    <div className="font-medium text-slate-300">Primary Relational Tiers (scope):</div>
-                    <div>• Partner — full map access, including intimacy arcs & legacy patterns.</div>
-                    <div>• Friend / Acquaintance — emotional, behavioral, social dynamics; intimacy overlays de-emphasized.</div>
-                    <div>• Family Member — legacy patterns and behavioral overlays.
-                      {' '}Select the role to clarify Person B's relationship to Person A.</div>
-                  </div>
-                </div>
-                {includePersonB && (
-                  <div className="sm:col-span-2">
-                    <span className="block text-sm text-slate-300">Contact State</span>
-                    <div className="mt-2 inline-flex overflow-hidden rounded-md border border-slate-600 bg-slate-900/80">
-                      <button
-                        type="button"
-                        onClick={() => setContactState('ACTIVE')}
-                        className={`px-3 py-1.5 text-sm transition ${contactState === 'ACTIVE' ? 'bg-emerald-600 text-white' : 'text-slate-200 hover:bg-slate-800'}`}
-                        aria-pressed={contactState === 'ACTIVE'}
-                      >
-                        Active
-                      </button>
-                      <div className="h-6 w-px bg-slate-700 my-1" />
-                      <button
-                        type="button"
-                        onClick={() => setContactState('LATENT')}
-                        className={`px-3 py-1.5 text-sm transition ${contactState === 'LATENT' ? 'bg-indigo-600 text-white' : 'text-slate-200 hover:bg-slate-800'}`}
-                        aria-pressed={contactState === 'LATENT'}
-                      >
-                        Latent
-                      </button>
-                    </div>
-                    <p className="mt-2 text-xs text-slate-400">
-                      Active treats overlays as live contact pressure; Latent logs the geometry but marks it dormant until reactivation.
-                    </p>
-                  </div>
-                )}
-                {relationshipType === 'PARTNER' && (
-                  <div>
-                    <label htmlFor="rel-tier" className="block text-sm text-slate-300">Intimacy Tier</label>
-                    <select
-                      id="rel-tier"
-                      disabled={!includePersonB}
-                      className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
-                      value={relationshipTier}
-                      onChange={(e) => setRelationshipTier(e.target.value)}
-                    >
-                      <option value="">Select…</option>
-                      <option value="P1">P1 — Platonic partners</option>
-                      <option value="P2">P2 — Friends-with-benefits</option>
-                      <option value="P3">P3 — Situationship (unclear/unstable)</option>
-                      <option value="P4">P4 — Low-commitment romantic or sexual</option>
-                      <option value="P5a">P5a — Committed romantic + sexual</option>
-                      <option value="P5b">P5b — Committed romantic, non-sexual</option>
-                    </select>
-                    {includePersonB && RELATIONAL_MODES.includes(mode) && !relationshipTier && (
-                      <p className="mt-1 text-xs text-amber-400">Partner relationships require an intimacy tier.</p>
-                    )}
-                  </div>
-                )}
-                {relationshipType === 'FAMILY' && (
-                  <div>
-                    <label htmlFor="rel-role" className="block text-sm text-slate-300">Role (Person B is…)</label>
-                    <select
-                      id="rel-role"
-                      disabled={!includePersonB}
-                      className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
-                      value={relationshipRole}
-                      onChange={(e) => setRelationshipRole(e.target.value)}
-                    >
-                      <option value="">Select…</option>
-                      <option value="Parent">Parent</option>
-                      <option value="Offspring">Offspring</option>
-                      <option value="Sibling">Sibling</option>
-                      <option value="Cousin">Cousin</option>
-                      <option value="Extended">Extended</option>
-                      <option value="Guardian">Guardian</option>
-                      <option value="Mentor">Mentor</option>
-                      <option value="Other">Other</option>
-                      <option value="Custom">Custom</option>
-                    </select>
-                    {includePersonB && RELATIONAL_MODES.includes(mode) && !relationshipRole && (
-                      <p className="mt-1 text-xs text-amber-400">Family relationships require selecting a role.</p>
-                    )}
-                  </div>
-                )}
-                {relationshipType === 'FRIEND' && (
-                  <div>
-                    <label htmlFor="rel-role-f" className="block text-sm text-slate-300">Role (optional)</label>
-                    <select
-                      id="rel-role-f"
-                      className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100"
-                      value={relationshipRole}
-                      onChange={(e) => setRelationshipRole(e.target.value)}
-                    >
-                      <option value="">—</option>
-                      <option value="Friend">Friend</option>
-                      <option value="Acquaintance">Acquaintance</option>
-                      <option value="Colleague">Colleague</option>
-                      <option value="Mentor">Mentor</option>
-                      <option value="Other">Other</option>
-                      <option value="Custom">Custom</option>
-                    </select>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <input
-                    id="rel-ex"
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
-                    checked={exEstranged}
-                    onChange={(e) => setExEstranged(e.target.checked)}
-                    disabled={!includePersonB || relationshipType === 'FRIEND'}
-                  />
-                  <label htmlFor="rel-ex" className="text-sm text-slate-300">Ex / Estranged</label>
-                </div>
-                <div className="sm:col-span-2">
-                  <label htmlFor="rel-notes" className="block text-sm text-slate-300">Notes</label>
-                  <textarea
-                    id="rel-notes"
-                    disabled={!includePersonB}
-                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    rows={3}
-                    placeholder="Optional context (max 500 chars)"
-                    value={relationshipNotes}
-                    onChange={(e) => setRelationshipNotes(e.target.value.slice(0, 500))}
-                  />
-                </div>
-              </div>
-            </Section>
-
-            {/* Right column: Transits + actions */}
-            <div className="space-y-6">
-              {/* Report Type Radio Group */}
-              <Section title="Report Type">
-                <div className="space-y-3">
-                  <p className="text-xs text-slate-400">Choose the astrological report structure</p>
-                  <div className="flex flex-col gap-2">
-                    {(['solo', 'synastry', 'composite'] as const).map((type) => (
-                      <label
-                        key={type}
-                        className="flex items-center gap-3 rounded-md border border-slate-700 bg-slate-800/60 px-3 py-2.5 cursor-pointer hover:bg-slate-800 transition"
-                      >
-                        <input
-                          type="radio"
-                          name="report-type"
-                          value={type}
-                          checked={reportStructure === type}
-                          onChange={(e) => {
-                            const newStructure = e.target.value as ReportStructure;
-                            setReportStructure(newStructure);
-                            // Automatically enable Person B for relational modes
-                            // Do not auto-enable Person B for relational modes
-                          }}
-                          className="h-4 w-4 border-slate-600 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
-                        />
-                        <div>
-                          <span className="block text-sm font-medium text-slate-100 capitalize">{type}</span>
-                          <span className="block text-xs text-slate-400">
-                            {type === 'solo' && 'Individual natal chart analysis'}
-                            {type === 'synastry' && 'Relationship dynamics between two charts'}
-                            {type === 'composite' && 'Blended chart representing the relationship itself'}
-                          </span>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </Section>
-
-              <Section title="Symbolic Weather (Transits)">
-                <TransitControls
-                  includeTransits={includeTransits}
-                  onIncludeTransitsChange={setIncludeTransits}
-                  startDate={startDate}
-                  endDate={endDate}
-                  onStartDateChange={setStartDate}
-                  onEndDateChange={setEndDate}
-                  onUserHasSetDatesChange={setUserHasSetDates}
-                  onDateFocus={handleDateFocus}
-                  onDateTouchStart={handleDateTouchStart}
-                  step={step}
-                  onStepChange={setStep}
-                  mode={mode}
-                  onModeChange={(value) => applyMode(normalizeReportMode(value))}
-                  soloModeOption={soloModeOption}
-                  relationalModeOptions={relationalModeOptions}
-                  includePersonB={includePersonB}
-                  isRelationalMode={RELATIONAL_MODES.includes(mode)}
-                  translocation={translocation}
-                  onTranslocationChange={(value) => setTranslocation(normalizeTranslocationOption(value))}
-                  relocationOptions={relocationOptions}
-                  relocationLabels={relocationSelectLabels}
-                  relocationStatus={relocationStatus}
-                  relocationModeCaption={relocationModeCaption}
-                  relocInput={relocInput}
-                  onRelocInputChange={setRelocInput}
-                  relocCoords={relocCoords}
-                  onRelocCoordsChange={setRelocCoords}
-                  relocError={relocError}
-                  onRelocErrorChange={setRelocError}
-                  relocLabel={relocLabel}
-                  onRelocLabelChange={setRelocLabel}
-                  relocTz={relocTz}
-                  onRelocTzChange={setRelocTz}
-                  tzOptions={tzOptions}
-                  weeklyAgg={weeklyAgg}
-                  onWeeklyAggChange={setWeeklyAgg}
-                  personATimezone={personA.timezone}
-                />
-              </Section>
-
-              {/* Snapshot Button */}
-              <div className="mb-4">
-                <SnapshotButton
-                  personA={personA}
-                  personB={includePersonB ? personB : undefined}
-                  mode={mode}
-                  isAuthenticated={isAuthenticated}
-                  disabled={loading}
-                  includePersonB={includePersonB}
-                  includeTransits={includeTransits}
-                  startDate={startDate}
-                  endDate={endDate}
-                  reportType={reportType}
-                  onSnapshot={handleSnapshotCapture}
-                  onAuthRequired={handleSnapshotAuthRequired}
-                  onDateChange={(date) => {
-                    setStartDate(date);
-                    setEndDate(date);
-                  }}
-                />
-                {snapshotResult && snapshotLocation && snapshotTimestamp && (
-                  <div className="mt-4">
-                    <SnapshotDisplay
-                      result={snapshotResult}
-                      location={snapshotLocation}
-                      timestamp={snapshotTimestamp}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-slate-500">
-                  All processing is geometry-first and non-deterministic. Your data isn't stored.
-                </p>
-                <div className="mr-2 hidden sm:flex items-center gap-2 text-[11px] text-slate-400">
-                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5">
-                    <span className="text-slate-300">Mode:</span>
-                    <span className="text-slate-100">{mode.replace(/_/g, ' ')}</span>
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5">
-                    <span className="text-slate-300">Report:</span>
-                    <span className="text-slate-100 capitalize">{reportType}</span>
-                  </span>
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 sm:justify-end">
-                  <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
-                    {(result || loading) && (
-                      <button
-                        type="button"
-                        onClick={clearReport}
-                        className="inline-flex items-center rounded-md px-3 py-2 text-sm text-slate-300 border border-slate-600 bg-slate-800 hover:bg-slate-700 hover:text-slate-100 transition"
-                      >
-                        {loading ? "Cancel" : "Clear Report"}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={onSubmit}
-                      disabled={submitDisabled}
-                      className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-base font-semibold text-white shadow-lg disabled:opacity-50 disabled:shadow-none bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                      </svg>
-                      {loading ? "Mapping geometry…" : (includeTransits ? 'Generate Report' : 'Generate Report')}
-                    </button>
-                  </div>
-                  {handoffTrimNotice && (
-                    <p className="max-w-xs text-[11px] text-amber-300 text-right sm:text-left">
-                      {handoffTrimNotice}
-                    </p>
+                  {(RELATIONAL_MODES.includes(mode) && !includePersonB) && (
+                    <p className="mt-2 text-xs text-amber-400">Hint: Toggle "Include Person B" and fill in required fields to enable relational modes.</p>
                   )}
-                  {!loading && !result && !submitDisabled && (
-                    <p className="text-xs text-emerald-400 sm:ml-1">✓ Ready to generate! Click the button above.</p>
-                  )}
+                  {submitDisabled && !loading && (() => {
+                    if (!PROVIDER_BYPASS && providerCheckPending) {
+                      return <p className="mt-2 text-xs text-amber-400">⚠️ Checking provider readiness…</p>;
+                    }
+                    if (!PROVIDER_BYPASS && !providerHealth.astrology.ready) {
+                      const outageMessage = providerHealth.astrology.message || 'Math Brain services are currently unavailable.';
+                      return <p className="mt-2 text-xs text-amber-400">⚠️ {outageMessage}</p>;
+                    }
+                    const locGate = needsLocation(reportType, includeTransits, personA);
+                    if (includeTransits && !locGate.hasLoc) {
+                      return <p className="mt-2 text-xs text-amber-400">⚠️ Transits require location data. Please enter coordinates or city/state for Person A.</p>;
+                    }
+                    if (!aCoordsValid && (personA.latitude || personA.longitude)) {
+                      return <p className="mt-2 text-xs text-amber-400">⚠️ Invalid coordinates for Person A. Please check latitude/longitude format.</p>;
+                    }
+                    if (includePersonB && !bCoordsValid && (personB.latitude || personB.longitude)) {
+                      return <p className="mt-2 text-xs text-amber-400">⚠️ Invalid coordinates for Person B. Please check latitude/longitude format.</p>;
+                    }
+                    const missing: string[] = [];
+                    if (!personA.name) missing.push('Name');
+
+                    // If coordinates are provided and valid, City/State are optional
+                    const hasACoords = aCoordsValid && (personA.latitude !== '' || personA.longitude !== '');
+
+                    if (!hasACoords) {
+                      if (!personA.city) missing.push('City');
+                      if (!personA.state) missing.push('State');
+                    }
+
+                    if (!personA.timezone) missing.push('Timezone');
+
+                    if (missing.length > 0) {
+                      return <p className="mt-2 text-xs text-amber-400">⚠️ Missing required fields for Person A: {missing.join(', ')}</p>;
+                    }
+                    return <p className="mt-2 text-xs text-amber-400">⚠️ Please complete all required fields to generate report.</p>;
+                  })()}
                 </div>
               </div>
-              {(RELATIONAL_MODES.includes(mode) && !includePersonB) && (
-                <p className="mt-2 text-xs text-amber-400">Hint: Toggle "Include Person B" and fill in required fields to enable relational modes.</p>
-              )}
-              {submitDisabled && !loading && (() => {
-                if (!PROVIDER_BYPASS && providerCheckPending) {
-                  return <p className="mt-2 text-xs text-amber-400">⚠️ Checking provider readiness…</p>;
-                }
-                if (!PROVIDER_BYPASS && !providerHealth.astrology.ready) {
-                  const outageMessage = providerHealth.astrology.message || 'Math Brain services are currently unavailable.';
-                  return <p className="mt-2 text-xs text-amber-400">⚠️ {outageMessage}</p>;
-                }
-                const locGate = needsLocation(reportType, includeTransits, personA);
-                if (includeTransits && !locGate.hasLoc) {
-                  return <p className="mt-2 text-xs text-amber-400">⚠️ Transits require location data. Please enter coordinates or city/state for Person A.</p>;
-                }
-                if (!aCoordsValid && (personA.latitude || personA.longitude)) {
-                  return <p className="mt-2 text-xs text-amber-400">⚠️ Invalid coordinates for Person A. Please check latitude/longitude format.</p>;
-                }
-                if (includePersonB && !bCoordsValid && (personB.latitude || personB.longitude)) {
-                  return <p className="mt-2 text-xs text-amber-400">⚠️ Invalid coordinates for Person B. Please check latitude/longitude format.</p>;
-                }
-                const missing: string[] = [];
-                if (!personA.name) missing.push('Name');
-
-                // If coordinates are provided and valid, City/State are optional
-                const hasACoords = aCoordsValid && (personA.latitude !== '' || personA.longitude !== '');
-
-                if (!hasACoords) {
-                  if (!personA.city) missing.push('City');
-                  if (!personA.state) missing.push('State');
-                }
-
-                if (!personA.timezone) missing.push('Timezone');
-
-                if (missing.length > 0) {
-                  return <p className="mt-2 text-xs text-amber-400">⚠️ Missing required fields for Person A: {missing.join(', ')}</p>;
-                }
-                return <p className="mt-2 text-xs text-amber-400">⚠️ Please complete all required fields to generate report.</p>;
-              })()}
-            </div>
-          </div>
-        </form>
+            </form>
           </>
         )}
 
