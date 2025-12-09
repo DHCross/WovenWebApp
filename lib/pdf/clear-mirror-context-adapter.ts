@@ -65,14 +65,14 @@ function extractPersonNames(contexts: ReportContext[]): { personA: string; perso
   if (contexts.length === 0) {
     return { personA: 'Unknown' };
   }
-  
+
   // Try to parse JSON content to get actual person names from the chart data
   const primaryContent = contexts[0]?.content || '';
   try {
     const parsed = JSON.parse(primaryContent);
-    
+
     // Extract person A name from various possible locations in the JSON
-    const personAName = 
+    const personAName =
       parsed?.person_a?.name ||
       parsed?.person_a?.details?.name ||
       parsed?.personA?.name ||
@@ -80,15 +80,15 @@ function extractPersonNames(contexts: ReportContext[]): { personA: string; perso
       parsed?.context?.natal?.name ||
       parsed?.natal?.name ||
       null;
-    
+
     // Extract person B name for relational charts
-    const personBName = 
+    const personBName =
       parsed?.person_b?.name ||
       parsed?.person_b?.details?.name ||
       parsed?.personB?.name ||
       parsed?.personB?.details?.name ||
       null;
-    
+
     if (personAName) {
       return {
         personA: personAName,
@@ -98,14 +98,14 @@ function extractPersonNames(contexts: ReportContext[]): { personA: string; perso
   } catch {
     // JSON parse failed, fall back to context name
   }
-  
+
   // Fall back to extracting from context name
   if (contexts.length === 1) {
     // Try to extract name from "Mirror Directive for [Name]" format
     const match = contexts[0].name?.match(/(?:Mirror Directive for|Relational Mirror:)\s*(.+?)(?:\s*↔|$)/i);
     return { personA: match?.[1]?.trim() || contexts[0].name || 'Person A' };
   }
-  
+
   // Relational report (2 contexts)
   return {
     personA: contexts[0]?.name || 'Person A',
@@ -119,7 +119,7 @@ function extractPersonNames(contexts: ReportContext[]): { personA: string; perso
  */
 function determineIntimacyTier(contexts: ReportContext[]): string | undefined {
   if (contexts.length < 2) return undefined;
-  
+
   // Default to Partner tier for relational charts
   // Future: Extract from reportContexts metadata or user selection
   return 'Partner: P5a';
@@ -159,10 +159,10 @@ function extractChartGeometry(content: string): ChartGeometry | null {
     const data = JSON.parse(content);
     const personA = data?.person_a || data?.personA;
     if (!personA?.chart?.positions) return null;
-    
+
     const positions = personA.chart.positions;
     const anglesSigns = personA.chart.angle_signs || {};
-    
+
     return {
       personName: personA.name || 'Unknown',
       ascendant: anglesSigns.ascendant || positions.First_House?.sign,
@@ -210,7 +210,7 @@ function expandSign(abbrev: string | undefined): string {
  */
 function generateChartSummary(geo: ChartGeometry): string {
   const parts: string[] = [];
-  
+
   if (geo.ascendant) {
     parts.push(`${expandSign(geo.ascendant)} Rising`);
   }
@@ -220,7 +220,7 @@ function generateChartSummary(geo: ChartGeometry): string {
   if (geo.moonSign && geo.moonHouse) {
     parts.push(`Moon in ${expandSign(geo.moonSign)} (House ${geo.moonHouse})`);
   }
-  
+
   return parts.join(' • ');
 }
 
@@ -234,22 +234,24 @@ function generateChartSummary(geo: ChartGeometry): string {
  * @param sessionDiagnostics - Optional session validation data
  */
 export function buildClearMirrorFromContexts(
-  contexts: ReportContext[], 
+  contexts: ReportContext[],
   sessionDiagnostics?: SessionDiagnostics
 ): ClearMirrorData {
   const { personA, personB } = extractPersonNames(contexts);
-  const isRelational = contexts.length === 2;
+  // FIX: Check for personB inside JSON content, not just number of contexts
+  // A single relational JSON file contains both person_a and person_b
+  const isRelational = contexts.length === 2 || !!personB;
   const timestamp = new Date().toISOString();
-  
+
   // Try to parse structured LLM response from first context content
   const primaryContent = contexts[0]?.content || '';
   const parsed = parseClearMirrorResponse(primaryContent);
-  
+
   // If LLM response has valid Clear Mirror structure, use it
   if (hasValidClearMirrorStructure(parsed)) {
     return buildFromStructuredResponse(parsed, personA, personB, isRelational, timestamp, sessionDiagnostics);
   }
-  
+
   // Otherwise, use template-based construction (legacy/fallback)
   return buildFromTemplate(contexts, personA, personB, isRelational, timestamp, sessionDiagnostics);
 }
@@ -269,23 +271,23 @@ function buildFromStructuredResponse(
     personName: personA,
     date: timestamp,
     chartType: isRelational ? 'relational' : 'solo',
-    
+
     // Add relational fields if applicable
     ...(isRelational && personB ? {
       personBName: personB,
     } : {}),
-    
+
     // Map parsed Hook Stack to ClearMirrorData structure
     hookStack: parsed.hookStack?.map(hook => ({
       headline: hook.headline,
       livedExample: hook.body, // Parser's 'body' maps to template's 'livedExample'
       geometry: undefined // Geometry embedded in body text with footnotes
     })),
-    
+
     preface: isRelational
       ? `This relational mirror translates symbolic overlays between ${personA} and ${personB} into testable hypotheses. The geometry reveals what each person's natal structure activates in the other—friction points, resonant frequencies, directional weather patterns. These dynamics predict nothing; they offer coordinates for recognition. Accuracy emerges only through lived comparison.`
       : `This reflection draws from symbolic geometry rather than observed behavior. It outlines tendencies the natal pattern could imply—hypotheses to test in lived experience. The chart translates planetary positions at birth into language patterns you can verify against your actual life.`,
-    
+
     // Use parsed frontstage or fall back to empty
     frontstage: parsed.frontstage ? {
       text: parsed.frontstage,
@@ -294,20 +296,20 @@ function buildFromStructuredResponse(
       text: '',
       footnotes: []
     },
-    
+
     // Map polarity cards if present
     polarityCards: parsed.polarityCards?.map(card => ({
       title: card.title,
       text: card.body,
       footnote: '' // Footnotes embedded in body text already
     })),
-    
+
     // Use Mirror Voice as mirror voice (not resonant summary)
     mirrorVoice: parsed.mirrorVoice ? {
       text: parsed.mirrorVoice,
       footnotes: []
     } : undefined,
-    
+
     // Socratic Closure with proper structure
     socraticClosure: parsed.socraticClosure ? {
       text: parsed.socraticClosure,
@@ -315,11 +317,11 @@ function buildFromStructuredResponse(
     } : {
       includeMarkingGuide: true // Always include marking guide even if no custom text
     },
-    
+
     // Add session diagnostics if provided
     sessionDiagnostics: sessionDiagnostics
   };
-  
+
   return data;
 }
 
@@ -335,21 +337,21 @@ function buildFromTemplate(
   timestamp: string,
   sessionDiagnostics?: SessionDiagnostics
 ): ClearMirrorData {
-  
+
   // Extract actual chart geometry from the context content
   const primaryContent = contexts[0]?.content || '';
   const chartGeo = extractChartGeometry(primaryContent);
   const chartSummary = chartGeo ? generateChartSummary(chartGeo) : 'Chart geometry not available';
-  
+
   // Build a geometry-based frontstage that uses REAL data
   const buildFrontstageFromGeometry = (geo: ChartGeometry | null): string => {
     if (!geo) {
       return `This mirror report is for ${personA}. The chart data could not be parsed for detailed interpretation. Please ensure the uploaded JSON contains valid chart geometry.`;
     }
-    
+
     const parts: string[] = [];
     parts.push(`**Natal Blueprint for ${geo.personName}**\n`);
-    
+
     if (geo.birthData?.city) {
       parts.push(`Birth location: ${geo.birthData.city}`);
     }
@@ -357,7 +359,7 @@ function buildFromTemplate(
       parts.push(`Born: ${geo.birthData.month}/${geo.birthData.day}/${geo.birthData.year}`);
     }
     parts.push('');
-    
+
     // Core identity markers
     parts.push('**Core Identity Markers:**');
     if (geo.ascendant) {
@@ -370,7 +372,7 @@ function buildFromTemplate(
       parts.push(`• Moon: ${expandSign(geo.moonSign)} in House ${geo.moonHouse} — emotional nature and inner security needs`);
     }
     parts.push('');
-    
+
     // Personal planets
     parts.push('**Personal Planets:**');
     if (geo.mercurySign) {
@@ -383,7 +385,7 @@ function buildFromTemplate(
       parts.push(`• Mars in ${expandSign(geo.marsSign)} (House ${geo.marsHouse}) — drive, assertion, and action style`);
     }
     parts.push('');
-    
+
     // Outer planets (generational but personalized by house)
     parts.push('**Generational Signatures:**');
     if (geo.jupiterSign) {
@@ -401,40 +403,40 @@ function buildFromTemplate(
     if (geo.plutoSign) {
       parts.push(`• Pluto in ${expandSign(geo.plutoSign)} — transformation, power, and regeneration`);
     }
-    
+
     return parts.join('\n');
   };
-  
+
   const frontstageText = buildFrontstageFromGeometry(chartGeo);
-  
+
   const data: ClearMirrorData = {
     personName: personA,
     date: timestamp,
     chartType: isRelational ? 'relational' : 'solo',
-    
+
     // Add relational fields if applicable
     ...(isRelational && personB ? {
       personBName: personB,
       intimacyTier: determineIntimacyTier(contexts),
       contactState: 'Active' as const,
     } : {}),
-    
+
     preface: isRelational
       ? `This relational mirror translates symbolic overlays between ${personA} and ${personB} into testable hypotheses. The geometry reveals what each person's natal structure activates in the other—friction points, resonant frequencies, directional weather patterns. These dynamics predict nothing; they offer coordinates for recognition. Accuracy emerges only through lived comparison.`
       : `This reflection draws from symbolic geometry rather than observed behavior. It outlines tendencies the natal pattern could imply—hypotheses to test in lived experience. The chart translates planetary positions at birth into language patterns you can verify against your actual life.`,
-    
+
     frontstage: {
       text: frontstageText,
       footnotes: []
     },
-    
+
     resonantSummary: {
-      text: chartGeo 
+      text: chartGeo
         ? `**Chart Summary:** ${chartSummary}\n\nThis report presents the natal geometry for ${chartGeo.personName}. The planetary positions above form the foundation for mirror interpretation. For full narrative interpretation, please request a reading through the Poetic Brain chat interface.`
         : `Chart geometry could not be extracted. Please ensure the uploaded file contains valid natal chart data.`,
       footnotes: []
     },
-    
+
     // Include actual geometry in core insights when available
     coreInsights: chartGeo ? {
       insights: [
@@ -449,7 +451,7 @@ function buildFromTemplate(
           testMarker: 'WB'
         },
         {
-          pattern: chartGeo.marsSign 
+          pattern: chartGeo.marsSign
             ? `Mars in ${expandSign(chartGeo.marsSign)} colors action style and assertion. This placement influences how energy is directed and conflict is engaged.`
             : 'Mars placement defines action style and assertion patterns.',
           geometry: chartGeo.marsSign ? `♂ ${chartGeo.marsSign} H${chartGeo.marsHouse}` : 'Mars position',
@@ -457,7 +459,7 @@ function buildFromTemplate(
         }
       ]
     } : undefined,
-    
+
     polarityCards: chartGeo ? [
       {
         title: `The ${expandSign(chartGeo.ascendant)} Interface`,
@@ -475,24 +477,24 @@ function buildFromTemplate(
         footnote: `☽ ${chartGeo.moonSign} H${chartGeo.moonHouse}`
       }
     ] : undefined,
-    
+
     mirrorVoice: {
-      text: chartGeo 
+      text: chartGeo
         ? `This natal geometry for ${chartGeo.personName} presents the raw coordinates of their symbolic blueprint. The interpretation above identifies core placements—Ascendant, Sun, Moon, and key planets—that form the foundation of their chart signature. For deeper exploration of aspects, houses, and dynamic patterns, engage with the Poetic Brain for a full mirror reading.`
         : `Unable to extract chart geometry from the uploaded file. Please verify the JSON structure contains valid natal chart data with planetary positions.`,
       footnotes: []
     },
-    
+
     socraticClosure: {
-      text: chartGeo 
+      text: chartGeo
         ? `Looking at this geometry for ${chartGeo.personName}: Does the ${expandSign(chartGeo.ascendant)} Rising resonance match how you're perceived? Does the ${expandSign(chartGeo.sunSign)} Sun in House ${chartGeo.sunHouse} reflect your core expression? Where does the ${expandSign(chartGeo.moonSign)} Moon's need for security show up in daily life?`
         : undefined,
       includeMarkingGuide: true
     },
-    
+
     // Add session diagnostics if provided
     sessionDiagnostics: sessionDiagnostics
   };
-  
+
   return data;
 }

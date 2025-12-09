@@ -2692,9 +2692,11 @@ export default function MathBrainPage() {
 
         const stripPerson = (person: any) => {
           if (!person) return;
-          if (Array.isArray(person.aspects)) delete person.aspects;
+          // PRESERVE aspects - required by Geometry Gate
+          // if (Array.isArray(person.aspects)) delete person.aspects;
           if (person.chart) {
-            if (Array.isArray(person.chart.aspects)) delete person.chart.aspects;
+            // PRESERVE aspects - required by Geometry Gate
+            // if (Array.isArray(person.chart.aspects)) delete person.chart.aspects;
             if (person.chart.transitsByDate && typeof person.chart.transitsByDate === 'object') {
               Object.keys(person.chart.transitsByDate).forEach((date) => {
                 const day = person.chart.transitsByDate[date];
@@ -2887,14 +2889,8 @@ export default function MathBrainPage() {
         setTimeout(() => setToast(null), 2000);
       }
 
-      const confirmNav = window.confirm(
-        '✅ Report ready for Poetic Brain!\n\n' +
-        'Your Math Brain report has been saved. You can now navigate to Poetic Brain for AI analysis.\n\n' +
-        'Continue to Poetic Brain?'
-      );
-      if (confirmNav) {
-        window.location.href = '/chat';
-      }
+      // Navigate directly without confirmation (de-gamification)
+      window.location.href = '/chat';
     } else {
       window.location.href = '/chat';
     }
