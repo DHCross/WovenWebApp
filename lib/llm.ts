@@ -178,7 +178,7 @@ async function requestCompletion(prompt: string, opts: StreamOptions) {
  * the Perplexity API call above is not using `stream: true`.
  * TODO: Upgrade `requestCompletion` to use `stream: true` for true incremental delivery.
  */
-export async function *generateStream(prompt: string, opts: StreamOptions = {}): AsyncGenerator<LLMChunk> {
+export async function* generateStream(prompt: string, opts: StreamOptions = {}): AsyncGenerator<LLMChunk> {
   let lastError: any = null;
   let lastErrorType: ErrorType = 'unknown';
 
@@ -189,6 +189,26 @@ export async function *generateStream(prompt: string, opts: StreamOptions = {}):
       const text = extractText(choice);
 
       if (text) {
+        // NUCLEAR OPTION: Check for banned somatic/prescriptive patterns
+        const BANNED_PATTERNS = [
+          /\b(chest|shoulders|breath|breathing|collarbones|jaw|muscles|ribs|tongue|heartbeat|pulse|stomach|gut|visceral)\b/i,
+          /\b(try this|experiment with|shift your|move your|roll your|drop your|soften your)\b/i
+        ];
+
+        for (const pattern of BANNED_PATTERNS) {
+          if (pattern.test(text)) {
+            const violation = text.match(pattern)?.[0];
+            // eslint-disable-next-line no-console
+            console.warn(`[Poetic Brain Guard] VIOLATION in Stream: Detected banned term "${violation}". Output blocked.`);
+
+            yield {
+              delta: `[SYSTEM PROTECTION: The generated response contained prohibited somatic or prescriptive language ("${violation}") and was blocked to preserve protocol integrity. Please try asking again with a focus on geometry or structural dynamics.]`,
+              error: 'Content Violation'
+            };
+            return;
+          }
+        }
+
         // Yield paragraphs or sentences to simulate flow if needed,
         // or just yield the whole block. Yielding block for now.
         yield { delta: text };
@@ -241,6 +261,11 @@ function normalizePrompt(p: string) {
 export async function generateText(prompt: string, opts: StreamOptions = {}): Promise<string> {
   let out = '';
   let lastError = '';
+  const BANNED_PATTERNS = [
+    /\b(chest|shoulders|breath|breathing|collarbones|jaw|muscles|ribs|tongue|heartbeat|pulse|stomach|gut|visceral)\b/i,
+    /\b(try this|experiment with|shift your|move your|roll your|drop your|soften your)\b/i
+  ];
+
   for await (const chunk of generateStream(prompt, opts)) {
     if (chunk.error) {
       lastError = chunk.error;
@@ -248,6 +273,17 @@ export async function generateText(prompt: string, opts: StreamOptions = {}): Pr
       console.error(chunk.error);
     }
     out += String(chunk.delta || '');
+  }
+
+  // Post-processing Guard: NUCLEAR OPTION
+  for (const pattern of BANNED_PATTERNS) {
+    if (pattern.test(out)) {
+      const violation = out.match(pattern)?.[0];
+      // eslint-disable-next-line no-console
+      console.warn(`[Poetic Brain Guard] VIOLATION: Detected banned term "${violation}". Output blocked.`);
+
+      return `[SYSTEM PROTECTION: The generated response contained prohibited somatic or prescriptive language ("${violation}") and was blocked to preserve protocol integrity. Please try asking again with a focus on geometry or structural dynamics.]`;
+    }
   }
 
   if (lastError) {

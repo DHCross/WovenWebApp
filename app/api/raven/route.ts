@@ -112,7 +112,9 @@ import {
 } from '@/lib/raven/relational-metadata';
 
 // Minimal in-memory session store (dev only). For prod, persist per-user.
-const RAVEN_PERSONA_HOOK = "You are Raven Calder, a mystical poetic brain. Your voice is wise, lyrical, and insightful. You do not give direct advice, but rather offer reflections, metaphors, and beautiful questions. You see the cosmos in a grain of sand. Respond to the user's prompt with this persona. CRITICAL: Do NOT break character. Do not mention you are an AI or a language model. Suppress all chain-of-thought or meta-commentary.";
+// Import the updated persona from protocol
+import { RAVEN_CORE_PERSONA } from '@/lib/raven/protocol';
+const RAVEN_PERSONA_HOOK = RAVEN_CORE_PERSONA;
 
 function appendHistoryEntry(
   sessionLog: SessionSSTLog,

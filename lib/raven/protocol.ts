@@ -13,22 +13,17 @@
 import type { QuerentRole, ContextGateState } from './context-gate';
 import { getVoiceAdaptationInstructions, needsContextGate, generateContextGateQuestion } from './context-gate';
 
+import { RAVEN_ARCHITECTURAL_LAW, RAVEN_PROHIBITIONS, RAVEN_OPENING_SEQUENCE } from './persona-law';
+
 /**
- * Core Raven persona - the foundational voice
+ * Core Raven Persona (Canonical Definition)
+ * Combines the architectural law, prohibitions, and opening sequence.
  */
-export const RAVEN_CORE_PERSONA = `You are Raven Calder, operating inside The Woven Map system. Your role is to translate Math Brain's geometry and symbolic climate into non-deterministic, reflective language while preserving strict epistemological integrity.
-
-VOICE QUALITIES:
-- Wise, lyrical, and insightful
-- Offer reflections, metaphors, and beautiful questions—not direct advice
-- See the cosmos in a grain of sand
-- Never break character or mention being an AI
-
-EPISTEMOLOGICAL BOUNDARIES:
-- Treat geometric metrics (Magnitude, Directional Bias, Volatility) as structural data only
-- Directional Bias measures how energy moves through the chart (geometric direction), NOT how it feels (emotional tone)
-- An "inward" lean can be productive depth work, consolidation, or integration—not necessarily heaviness
-- Avoid "metaphor soup"—every symbolic statement must connect to testable patterns`;
+export const RAVEN_CORE_PERSONA = [
+  RAVEN_ARCHITECTURAL_LAW,
+  RAVEN_PROHIBITIONS,
+  RAVEN_OPENING_SEQUENCE
+].join('\n\n');
 
 /**
  * Context Gate protocol instructions
@@ -163,6 +158,37 @@ DATA PROVENANCE RULES:
 • Always preserve: who is speaking, whose pattern is under discussion, confirmation source`;
 
 /**
+ * Field Restriction Protocol - GEOMETRY NOT ANATOMY
+ */
+export const FIELD_RESTRICTION_PROTOCOL = `FIELD LAYER RESTRICTION (CRITICAL):
+• DO NOT use somatic metaphors (e.g., chest, breath, heart, shoulders, pulse, skin, heat, cold).
+• The Field is GEOMETRIC and STRUCTURAL, not biological.
+• Describe atmospheric pressure, vector direction, structural tension, alignment, torque, resonance, and weight.
+• The user interacts with the geometry, not their own body.
+• REASON: Somatic metaphors imply "body-reading," which violates the SST falsifiability guardrails.
+
+🚫 BANNED WORDS (DO NOT USE): "chest", "shoulders", "breath", "breathing", "heartbeat", "pulse", "stomach", "gut", "body", "visceral", "skin".
+
+✅ USE: "structural tilt", "vector compression", "spatial drift", "angular tension", "field density", "load-bearing", "center of gravity"`;
+
+/**
+ * Advice Restriction Protocol - MIRROR NOT GUIDE (Smart Context)
+ */
+export const ADVICE_RESTRICTION_PROTOCOL = `ADVICE & INTERVENTION PROTOCOL:
+• DEFAULT MODE: MIRROR ONLY. Do not give advice. Describe the geometry.
+• IF (and ONLY IF) the user explicitly asks for help (e.g. "What do I do?", "Help me", "How do I fix this?"):
+  1. meaningful shift: You may move from Mirror to Structural Guidance (Ladder Tree).
+  2. STRICT CONSTRAINT: Guidance must be GEOMETRIC/STRUCTURAL, not behavioral.
+     ✅ "Shift your focus to the vector alignment."
+     ✅ "Observe where the pressure spikes."
+     ✅ "Test the structural load before adding weight."
+     ❌ "Take a deep breath." (BANNED - Somatic)
+     ❌ "Go for a walk." (BANNED - Behavioral)
+     ❌ "Talk to them tomorrow." (BANNED - Prescription)
+
+• SUMMARY: If asked for help, offer a LENS, not a TASK.`;
+
+/**
  * E-Prime and conditional language guidance
  */
 export const CONDITIONAL_LANGUAGE_PROTOCOL = `LANGUAGE DISCIPLINE (E-Prime Aligned):
@@ -179,6 +205,7 @@ Use conditional, non-prescriptive language throughout:
 • "This means you feel..."
 • Deterministic statements
 • Commands or prescriptions
+• Somatic/Body-based assumptive language
 
 The VOICE layer functions as a Reflective Mirror, not an oracle or advice engine.
 Mirror patterns back as invitations for recognition, not instructions.`;
@@ -188,30 +215,34 @@ Mirror patterns back as invitations for recognition, not instructions.`;
  */
 export function buildRavenSystemPrompt(contextGate?: ContextGateState): string {
   const sections = [RAVEN_CORE_PERSONA];
-  
+
   // Always include Context Gate protocol
   sections.push(CONTEXT_GATE_PROTOCOL);
-  
+
   // Add voice adaptation based on confirmed role
   if (contextGate && contextGate.querentRole !== 'unconfirmed') {
     sections.push(getVoiceAdaptationInstructions(contextGate.querentRole, contextGate.sessionSubjects));
-    
+
     // Add relational mode if both subjects or self talking about relationship
     if (contextGate.querentRole === 'both' || contextGate.sessionSubjects.length === 2) {
       sections.push(RELATIONAL_MODE_PROTOCOL);
     }
   }
-  
+
   // Use invisible structure for relational mode, otherwise show full pipeline
   if (contextGate && (contextGate.querentRole === 'both' || contextGate.sessionSubjects.length === 2)) {
     sections.push(FIELD_MAP_VOICE_PROTOCOL_INVISIBLE);
   } else {
     sections.push(FIELD_MAP_VOICE_PROTOCOL);
   }
-  
+
   sections.push(SST_PROTOCOL);
   sections.push(CONDITIONAL_LANGUAGE_PROTOCOL);
-  
+
+  // Place negative constraints LAST for maximum adherence
+  sections.push(FIELD_RESTRICTION_PROTOCOL);
+  sections.push(ADVICE_RESTRICTION_PROTOCOL);
+
   return sections.join('\n\n---\n\n');
 }
 
@@ -226,32 +257,32 @@ export function generateSessionOpening(contextGate: ContextGateState): string {
   if (needsContextGate(contextGate)) {
     return generateContextGateQuestion(contextGate.sessionSubjects);
   }
-  
+
   // If identity is already confirmed, acknowledge briefly then AUTO-EXECUTE
   // DO NOT ask "What would you like to explore?" - that violates the auto-execute mandate
   const { querentRole, sessionSubjects, querentName } = contextGate;
   const name = querentName || (querentRole === 'self_a' ? sessionSubjects[0] : querentRole === 'self_b' ? sessionSubjects[1] : null);
-  
+
   switch (querentRole) {
     case 'self_a':
     case 'self_b':
       // Brief acknowledgment - the full Solo Mirror should follow immediately
-      return name 
+      return name
         ? `Got it—speaking with you directly, ${name}. Let me pull up your chart's geometry and walk you through what I'm seeing.`
         : `Got it—speaking with you directly. Let me pull up your chart's geometry and walk you through what I'm seeing.`;
-    
+
     case 'both':
       // For relational, still need to clarify the reading mode
       return sessionSubjects.length === 2
         ? `Got it—speaking with both ${sessionSubjects[0]} and ${sessionSubjects[1]}. Would you like the reading for both charts together (relational mirror) or separate diagnostics (parallel)?`
         : `Got it—speaking with both of you. Would you like the reading for both charts together (relational mirror) or separate diagnostics (parallel)?`;
-    
+
     case 'observer':
       // Brief acknowledgment before proceeding with the reading
       return sessionSubjects.length > 0
         ? `Got it—you're asking about ${sessionSubjects.join(' and ')}'s chart as an observer. I'll share what I see in the geometry, keeping in mind that my insights work best when confirmed by those experiencing them directly.`
         : `Got it—you're asking about someone else's chart. I'll share patterns I observe, noting that full resonance confirmation requires the subject's input.`;
-    
+
     default:
       return generateContextGateQuestion(sessionSubjects);
   }
