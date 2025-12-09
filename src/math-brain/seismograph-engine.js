@@ -71,7 +71,7 @@ function formatTransitTable(enrichedAspects, prevDayAspects = null) {
     const orb = aspect._orb || 0;
     const key = `${aspect.p1_name}|${aspect._aspect}|${aspect.p2_name}`;
     const prevOrb = prevOrbMap.get(key);
-    
+
     // Determine phase: ↑ tightening (orb decreasing), ↓ separating (orb increasing)
     let phase = '—'; // neutral/unknown
     if (prevOrb != null && typeof prevOrb === 'number') {
@@ -121,15 +121,15 @@ function formatTransitTable(enrichedAspects, prevDayAspects = null) {
   // Generate markdown table format
   function createMarkdownTable(aspects, title) {
     if (aspects.length === 0) return '';
-    
+
     let table = `\n**${title}**\n\n`;
     table += '| Transit | Aspect | Natal | Orb (°) | Phase | Score |\n';
     table += '|---------|--------|-------|---------|--------|-------|\n';
-    
+
     for (const a of aspects) {
       table += `| ${a.transit} | ${a.aspect} | ${a.natal} | ${a.orb} | ${a.phase} | ${a.score >= 0 ? '+' : ''}${a.score} |\n`;
     }
-    
+
     return table;
   }
 
@@ -186,7 +186,7 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
     SEISMOGRAPH_VERSION,
     WEIGHTS_LEGEND,
   } = helpers;
-  
+
   // Validate that helpers are provided
   if (!enrichDailyAspects || typeof enrichDailyAspects !== 'function') {
     throw new Error('calculateSeismograph requires options.helpers.enrichDailyAspects function');
@@ -197,7 +197,7 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
   if (!weightAspect || typeof weightAspect !== 'function') {
     throw new Error('calculateSeismograph requires options.helpers.weightAspect function');
   }
-  
+
   if (!transitsByDate || Object.keys(transitsByDate).length === 0) {
     return { daily: {}, summary: {}, graph_rows: [] };
   }
@@ -230,7 +230,7 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
     const d = days[i];
     const rawDayAspects = transitsByDate[d] || [];
     const enriched = enrichDailyAspects(rawDayAspects, orbsProfile);
-    
+
     // Enhance aspects with retrograde flags
     const retroMap = retroFlagsByDate[d] || {};
     const enrichedWithRetrograde = enriched.filtered.map(aspect => {
@@ -243,18 +243,18 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
         retrograde_involved: p1r || p2r
       };
     });
-    
+
     // Generate orb-band transit table with phase and score
     const transitTable = formatTransitTable(enriched.filtered, prevDayFiltered);
     const phaseLookup = transitTable.phaseLookup || {};
-    
+
     const aspectsForAggregate = enriched.filtered.map(x => ({
       transit: { body: x.p1_name, retrograde: x.p1_retrograde },
       natal: {
         body: x.p2_name,
         retrograde: x.p2_retrograde,
-        isAngleProx: ["Ascendant","Medium_Coeli","Descendant","Imum_Coeli"].includes(x.p2_name),
-        isLuminary: ["Sun","Moon"].includes(x.p2_name),
+        isAngleProx: ["Ascendant", "Medium_Coeli", "Descendant", "Imum_Coeli"].includes(x.p2_name),
+        isLuminary: ["Sun", "Moon"].includes(x.p2_name),
         degCrit: false
       },
       type: x._aspect,
@@ -263,7 +263,7 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
 
     // Prepare rolling context for magnitude normalization
     const rollingContext = rollingMagnitudes.length >= 1 ? { magnitudes: [...rollingMagnitudes] } : null;
-    
+
     const agg = aggregate(aspectsForAggregate, prev, { rollingContext });
     const valenceRaw = Number.isFinite(agg.rawValence) ? agg.rawValence : 0;
     rawValenceSeries.push(valenceRaw);
@@ -449,7 +449,7 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
       const guardMessage = isBalance ? readiness?.balance?.message : readiness?.mirror?.message;
       poeticSelection = {
         aspects: [],
-        counts: { total: enriched.filtered.length, category: { A:0, B:0, C:0, D:0 }, selected: 0 },
+        counts: { total: enriched.filtered.length, category: { A: 0, B: 0, C: 0, D: 0 }, selected: 0 },
         limits: isBalance ? { min: 8, max: 12 } : { min: 5, max: 9 },
         note: guardMessage || (isBalance ? 'Balance guard active.' : 'Mirror guard active.')
       };
@@ -483,17 +483,17 @@ function calculateSeismograph(transitsByDate, retroFlagsByDate = {}, options = {
   }
 
   const numDays = days.length;
-  
+
   // === SINGLE SOURCE OF TRUTH: Average daily seismograph values directly ===
   const X = Object.values(daily).reduce((s, d) => s + d.seismograph.magnitude, 0) / numDays;
   const Y = Object.values(daily).reduce((s, d) => s + (d.seismograph.directional_bias?.value || 0), 0) / numDays;
   const VI = Object.values(daily).reduce((s, d) => s + d.seismograph.volatility, 0) / numDays;
-  
+
   // Classification and rounding
   const magnitudeInfo = classifyMagnitude(X);
   const magnitudeLabel = magnitudeInfo?.label || null;
   const magnitudeAvg = Number(X.toFixed(1));
-  
+
   const biasAvg = Number(Y.toFixed(1));
   const biasSummaryInfo = classifyDirectionalBias(biasAvg);
   const biasAbsRounded = Number(Math.abs(biasAvg).toFixed(1));
