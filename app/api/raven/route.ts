@@ -345,6 +345,18 @@ export async function POST(req: Request) {
       const angleSigns = geometry.angle_signs || geometry.angles; // handle schema variations
       const profile = inferBigFiveFromChart({ positions } as any);
 
+      // Guard: profile may be null if no positions
+      if (!profile) {
+        const fallbackMsg = "Unable to infer a pattern profile from this geometry. Please try with a complete chart export.";
+        return NextResponse.json({
+          intent: 'conversation',
+          ok: true,
+          draft: { conversation: fallbackMsg },
+          sessionId: sid,
+          probe: null
+        });
+      }
+
       // Dual-Trigger Tension Detection
       const tensions = detectTensions(profile, positions, angleSigns);
 
