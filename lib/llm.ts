@@ -192,7 +192,7 @@ export async function* generateStream(prompt: string, opts: StreamOptions = {}):
         // NUCLEAR OPTION: Check for banned somatic/prescriptive patterns
         const BANNED_PATTERNS = [
           /\b(chest|shoulders|breath|breathing|collarbones|jaw|muscles|ribs|tongue|heartbeat|pulse|stomach|gut|visceral)\b/i,
-          /\b(try this|experiment with|shift your|move your|roll your|drop your|soften your)\b/i
+          /\b(try this|shift your|move your|roll your|drop your|soften your)\b/i
         ];
 
         for (const pattern of BANNED_PATTERNS) {
@@ -263,7 +263,7 @@ export async function generateText(prompt: string, opts: StreamOptions = {}): Pr
   let lastError = '';
   const BANNED_PATTERNS = [
     /\b(chest|shoulders|breath|breathing|collarbones|jaw|muscles|ribs|tongue|heartbeat|pulse|stomach|gut|visceral)\b/i,
-    /\b(try this|experiment with|shift your|move your|roll your|drop your|soften your)\b/i
+    /\b(try this|shift your|move your|roll your|drop your|soften your)\b/i
   ];
 
   for await (const chunk of generateStream(prompt, opts)) {

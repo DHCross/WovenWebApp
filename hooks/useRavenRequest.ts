@@ -193,7 +193,7 @@ export function useRavenRequest({
 
         // Get a fresh access token (will refresh if expired)
         const accessToken = await getAccessTokenAsync();
-        
+
         const response = await fetchWithRetry(
           "/api/raven",
           {
@@ -222,6 +222,12 @@ export function useRavenRequest({
           let accumulatedDraft = "";
           let finalResponseData: RavenDraftResponse | null = null;
 
+          // Phase tracking for phase-gated streaming
+          let currentPhase: string | null = null;
+          let currentPhaseLabel: string = "";
+          let currentPhaseIcon: string = "";
+          let phaseContents: Map<string, string> = new Map();
+
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
@@ -240,6 +246,54 @@ export function useRavenRequest({
               try {
                 const chunk = JSON.parse(dataStr);
 
+                // === PHASE-GATED STREAMING EVENTS ===
+                if (chunk.type === 'phase_start' && chunk.phaseKey) {
+                  currentPhase = chunk.phaseKey as string;
+                  currentPhaseLabel = chunk.phaseLabel || 'Section';
+                  currentPhaseIcon = chunk.phaseIcon || '📖';
+                  phaseContents.set(currentPhase, '');
+                  continue;
+                }
+
+                if (chunk.type === 'phase_delta' && currentPhase) {
+                  const existing = phaseContents.get(currentPhase!) || '';
+                  phaseContents.set(currentPhase, existing + chunk.delta);
+
+                  // Rebuild accumulated draft from all phases
+                  accumulatedDraft = '';
+                  for (const [phase, content] of phaseContents) {
+                    const label = currentPhase === phase ? currentPhaseLabel : phase;
+                    const icon = currentPhase === phase ? currentPhaseIcon : '📖';
+                    accumulatedDraft += `\n\n**${icon} ${label}**\n\n${content}`;
+                  }
+                  accumulatedDraft = accumulatedDraft.trim();
+
+                  // Real-time update
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === placeholderId
+                        ? {
+                          ...msg,
+                          html: `<p>${escapeHtml(accumulatedDraft)}</p>`,
+                          rawText: accumulatedDraft
+                        }
+                        : msg
+                    )
+                  );
+                  continue;
+                }
+
+                if (chunk.type === 'phase_end') {
+                  // Phase complete, keep currentPhase for ordering
+                  continue;
+                }
+
+                if (chunk.type === 'complete') {
+                  // All phases complete
+                  continue;
+                }
+
+                // === LEGACY / FALLBACK: Standard delta events ===
                 if (chunk.delta) {
                   accumulatedDraft += chunk.delta;
                   // Real-time update using escaped HTML to prevent XSS during streaming

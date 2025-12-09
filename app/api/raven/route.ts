@@ -433,19 +433,15 @@ export async function POST(req: Request) {
           const result = processMirrorDirective(usedContent);
 
           if (result.success && result.narrative_sections) {
-            // Assemble structured narrative from Poetic Brain
-            let structuredNarrative = '';
-            if (result.narrative_sections.solo_mirror_a) structuredNarrative += result.narrative_sections.solo_mirror_a + '\n\n';
-            // CRITICAL FIX: Include Person B's solo mirror for relational reports
-            // Without this, Person B's patterns were only shown in relational_engine context,
-            // causing Person B's behaviors to appear fused onto Person A's reading
-            if (result.narrative_sections.solo_mirror_b) structuredNarrative += result.narrative_sections.solo_mirror_b + '\n\n';
-            if (result.narrative_sections.relational_engine) structuredNarrative += result.narrative_sections.relational_engine + '\n\n';
-            if (result.narrative_sections.weather_overlay) structuredNarrative += result.narrative_sections.weather_overlay;
+            // === PHASE-GATED STREAMING ===
+            // Per Four Report Types mandate: emit each phase as a distinct SSE block
+            const { sectionsToPhaseArray, PHASE_LABELS, PHASE_ICONS, ReportPhase } = await import('@/lib/raven/reportPhases');
+            const phases = sectionsToPhaseArray(result.narrative_sections);
 
-            if (structuredNarrative.trim()) {
+            if (phases.length === 0) {
+              // Fall through to empty narrative handling below
+            } else {
               // === Auth check before LLM call ===
-              // POETIC_BRAIN_AUTH_ENABLED defaults to 'false' - auth is disabled until you're ready to monetize
               const authEnabled = process.env.POETIC_BRAIN_AUTH_ENABLED === 'true';
 
               if (authEnabled) {
@@ -458,11 +454,8 @@ export async function POST(req: Request) {
                     hint: 'Visit ravencalder.com to purchase an access key'
                   }, { status: 401 });
                 }
-                // TODO: When ready to monetize, add license key validation here
-                // For now, any Bearer token is accepted if auth is enabled
                 console.log('[Raven] Auth enabled - token provided');
               }
-
 
               // Extract names for personalization
               const personAName = usedContent?.person_a?.name || 'the querent';
@@ -470,43 +463,13 @@ export async function POST(req: Request) {
               const isRelational = !!personBName;
               const intimacyTier = result.intimacy_tier || usedContent?.mirror_contract?.intimacy_tier || 'P3';
 
-              // Build voice transformation prompt
-              const voicePrompt = `You are Raven Calder, delivering a mirror reading. Below is structured chart geometry and pattern analysis. Your task is to VOICE this material—transform it into your natural, conversational style while preserving all the geometric insights.
-
-VOICING INSTRUCTIONS:
-- Speak directly to ${personAName}${isRelational ? ` about their connection with ${personBName}` : ''}
-- Use your wise, lyrical voice—not clinical or template-like
-- Preserve ALL the geometric patterns and insights from the structured data
-- Use conditional, E-Prime-aligned language ("this pattern suggests...", "you may notice...")
-- Flow naturally between sections without mechanical headers
-- End with one reflective question that invites them to test this in their lived experience
-- Intimacy tier: ${intimacyTier} — calibrate disclosure and directness accordingly
-
-STRUCTURED READING TO VOICE:
-${structuredNarrative}
-
-Now deliver this reading in your authentic Raven Calder voice. Speak as if they're sitting across from you. No headers like "Field Overview" or "Tension Architecture"—just flow.`;
-
-              // Check for probes
-              let probeData: SSTProbe | { question: string; type: string; options: string[] } | null = null;
-              const isFirstTurn = (sessionLog.turnCount ?? 0) <= 1;
-              const isOSRResponse = checkForOSRIndicators(textInput);
-              const isMetaIrritation = isMetaSignalAboutRepetition(textInput);
-              const shouldAddProbe = !isFirstTurn && !isOSRResponse && !isMetaIrritation;
-
               // Update session logs
               appendHistoryEntry(sessionLog, 'user', textInput || "Reading request");
               sessionLog.turnCount = (sessionLog.turnCount ?? 0) + 1;
               updateSession(sid, () => { });
 
-              const prov = stampProvenance({ source: 'Poetic Brain (Voiced Mirror)' });
-
-              // Stream through LLM for Raven's voice
+              const prov = stampProvenance({ source: 'Poetic Brain (Phase-Gated)' });
               const encoder = new TextEncoder();
-              const llmStream = await generateStream(voicePrompt, {
-                model: process.env.POETIC_BRAIN_MODEL || 'sonar-pro',
-                personaHook: RAVEN_PERSONA_HOOK,
-              });
 
               const responseStream = new ReadableStream({
                 async start(controller) {
@@ -516,49 +479,99 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
 
                   // Initial metadata frame
                   send({
-                    climate: "VOICE · Mirror Reading",
-                    hook: "Raven · Voiced",
+                    climate: "VOICE · Phase-Gated Reading",
+                    hook: "Raven · Phased",
                     sessionId: sid,
                     ok: true,
                     prov,
-                    ...(probeData && {
-                      probe: probeData,
-                      validationMode: 'resonance'
-                    })
+                    phaseCount: phases.length,
                   });
 
                   let fullReply = '';
-                  try {
-                    for await (const chunk of llmStream) {
-                      if (chunk.delta) {
-                        fullReply += chunk.delta;
-                        send({ delta: chunk.delta });
+
+                  // Loop through each phase and voice it separately
+                  for (let i = 0; i < phases.length; i++) {
+                    const { phase, content } = phases[i];
+                    const phaseLabel = PHASE_LABELS[phase];
+                    const phaseIcon = PHASE_ICONS[phase];
+
+                    // Emit phase_start event
+                    send({
+                      type: 'phase_start',
+                      phaseIndex: i,
+                      phaseKey: phase,
+                      phaseLabel,
+                      phaseIcon,
+                    });
+
+                    // Build voice transformation prompt for THIS phase only
+                    const voicePrompt = `You are Raven Calder. Below is one section of a mirror reading: **${phaseLabel}**.
+
+VOICING INSTRUCTIONS:
+- Speak directly to ${personAName}${isRelational ? ` about their connection with ${personBName}` : ''}
+- Use your wise, lyrical voice—not clinical or template-like
+- Preserve ALL the geometric patterns and insights from this section
+- Use conditional, E-Prime-aligned language ("this pattern suggests...", "you may notice...")
+- Keep this section focused and coherent—don't try to cover everything
+- Do NOT add a closing question yet (save that for the final phase)
+- Intimacy tier: ${intimacyTier}
+
+SECTION CONTENT (${phaseLabel}):
+${content}
+
+Now voice this section naturally. Maximum 3-4 paragraphs.`;
+
+                    try {
+                      const llmStream = generateStream(voicePrompt, {
+                        model: process.env.POETIC_BRAIN_MODEL || 'sonar-pro',
+                        personaHook: RAVEN_PERSONA_HOOK,
+                      });
+
+                      let phaseContent = '';
+                      for await (const chunk of llmStream) {
+                        if (chunk.delta) {
+                          phaseContent += chunk.delta;
+                          send({
+                            type: 'phase_delta',
+                            phaseIndex: i,
+                            delta: chunk.delta
+                          });
+                        }
                       }
+
+                      fullReply += `\n\n---\n\n**${phaseIcon} ${phaseLabel}**\n\n${phaseContent}`;
+
+                      // Emit phase_end event
+                      send({
+                        type: 'phase_end',
+                        phaseIndex: i,
+                        phaseKey: phase,
+                      });
+
+                    } catch (phaseError) {
+                      console.error(`[Raven] Phase ${phaseLabel} LLM error:`, phaseError);
+                      // Fallback: emit raw content for this phase
+                      send({
+                        type: 'phase_delta',
+                        phaseIndex: i,
+                        delta: content
+                      });
+                      fullReply += `\n\n---\n\n**${phaseIcon} ${phaseLabel}**\n\n${content}`;
+                      send({
+                        type: 'phase_end',
+                        phaseIndex: i,
+                        phaseKey: phase,
+                        fallback: true,
+                      });
                     }
-
-                    // Add validation probe if needed (after LLM response)
-                    if (shouldAddProbe && fullReply) {
-                      probeData = generateValidationProbe(fullReply, content);
-                      if (probeData?.question) {
-                        const probeText = '\n\n' + probeData.question;
-                        fullReply += probeText;
-                        send({ delta: probeText });
-                        send({ probe: probeData, validationMode: 'resonance' });
-                      }
-                    }
-
-                    // Log the voiced response
-                    appendHistoryEntry(sessionLog, 'raven', fullReply);
-                    updateSession(sid, () => { });
-
-                  } catch (streamError) {
-                    console.error('[Raven] LLM stream error:', streamError);
-                    // Fallback to structured narrative if LLM fails
-                    send({ delta: structuredNarrative });
-                    appendHistoryEntry(sessionLog, 'raven', structuredNarrative);
-                    updateSession(sid, () => { });
                   }
 
+                  // Log the full voiced response
+                  appendHistoryEntry(sessionLog, 'raven', fullReply);
+                  updateSession(sid, () => { });
+
+                  // Signal completion
+                  send({ type: 'complete', phaseCount: phases.length });
                   controller.close();
                 }
               });
@@ -569,39 +582,6 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
                   'Cache-Control': 'no-cache',
                   'Connection': 'keep-alive'
                 }
-              });
-            } else {
-
-              // DEFENSIVE LAYER 3: Safety net fallback
-              // Poetic Brain processed the directive but produced empty narrative sections
-              // This is the last-resort catch for edge cases like:
-              // - Network corruption mid-stream
-              // - Unexpected undefined/null in places we didn't anticipate
-              // - Future refactoring that breaks assumptions
-              // Layer 2 (Poetic Brain) should catch most cases with better messaging
-              console.warn('[Raven] Poetic Brain returned empty narrative sections', {
-                hasSoloA: Boolean(result.narrative_sections.solo_mirror_a),
-                hasSoloB: Boolean(result.narrative_sections.solo_mirror_b),
-                hasRelational: Boolean(result.narrative_sections.relational_engine),
-                hasWeather: Boolean(result.narrative_sections.weather_overlay),
-              });
-
-              const contextName = mirrorContext.name || 'the uploaded report';
-              const fallbackMessage = `I received ${contextName} and recognized it as a Mirror Directive, but I couldn't extract the chart geometry needed to generate the reading. This usually means the aspect data is in an unexpected format or location within the JSON.\n\nYou can:\n1. Re-export from Math Brain using the "Export to Poetic Brain" option\n2. Ask me a specific question about the report—I can still read directly from it\n\nWhat would you like to do?`;
-
-              appendHistoryEntry(sessionLog, 'user', textInput || 'Mirror report upload');
-              appendHistoryEntry(sessionLog, 'raven', fallbackMessage);
-              updateSession(sid, () => { });
-
-              const prov = stampProvenance({ source: 'Poetic Brain (Empty Narrative Fallback)' });
-              return NextResponse.json({
-                intent: 'conversation',
-                ok: true,
-                draft: { conversation: fallbackMessage },
-                prov,
-                sessionId: sid,
-                probe: null,
-                hook: 'Report Needs Attention',
               });
             }
           }
