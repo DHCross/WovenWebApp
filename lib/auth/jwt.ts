@@ -6,17 +6,25 @@ import jwksClient from 'jwks-rsa';
 const IS_DEV = process.env.NODE_ENV === 'development';
 const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN;
 const IS_DUMMY_CONFIG = AUTH0_DOMAIN === 'dummy.auth0.com';
-const SKIP_AUTH = IS_DEV && (!AUTH0_DOMAIN || IS_DUMMY_CONFIG);
+
+// Check for explicit disable flag
+const AUTH_DISABLED_FLAG = process.env.NEXT_PUBLIC_ENABLE_AUTH === 'false';
+
+const SKIP_AUTH = AUTH_DISABLED_FLAG || (IS_DEV && (!AUTH0_DOMAIN || IS_DUMMY_CONFIG));
 
 if (SKIP_AUTH) {
-  console.warn('[WARN] Auth0 configuration missing or dummy in development. Authentication will be bypassed.');
+  if (AUTH_DISABLED_FLAG) {
+    console.log('[INFO] Auth globally disabled via NEXT_PUBLIC_ENABLE_AUTH=false');
+  } else {
+    console.warn('[WARN] Auth0 configuration missing or dummy in development. Authentication will be bypassed.');
+  }
 }
 
 const client = SKIP_AUTH
   ? null
   : jwksClient({
-      jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`,
-    });
+    jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`,
+  });
 
 function getKey(header: any, callback: any) {
   if (SKIP_AUTH || !client) {
@@ -58,8 +66,8 @@ export async function verifyToken(token: string) {
       if (err) {
         // Fallback in Dev if verification fails (e.g. expired token, bad config)
         if (IS_DEV) {
-           console.warn(`[Auth] Token verification failed in development: ${err.message}. Falling back to mock user.`);
-           return resolve(getMockUser());
+          console.warn(`[Auth] Token verification failed in development: ${err.message}. Falling back to mock user.`);
+          return resolve(getMockUser());
         }
         return reject(err);
       }
