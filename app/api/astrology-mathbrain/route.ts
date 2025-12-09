@@ -399,9 +399,15 @@ export async function POST(request: Request) {
         }
       };
 
-      const [positionsRes, housesRes] = await Promise.all([
+      const aspectsPayload = {
+        subject,
+        options: settings
+      };
+
+      const [positionsRes, housesRes, aspectsRes] = await Promise.all([
         callApi('/data/positions', positionsPayload, apiKey),
-        callApi('/data/house-cusps', housesPayload, apiKey)
+        callApi('/data/house-cusps', housesPayload, apiKey),
+        callApi('/data/aspects', aspectsPayload, apiKey)
       ]);
 
       // --- ROBUST PARSING LOGIC ---
@@ -482,6 +488,20 @@ export async function POST(request: Request) {
         .sort((a: any, b: any) => a.house - b.house)
         .map((c: any) => c.absolute_longitude);
 
+      let rawAspects: any[] = [];
+      if (aspectsRes?.error) {
+        console.error(`[API] Aspects API error for ${name}:`, aspectsRes.message);
+      }
+      if (aspectsRes?.data?.aspects && Array.isArray(aspectsRes.data.aspects)) {
+        rawAspects = aspectsRes.data.aspects;
+      } else if (Array.isArray(aspectsRes)) {
+        rawAspects = aspectsRes;
+      } else if (Array.isArray(aspectsRes?.data)) {
+        rawAspects = aspectsRes.data;
+      } else {
+        console.warn(`[API] Could not parse aspects for ${name}. Response keys:`, aspectsRes ? Object.keys(aspectsRes) : 'null');
+      }
+
       return {
         positions: positionsMap,
         angles: anglesMap,
@@ -490,10 +510,12 @@ export async function POST(request: Request) {
           mc: anglesMap.mc || null
         },
         cusps: cuspsArray.length === 12 ? cuspsArray : rawHouses,
+        aspects: rawAspects,
         // CAPTURE RAW RESPONSE for Provenance injection
         _raw_response: {
           positions: positionsRes,
-          houses: housesRes
+          houses: housesRes,
+          aspects: aspectsRes
         }
       };
     };
