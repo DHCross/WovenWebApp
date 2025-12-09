@@ -56,6 +56,22 @@ export interface EnhancedMatrix {
   lensRotationTriggered?: boolean;
 }
 
+/**
+ * Geometry Validation Result
+ * 
+ * Per Raven Calder Protocol: FIELD → MAP → VOICE
+ * If geometry is invalid, MAP layer must halt and VOICE layer must not fire.
+ * 
+ * This type enables explicit gating at the API layer.
+ */
+export type GeometryValidation =
+  | { valid: true }
+  | {
+    valid: false;
+    reason: 'missing_person_a' | 'missing_person_a_name' | 'missing_aspects_a' | 'missing_synastry_for_relational' | 'missing_both_aspects';
+    details?: string;
+  };
+
 export interface InputPayload {
   // Consolidated schemas (Oct 20, 2025) - Per Raven Calder directive
   _format?: 'mirror_directive_json' | 'symbolic_weather_json' | 'mirror-symbolic-weather-v1' | 'wm-fieldmap-v1' | string;
@@ -1341,6 +1357,7 @@ export function generateSection(sectionType: SectionType, inputPayload: InputPay
  */
 export function processMirrorDirective(payload: InputPayload): {
   success: boolean;
+  geometry_validation: GeometryValidation;
   narrative_sections: {
     solo_mirror_a?: string;
     solo_mirror_b?: string;
@@ -1360,6 +1377,7 @@ export function processMirrorDirective(payload: InputPayload): {
   if (!validFormats.includes(payloadFormat)) {
     return {
       success: false,
+      geometry_validation: { valid: false, reason: 'missing_person_a', details: 'Invalid payload format' },
       narrative_sections: {},
       error: `Invalid format: expected one of ${validFormats.join(', ')}, got ${payload._format}`
     };
@@ -1418,6 +1436,64 @@ export function processMirrorDirective(payload: InputPayload): {
     synastryAspects: geometry.synastryAspects?.length || 0,
     synastryComputed: geometry.synastryComputed || false,
   });
+
+  // ============================================================================
+  // GEOMETRY GATE: Per FIELD → MAP → VOICE protocol, halt if geometry is invalid
+  // If synastry is required but missing, MAP layer cannot proceed
+  // ============================================================================
+  const aspectsACount = chartA.aspects?.length ?? 0;
+  const aspectsBCount = chartB?.aspects?.length ?? 0;
+  const synastryCount = geometry.synastryAspects?.length ?? 0;
+
+  // Perform geometry validation
+  let geometryValidation: GeometryValidation = { valid: true };
+
+  if (!personA) {
+    geometryValidation = { valid: false, reason: 'missing_person_a', details: 'person_a is null or undefined' };
+  } else if (!personA.name) {
+    geometryValidation = { valid: false, reason: 'missing_person_a_name', details: 'person_a.name is missing' };
+  } else if (isRelational && synastryCount === 0 && !geometry.synastryComputed) {
+    // Relational mode requires synastry aspects - this is the CRITICAL gate
+    geometryValidation = {
+      valid: false,
+      reason: 'missing_synastry_for_relational',
+      details: `Relational reading requested but synastry aspects could not be parsed (0 cross-chart aspects found)`
+    };
+  } else if (aspectsACount === 0 && (!isRelational || aspectsBCount === 0)) {
+    geometryValidation = { valid: false, reason: 'missing_both_aspects', details: 'No natal aspects could be parsed for either chart' };
+  }
+
+  // If validation failed, return early with halt message - DO NOT PROCEED TO VOICE
+  if (!geometryValidation.valid) {
+    console.warn('[PoeticBrain] GEOMETRY GATE HALT:', geometryValidation);
+
+    const haltMessage = `## Mirror Halted: Data Unavailable
+
+I tried to open this reading, but the geometry couldn't be parsed completely.
+
+**What's missing:** ${(geometryValidation as any).details || 'Required chart data'}
+
+**Recovery options:**
+- Return to Math Brain and regenerate the chart with "Export to Poetic Brain"
+- Verify all birth data fields (date, time, location) are complete
+- If this is a relational reading, ensure both charts are fully exported
+
+I'm here when the coordinates arrive. You can still ask me general questions about patterns and navigation while we troubleshoot.
+
+---
+
+*This is a data availability issue, not an error in your chart. The MAP layer cannot proceed without valid geometry.*`;
+
+    return {
+      success: false,
+      geometry_validation: geometryValidation,
+      narrative_sections: { solo_mirror_a: haltMessage },
+      intimacy_tier: intimacyTier,
+      report_kind: reportKind,
+      error: `Geometry validation failed: ${(geometryValidation as any).reason}`,
+      diagnostics: [(geometryValidation as any).details || 'Geometry validation failed'],
+    };
+  }
 
 
   // Generate mandates only when needed (lazy evaluation)
@@ -1543,9 +1619,7 @@ If this keeps happening, you can describe the issue by typing "report issue" and
     }
   }
 
-  // Check chart geometry
-  const aspectsACount = chartA.aspects?.length ?? 0;
-  const aspectsBCount = chartB?.aspects?.length ?? 0;
+  // Check chart geometry (reusing aspectsACount/aspectsBCount from earlier validation)
   if (aspectsACount === 0) {
     diagnosticIssues.push(`❌ Person A chart has 0 aspects - this is the likely cause of empty readings`);
   }
@@ -1589,6 +1663,7 @@ Type "help" if you'd like me to walk you through recovery options.`;
 
   return {
     success: true,
+    geometry_validation: { valid: true },
     narrative_sections: narratives,
     intimacy_tier: intimacyTier,
     report_kind: reportKind,

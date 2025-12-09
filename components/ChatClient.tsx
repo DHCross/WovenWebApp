@@ -1012,11 +1012,15 @@ export default function ChatClient() {
 
   // Therapeutic integration handlers (Golden Thread integration)
   const handleTherapeuticComplete = useCallback(() => {
+    // This handler is no longer directly triggered by the wrap-up flow,
+    // but might be called from other parts of the application if therapeutic integration is re-introduced.
     setShowTherapeuticIntegration(false);
     setShowWrapUpPanel(true);
   }, []);
 
   const handleTherapeuticSkip = useCallback(() => {
+    // This handler is no longer directly triggered by the wrap-up flow,
+    // but might be called from other parts of the application if therapeutic integration is re-introduced.
     setShowTherapeuticIntegration(false);
     setShowWrapUpPanel(true);
   }, []);

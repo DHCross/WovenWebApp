@@ -13,7 +13,7 @@
 import type { QuerentRole, ContextGateState } from './context-gate';
 import { getVoiceAdaptationInstructions, needsContextGate, generateContextGateQuestion } from './context-gate';
 
-import { RAVEN_ARCHITECTURAL_LAW, RAVEN_PROHIBITIONS, RAVEN_OPENING_SEQUENCE } from './persona-law';
+import { RAVEN_ARCHITECTURAL_LAW, RAVEN_PROHIBITIONS, RAVEN_OPENING_SEQUENCE, RAVEN_ADVICE_LADDER } from './persona-law';
 
 /**
  * Core Raven Persona (Canonical Definition)
@@ -21,6 +21,7 @@ import { RAVEN_ARCHITECTURAL_LAW, RAVEN_PROHIBITIONS, RAVEN_OPENING_SEQUENCE } f
  */
 export const RAVEN_CORE_PERSONA = [
   RAVEN_ARCHITECTURAL_LAW,
+  RAVEN_ADVICE_LADDER,
   RAVEN_PROHIBITIONS,
   RAVEN_OPENING_SEQUENCE
 ].join('\n\n');

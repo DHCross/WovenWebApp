@@ -432,6 +432,35 @@ export async function POST(req: Request) {
           const usedContent = sanitized.content;
           const result = processMirrorDirective(usedContent);
 
+          // ============================================================
+          // GEOMETRY GATE: Per FIELD → MAP → VOICE protocol
+          // If geometry validation failed, DO NOT proceed to LLM voicing
+          // ============================================================
+          if (!result.geometry_validation?.valid) {
+            console.warn('[Raven] GEOMETRY GATE HALT:', result.geometry_validation);
+
+            // Return halt message WITHOUT voicing through LLM
+            const haltNarrative = result.narrative_sections?.solo_mirror_a ||
+              `## Mirror Halted\n\nThe geometry data couldn't be parsed. Please re-export from Math Brain.`;
+
+            appendHistoryEntry(sessionLog, 'user', textInput || "Reading request");
+            appendHistoryEntry(sessionLog, 'raven', haltNarrative);
+            updateSession(sid, () => { });
+
+            const prov = stampProvenance({ source: 'Poetic Brain (Geometry Gate - Halted)' });
+            return NextResponse.json({
+              intent: 'geometry_halt',
+              ok: true, // Operation succeeded in detecting the issue
+              draft: { conversation: haltNarrative },
+              prov,
+              sessionId: sid,
+              probe: null,
+              geometry_validation: result.geometry_validation,
+              hook: 'Geometry Gate',
+              climate: 'MAP · Data Unavailable',
+            });
+          }
+
           if (result.success && result.narrative_sections) {
             // === PHASE-GATED STREAMING ===
             // Per Four Report Types mandate: emit each phase as a distinct SSE block
