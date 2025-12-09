@@ -1,0 +1,348 @@
+{
+  "_format": "mirror-symbolic-weather-v1",
+  "_version": "1.0",
+  "_contains_transits": true,
+  "_contains_weather_data": true,
+  "_range_dates": [
+    "2025-12-09",
+    "2025-12-09"
+  ],
+  "_transit_days": 1,
+  "_natal_sections": 2,
+  "_required_sections": [
+    "person_a",
+    "person_b"
+  ],
+  "generated_at": "2025-12-09T09:59:05.519Z",
+  "_natal_section": {
+    "mirror_source": "integrated",
+    "note": "Natal geometry integrated with symbolic weather in single file"
+  },
+  "person_a": {
+    "name": "Abby Cross",
+    "birth_data": {
+      "year": 2006,
+      "month": 1,
+      "day": 3,
+      "hour": 21,
+      "minute": 33,
+      "latitude": 30.166666666666668,
+      "longitude": -85.66666666666667,
+      "timezone": "US/Central",
+      "city": "Panama City",
+      "country_code": "US"
+    },
+    "chart": {
+      "angle_signs": {
+        "ascendant": "Vir",
+        "mc": "Gem"
+      },
+      "positions": {
+        "Sun": {
+          "abs_pos": 283.63,
+          "deg": 13.63,
+          "retrograde": false,
+          "house": 4,
+          "sign": "Cap"
+        },
+        "Moon": {
+          "abs_pos": 339.02,
+          "deg": 9.02,
+          "retrograde": false,
+          "house": 6,
+          "sign": "Pis"
+        },
+        "Mercury": {
+          "abs_pos": 270.39,
+          "deg": 0.39,
+          "retrograde": false,
+          "house": 4,
+          "sign": "Cap"
+        },
+        "Venus": {
+          "abs_pos": 299.11,
+          "deg": 29.11,
+          "retrograde": true,
+          "house": 5,
+          "sign": "Cap"
+        },
+        "Mars": {
+          "abs_pos": 41.89,
+          "deg": 11.89,
+          "retrograde": false,
+          "house": 9,
+          "sign": "Tau"
+        },
+        "Jupiter": {
+          "abs_pos": 223.8,
+          "deg": 13.8,
+          "retrograde": false,
+          "house": 3,
+          "sign": "Sco"
+        },
+        "Saturn": {
+          "abs_pos": 129.71,
+          "deg": 9.71,
+          "retrograde": true,
+          "house": 11,
+          "sign": "Leo"
+        },
+        "Uranus": {
+          "abs_pos": 337.84,
+          "deg": 7.84,
+          "retrograde": false,
+          "house": 6,
+          "sign": "Pis"
+        },
+        "Neptune": {
+          "abs_pos": 316.08,
+          "deg": 16.08,
+          "retrograde": false,
+          "house": 6,
+          "sign": "Aqu"
+        },
+        "Pluto": {
+          "abs_pos": 265,
+          "deg": 25,
+          "retrograde": false,
+          "house": 4,
+          "sign": "Sag"
+        },
+        "Chiron": {
+          "abs_pos": 302.17,
+          "deg": 2.17,
+          "retrograde": false,
+          "house": 5,
+          "sign": "Aqu"
+        },
+        "First_House": {
+          "abs_pos": 163.66,
+          "deg": 13.66,
+          "retrograde": false,
+          "house": 1,
+          "sign": "Vir"
+        },
+        "Tenth_House": {
+          "abs_pos": 72.65,
+          "deg": 12.65,
+          "retrograde": false,
+          "house": 1,
+          "sign": "Gem"
+        },
+        "Mean_Node": {
+          "abs_pos": 8.83,
+          "deg": 8.83,
+          "retrograde": true,
+          "house": 7,
+          "sign": "Ari"
+        }
+      },
+      "cusps": [
+        163.66,
+        190.43,
+        220.62,
+        252.65,
+        284.62,
+        315.24,
+        343.66,
+        10.43,
+        40.62,
+        72.65,
+        104.62,
+        135.24
+      ],
+      "transitsByDate": {
+        "2025-12-09": {
+          "seismograph": {
+            "magnitude": 2.2,
+            "directional_bias": -0.3,
+            "volatility": 1
+          }
+        }
+      }
+    }
+  },
+  "person_b": {
+    "name": "Carrie",
+    "birth_data": {
+      "year": 1975,
+      "month": 8,
+      "day": 21,
+      "hour": 12,
+      "minute": 30,
+      "latitude": 39.85,
+      "longitude": -75.35,
+      "timezone": "US/Eastern",
+      "city": "Chester",
+      "country_code": "US"
+    },
+    "chart": {
+      "angle_signs": {
+        "ascendant": "Sco",
+        "mc": "Leo"
+      },
+      "positions": {
+        "Sun": {
+          "abs_pos": 148,
+          "deg": 28,
+          "retrograde": false,
+          "house": 10,
+          "sign": "Leo"
+        },
+        "Moon": {
+          "abs_pos": 326.48,
+          "deg": 26.48,
+          "retrograde": false,
+          "house": 4,
+          "sign": "Aqu"
+        },
+        "Mercury": {
+          "abs_pos": 166.33,
+          "deg": 16.33,
+          "retrograde": false,
+          "house": 10,
+          "sign": "Vir"
+        },
+        "Venus": {
+          "abs_pos": 157.15,
+          "deg": 7.15,
+          "retrograde": true,
+          "house": 10,
+          "sign": "Vir"
+        },
+        "Mars": {
+          "abs_pos": 64.15,
+          "deg": 4.15,
+          "retrograde": false,
+          "house": 7,
+          "sign": "Gem"
+        },
+        "Jupiter": {
+          "abs_pos": 24.63,
+          "deg": 24.63,
+          "retrograde": true,
+          "house": 6,
+          "sign": "Ari"
+        },
+        "Saturn": {
+          "abs_pos": 117.17,
+          "deg": 27.17,
+          "retrograde": false,
+          "house": 9,
+          "sign": "Can"
+        },
+        "Uranus": {
+          "abs_pos": 209.24,
+          "deg": 29.24,
+          "retrograde": false,
+          "house": 12,
+          "sign": "Lib"
+        },
+        "Neptune": {
+          "abs_pos": 249.02,
+          "deg": 9.02,
+          "retrograde": false,
+          "house": 1,
+          "sign": "Sag"
+        },
+        "Pluto": {
+          "abs_pos": 187.6,
+          "deg": 7.6,
+          "retrograde": false,
+          "house": 11,
+          "sign": "Lib"
+        },
+        "Chiron": {
+          "abs_pos": 27.99,
+          "deg": 27.99,
+          "retrograde": true,
+          "house": 6,
+          "sign": "Ari"
+        },
+        "First_House": {
+          "abs_pos": 220.93,
+          "deg": 10.93,
+          "retrograde": false,
+          "house": 1,
+          "sign": "Sco"
+        },
+        "Tenth_House": {
+          "abs_pos": 139.1,
+          "deg": 19.1,
+          "retrograde": false,
+          "house": 1,
+          "sign": "Leo"
+        },
+        "Mean_Node": {
+          "abs_pos": 236.27,
+          "deg": 26.27,
+          "retrograde": true,
+          "house": 1,
+          "sign": "Sco"
+        }
+      },
+      "cusps": [
+        220.93,
+        250.05,
+        283.53,
+        319.1,
+        351.76,
+        18.84,
+        40.93,
+        70.05,
+        103.53,
+        139.1,
+        171.76,
+        198.84
+      ],
+      "transitsByDate": {
+        "2025-12-09": {
+          "seismograph": {
+            "magnitude": 2.2,
+            "directional_bias": -0.6,
+            "volatility": 1.5
+          }
+        }
+      }
+    }
+  },
+  "report_kind": "Relational Balance Meter",
+  "mirror_contract": {
+    "report_kind": "Relational Balance Meter",
+    "is_relational": true,
+    "intimacy_tier": null,
+    "relationship_type": null,
+    "contact_state": "ACTIVE"
+  },
+  "balance_meter_frontstage": {
+    "magnitude": 2.2,
+    "directional_bias": -0.3,
+    "volatility": 1,
+    "magnitude_label": "Active",
+    "directional_bias_label": "Equilibrium",
+    "volatility_label": "Moderate"
+  },
+  "daily_readings": [
+    {
+      "date": "2025-12-09",
+      "magnitude": 2.2,
+      "directional_bias": -0.3,
+      "volatility": 1
+    }
+  ],
+  "reading_count": 1,
+  "provenance": {
+    "math_brain_version": "3.3.0-four-report-types",
+    "ephemeris_source": "best-astrology-api-v3",
+    "build_ts": "2025-12-09T09:59:03.604Z",
+    "house_system": "Placidus",
+    "orbs_profile": "wm-spec-2025-09",
+    "timezone_db_version": "IANA-2024a",
+    "relocation_mode": "A_local",
+    "engine_versions": {
+      "seismograph": "2.1.0",
+      "balance_meter": "5.0.0",
+      "synastry": "1.0.0"
+    }
+  }
+}

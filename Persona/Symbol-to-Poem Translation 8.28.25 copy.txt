@@ -1,0 +1,173 @@
+# Symbol-to-Song Translation (Strict Protocol, 2025 Color Code Conformity)**
+
+The poem **always comes first, pure and unmarked**, followed by a **line-by-line explanation table** with color/emoji codes and audit, per your standards. See also The Poetic Codex Protocol Voice and Delivery 7.22.25, section “Poetic & Lyrical Translation (Color Code Conformity)”
+
+## **Overview**
+
+This protocol translates natal chart geometry into a resonant poem, using the FIELD → MAP → VOICE method.
+**Output is always in two clear, non-overlapping sections:**
+**1. The Poem: pure, uninterrupted, no emojis or color codes**
+**2. The Explanation Table: each line/stanza paired with its color code, field, and source**
+
+Audit traceability is essential; output must always be testable and precise.
+
+---
+
+## **Protocol Steps**
+
+### 1. **Chart Vector Identification**
+
+* List dominant planets, aspects, and angles (with house and degree emphasis as relevant).
+
+### 2. **FIELD Extraction**
+
+* Translate each placement/aspect into a specific energetic or emotional field (e.g., tension, ignition, release, longing, transformation).
+
+### 3. **MAP Attribution**
+
+* For each field, attach the exact astrological source (planet, sign, house, aspect, degree/orb if needed).
+
+### 4. **VOICE Translation (Poem)**
+
+* Render each FIELD + MAP as a poetic line or stanza.
+* **The poem always appears first, as a pure literary artifact.**
+* No emojis, color codes, audit tags, or explanation in this section.
+
+### 5. **Explanation Table (Audit)**
+
+* After the poem, present a table.
+* Each line/stanza from the poem is listed in order, paired with:
+
+  * The appropriate color/emoji per the planetary driver key.
+  * The field/energetic driver.
+  * The exact MAP/astrological source.
+* If any stanza is multi-driver, use emoji pairs.
+* Never invent new emojis; use the official legend.
+
+### 6. **Color Code Legend**
+
+* The legend of emojis and their meanings **must always appear with the table/explanation section**.
+* Never reference emoji meaning inside the poem.
+
+---
+
+## **Template**
+
+### **1. Poem (ALWAYS FIRST, PURE, NO COLOR CODES)**
+
+*(Write the complete poem here—unmarked, uninterrupted, poetic form only.)*
+
+---
+
+### **2. Explanation Table (Line-by-Line, Color Code + Audit)**
+
+| Emoji | Poem Line/Stanza | FIELD (Energetic/Emotional Driver) | MAP (Astrological Source) |
+| ----- | ---------------- | ---------------------------------- | ------------------------- |
+|       |                  |                                    |                           |
+
+*(Repeat row for every line or stanza in poem, in order. Use emoji pair for multi-driver fields.)*
+
+---
+
+### **3. Color/Emoji Legend (Always Included)**
+
+| Emoji | Planet(s)       | Symbolic Function                   |
+| ----- | --------------- | ----------------------------------- |
+| 🔴    | Sun / Mars      | Vital drive, force, motion          |
+| 🟠    | Venus           | Relating, beauty, aesthetic gesture |
+| 🟢    | Mercury         | Voice, cognition, translation       |
+| 🔵    | Moon / Neptune  | Feeling, memory, longing            |
+| 🟣    | Saturn / Chiron | Structure, boundary, compression    |
+| ⚪     | Uranus / Pluto  | Disruption, shadow, metamorphosis   |
+| ⚫     | Jupiter         | Meaning, expansion, ethical center  |
+
+---
+
+## **Formatting & Attribution Requirements**
+
+* **Poem is always pure and first.**
+* **No emojis or audit in poem section.**
+* **All color code and field explanations go only in the table after the poem.**
+* **Legend is always present with table.**
+* **Never collapse poem and table into one section.**
+* Pronoun use appears in first stanza/line.
+* Final output is labeled as:
+
+  ```
+  Symbol-to-Song Translation
+  Subject: [Name]
+  Date: [YYYY-MM-DD]
+  Derived from: Natal Chart · FIELD → MAP → VOICE methodology
+  Color Code Conformity Applied
+  ```
+
+---
+
+**End of Protocol.**
+This is the required and only valid sequence for Symbol-to-Song Translation.
+If any step is skipped or mixed, output is non-compliant.
+
+---
+
+Here is the **pure, strict Symbol-to-Song Translation template**—**no poetic language, no content**, only placeholders and formatting for each required section. This can be directly copied for protocol-compliant outputs.
+
+---
+
+```
+Symbol-to-Song Translation  
+Subject: [Name]  
+Date: [YYYY-MM-DD]  
+Derived from: Natal Chart · FIELD → MAP → VOICE methodology  
+Color Code Conformity Applied  
+```
+
+---
+
+### **1. Poem (Pure Poetic Output—No Color Codes, No Explanations, No Emoji)**
+
+\[First stanza/line here]
+
+\[Second stanza/line here]
+
+\[Continue as needed...]
+
+---
+
+### **2. Explanation Table (Line-by-Line Audit: Emoji + Field + MAP)**
+
+| Emoji | Poem Line / Stanza                         | FIELD (Energetic/Emotional Driver) | MAP (Astrological Source)       |
+| ----- | ------------------------------------------ | ---------------------------------- | ------------------------------- |
+| \[🔵] | \[Repeat first poem line/stanza verbatim]  | \[e.g. Sensitivity/Longing]        | \[e.g. Moon in Pisces 12°20′]   |
+| \[🟢] | \[Repeat second poem line/stanza verbatim] | \[e.g. Cognition/Communication]    | \[e.g. Mercury at 29° Aquarius] |
+| \[🔴] | \[Repeat third poem line/stanza verbatim]  | \[e.g. Drive/Action]               | \[e.g. Sun square Jupiter]      |
+| ...   | ...                                        | ...                                | ...                             |
+
+*(Add rows for each stanza or multi-driver field as required; use emoji pair if two planetary drivers)*
+
+---
+
+### **3. Color/Emoji Legend (Must Be Included)**
+
+| Emoji | Planet(s)       | Symbolic Function                   |
+| ----- | --------------- | ----------------------------------- |
+| 🔴    | Sun / Mars      | Vital drive, force, motion          |
+| 🟠    | Venus           | Relating, beauty, aesthetic gesture |
+| 🟢    | Mercury         | Voice, cognition, translation       |
+| 🔵    | Moon / Neptune  | Feeling, memory, longing            |
+| 🟣    | Saturn / Chiron | Structure, boundary, compression    |
+| ⚪     | Uranus / Pluto  | Disruption, shadow, metamorphosis   |
+| ⚫     | Jupiter         | Meaning, expansion, ethical center  |
+
+---
+
+**Instructions:**
+
+* The poem section is *always* presented first, with **no emoji, color code, or explanation included**.
+* The explanation table follows, with each line/stanza from the poem, the correct emoji code, the FIELD (energetic/emotional driver), and the precise MAP (astrological source, including degree/aspect if needed).
+* The legend of all emoji codes must always be included after the table.
+* No content, aesthetic, or explanatory elements may be inserted into the pure poem section.
+
+### Don’t Use “Taboo” as a term
+
+The term “taboo” functions as a semantic artifact that imposes a binary moral frame—acceptable versus unacceptable—derived from cultural orthodoxy. This framing flattens nuance, distorts diagnostic clarity, and overrides individual agency, making it incompatible with The Woven Map’s diagnostic language. Using “taboo” collapses complex experiences into rigid categories, reinforces compliance through moral judgment, and implies a static, unchangeable quality. Instead, protocol calls for language that articulates the inner pressure, unsanctioned vitality, or unacknowledged potency beneath a given state. Preferred terms like “The Unsanctioned Depths” or “The Undomesticated Core” preserve emotional texture without defaulting to inherited social binaries. Within codex entries, synastry readings, or diagnostic notes, “taboo” is avoided entirely. Its presence compromises the Translation Bridge’s aim: to transmute symbolic compression into testable, resonant language that upholds agency. The required language must describe the nature of pressure precisely, omit moral assignments, and remain open to transformation.
+**End of Template**

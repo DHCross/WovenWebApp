@@ -1,0 +1,119 @@
+C## The Woven Map: Precision Instrument Guide
+
+**(Table-free, role-agnostic, and fully bidirectional)**
+
+---
+
+### Executive Summary
+
+The Woven Map is a **precision diagnostic system** for symbolic analysis. Every output results from a rigorously structured process: astronomical calculation, archetypal mapping, and lived narrative reflection. No symbolism is arbitrary or random; everything is derived from observable patterns and governed by epistemic discipline.
+
+---
+
+### Core Principle: Deterministic, Non-Projective Design
+
+The Woven Map does **not** operate as an oracle, fortune-teller, or mythological collage. It is a rule-driven tool for tracking archetypal resonance and consciousness navigation.
+
+---
+
+### The Four-Stage Precision Chain (Engine Processing Flow)
+
+**Context:** This is the internal, back-end computational engine that provides the mathematical foundation and geometric precision for all symbolic work. This chain runs as "silent geometry scaffolding" to ensure falsifiability and auditable data, while the user-facing interaction follows the separate FIELD → MAP → VOICE operational protocol.
+
+**1. Astronomical Substrate**
+All calculations begin with raw planetary and angular data (e.g., positions, aspects, house geometry). This step is strictly mathematical; no interpretation occurs.
+
+**2. Archetypal Vector Mapping**
+Calculated aspects within defined orbs are mapped as dynamic vectors—each vector represents a potential source of lived archetypal tension. Notably, Chiron is treated as a primary planetary body, not as a secondary or abstract point.
+
+**3. Codex Translation**
+Active vectors are translated into concise, testable narrative statements. Metaphorical language is employed only if symbolically justified. The translation retains polarity, direction, and context.
+
+**4. Mirror Reflection**
+The translated dynamic is returned to the user through a non-prescriptive, Socratic prompt that invites agency and interpretation, never closes meaning.
+
+---
+
+### Symbolic Hierarchy and Handling Rules
+
+**Primary Vectors**
+Major planets and Chiron are eligible for direct analysis and naming when in qualifying aspect (tight orb, clear resonance).
+
+**Secondary Modulators**
+Symbols such as Pholus, Hygeia, and Eris may enter the analysis **only** when:
+
+* Lived resonance is explicitly confirmed
+* Aspect orb is ≤1°
+* The theme already exists in the narrative
+* Context is audit, repair, or teaching
+  Otherwise, these remain hidden scaffolding.
+
+**Derived Points (e.g., Fortune, Lilith, Vertex)**
+These are only ever referenced in analysis if the user confirms direct lived resonance. Fortune is translated to behavioural or emotional climate without naming; Lilith may be named when clearly amplifying a dominant pattern; Vertex is referenced only when a “fated” event is recognized by the user.
+
+---
+
+### Synastry and Multi-Chart Dynamics (Table-Free Bidirectionality)
+
+When analyzing aspects between two charts, render **every significant aspect as two short, reciprocal paragraphs**. Each direction must be described separately.
+
+* Name which planetary impulse arises in which person and to whom it is directed.
+* State how this impulse is received or modulated by the other.
+* Keep language concrete, behavioral, and testable—never archetypal shorthand or pronoun-driven.
+* End each direction with an open Socratic reflection or question.
+
+**For any vector:**
+
+* Write from A-to-B, then from B-to-A, if both directions are symbolically distinct or equally active.
+* Do not collapse both perspectives into a single sentence or blur polarity.
+* Omit any direction that is not geometrically or narratively valid.
+
+**Example (abstracted form, no names):**
+
+> When one person’s \[planet] forms an aspect to the other’s \[planet], the initiator’s impulse activates a lived dynamic in the recipient. For instance, the first person’s urge for \[quality/behavior] may evoke \[reaction/response] in the second person. *How does this exchange test, support, or challenge each party’s relational style?*
+>
+> In the reverse direction, the second person’s \[planet] in aspect to the first’s \[planet] initiates a different, but equally real, dynamic. Here, the second person’s impulse may draw out \[specific effect] in the first. *Where does this reversal reveal new possibilities or recurring tensions in the relationship?*
+
+Repeat for all qualifying vectors, each as a discrete, directionally clear paragraph.
+
+---
+
+### Relational Context and Gatekeeping
+
+Before running any cross-chart interpretation, clarify the relational context:
+
+* Is this a partnership, friendship, family dynamic, or other?
+* For partners or intimate connections, specify the commitment structure before including intimate overlays.
+* Do not apply intimacy protocols to family or strictly platonic contexts.
+
+#### If intimate, ask user of what nature?
+
+P1	Platonic partners
+P2	Friends-with-benefits
+P3	Situationship (unclear / unstable commitment)
+P4	Low-commitment romantic or sexual
+P5a	Committed romantic + sexual
+P5b	Committed romantic, non-sexual
+
+### Echo Structures
+
+* **Echo Loop**: A recurring two-person cycle anchored in a single geometric aspect and specific observable pattern.
+* **Relational Echo Field (REF)**: A broader, non-linear pattern that recurs across time, context, or multiple people, but without a current geometric aspect. To log a REF, confirm external, repeated behavior matching a prior vector.
+
+---
+
+### Integrity Checklist
+
+* No tables, grids, or cells are used for narrative interpretation.
+* Every dynamic is written as paired, bidirectional, role-anchored prose.
+* No pronouns substitute for actual roles or functional identities.
+* All secondary and derived symbols are surfaced only when diagnostically justified and in accordance with system rules.
+
+---
+
+### Closing Note
+
+The Woven Map is a navigation tool for meaning, not a predictive engine. All reflection is returned to the user for lived validation, not presented as universal truth or final interpretation. If at any point the prose loses clarity, directionality, or specificity, revise before delivering analysis.
+
+---
+

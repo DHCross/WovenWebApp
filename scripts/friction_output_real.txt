@@ -1,0 +1,17 @@
+👪 PARENT/CHILD FRICTION TEST (REAL ENGINE)
+======================================================================
+
+Analyzing: Abby Cross
+Backstage: O-moderate C-high E-moderate A-moderate N-moderate
+No specific friction patterns detected.
+
+Analyzing: Carrie
+Backstage: O-moderate C-high E-moderate A-moderate N-moderate
+No specific friction patterns detected.
+
+──────────────────────────────────────────────────────────────────────
+RELATIONAL DYNAMICS: Abby Cross & Carrie
+──────────────────────────────────────────────────────────────────────
+
+======================================================================
+✅ Test complete

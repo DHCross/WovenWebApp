@@ -5,6 +5,9 @@
 import { buildMandatesForChart, buildSynastryMandates } from '../../lib/poetics/mandate';
 import { enhancePromptWithMandates } from '../../lib/poetics/prompt-builder';
 import { generateSoloMirrorNarrative } from '../../lib/poetics/narrative-builder';
+import { calculateSynastryAspects, canCalculateSynastry } from '../../lib/poetics/synastry-calculator';
+import { inferBigFiveFromChart, type BigFiveProfile } from '../../lib/bigfive/inferBigFiveFromChart';
+import { getVocabularyShaping, getDominantPhrase, type VocabularyShaping } from '../../lib/bigfive/vocabularyShaper';
 import type { MandateAspect } from '../../lib/poetics/types';
 
 export type SectionType = 'MirrorVoice' | 'PolarityCardVoice' | string;
@@ -593,10 +596,14 @@ interface MirrorDirectiveParsed {
     aspectsA: any[];
     aspectsB: any[];
     synastryAspects: any[];
+    synastryComputed: boolean; // True if aspects were calculated internally
   };
 }
 
-function extractSynastryAspects(payload: InputPayload): any[] {
+/**
+ * Extract pre-computed synastry aspects from various possible locations in the payload
+ */
+function extractPrecomputedSynastryAspects(payload: InputPayload): any[] {
   const candidates = [
     payload.synastry_aspects,
     payload.relationship_context?.synastry_aspects,
@@ -614,12 +621,69 @@ function extractSynastryAspects(payload: InputPayload): any[] {
     }
   }
 
-  return Array.isArray(payload.synastry_aspects) ? payload.synastry_aspects : [];
+  return [];
+}
+
+/**
+ * Extract synastry aspects - either from pre-computed data OR by calculating internally
+ * 
+ * Per Raven's Law: The system must never claim missing data when it has
+ * the raw geometry to compute what it needs.
+ */
+function extractSynastryAspects(
+  payload: InputPayload,
+  chartA: any,
+  chartB: any | null,
+  personAName: string,
+  personBName: string
+): { aspects: any[]; computed: boolean } {
+  // First, try to find pre-computed synastry aspects
+  const precomputed = extractPrecomputedSynastryAspects(payload);
+  if (precomputed.length > 0) {
+    console.log('[PoeticBrain] Using pre-computed synastry aspects:', precomputed.length);
+    return { aspects: precomputed, computed: false };
+  }
+
+  // If no pre-computed aspects, attempt to calculate from chart positions
+  if (!chartB) {
+    console.log('[PoeticBrain] No Person B chart - skipping synastry calculation');
+    return { aspects: [], computed: false };
+  }
+
+  const positionsA = chartA?.positions || {};
+  const positionsB = chartB?.positions || {};
+
+  if (!canCalculateSynastry(positionsA, positionsB)) {
+    console.log('[PoeticBrain] Insufficient position data for synastry calculation');
+    return { aspects: [], computed: false };
+  }
+
+  // Calculate synastry aspects internally
+  console.log('[PoeticBrain] Computing synastry aspects from chart positions...');
+  const result = calculateSynastryAspects(
+    positionsA,
+    positionsB,
+    personAName,
+    personBName,
+    { includeMinorAspects: false, maxAspects: 15, minWeight: 3 }
+  );
+
+  console.log('[PoeticBrain] Computed synastry aspects:', {
+    aspectCount: result.aspect_count,
+    planetCountA: result.planet_count_a,
+    planetCountB: result.planet_count_b,
+    source: result.source,
+  });
+
+  return { aspects: result.aspects, computed: true };
 }
 
 /**
  * Parse Mirror Directive JSON structure
  * Extracts natal geometry, mirror contract, and report configuration
+ * 
+ * If synastry_aspects are not provided but both charts have positions,
+ * aspects will be calculated internally.
  */
 function parseMirrorDirective(payload: InputPayload): MirrorDirectiveParsed {
   const contract = payload.mirror_contract || {};
@@ -637,6 +701,11 @@ function parseMirrorDirective(payload: InputPayload): MirrorDirectiveParsed {
   const chartA = { ...baseChartA, aspects: aspectsA };
   const chartB = baseChartB ? { ...baseChartB, aspects: aspectsB } : null;
 
+  // Extract or compute synastry aspects
+  const personAName = payload.person_a?.name || 'Person A';
+  const personBName = payload.person_b?.name || 'Person B';
+  const synastryResult = extractSynastryAspects(payload, chartA, chartB, personAName, personBName);
+
   return {
     reportKind: contract.report_kind || 'mirror',
     intimacyTier: contract.intimacy_tier || null,
@@ -648,9 +717,135 @@ function parseMirrorDirective(payload: InputPayload): MirrorDirectiveParsed {
       chartB,
       aspectsA,
       aspectsB,
-      synastryAspects: extractSynastryAspects(payload),
+      synastryAspects: synastryResult.aspects,
+      synastryComputed: synastryResult.computed,
     }
   };
+}
+
+// ============================================================================
+// Constitutional Texture — Backstage Vocabulary Shaping
+// ============================================================================
+
+interface ConstitutionalTextures {
+  textureA: BigFiveProfile | null;
+  textureB: BigFiveProfile | null;
+  shapingA: VocabularyShaping | null;
+  shapingB: VocabularyShaping | null;
+}
+
+/**
+ * Extract constitutional texture from payload provenance or compute on the fly
+ * 
+ * The texture shapes HOW Raven speaks (vocabulary selection) without ever
+ * naming the Big Five framework frontstage.
+ */
+function extractConstitutionalTexture(payload: InputPayload, chartA: any, chartB: any | null): ConstitutionalTextures {
+  // First, try to extract from provenance (if Math Brain already computed it)
+  // Use type assertion since provenance allows any additional properties
+  const provenanceTexture = (payload.provenance as any)?._constitutional_texture;
+
+  let textureA: BigFiveProfile | null = null;
+  let textureB: BigFiveProfile | null = null;
+
+  if (provenanceTexture?.person_a) {
+    textureA = provenanceTexture.person_a as BigFiveProfile;
+    console.log('[PoeticBrain] Using pre-computed constitutional texture for Person A');
+  } else if (chartA?.positions) {
+    // Compute on the fly if not in provenance
+    textureA = inferBigFiveFromChart({ positions: chartA.positions, angle_signs: chartA.angle_signs });
+    if (textureA) {
+      console.log('[PoeticBrain] Computed constitutional texture for Person A');
+    }
+  }
+
+  if (provenanceTexture?.person_b) {
+    textureB = provenanceTexture.person_b as BigFiveProfile;
+    console.log('[PoeticBrain] Using pre-computed constitutional texture for Person B');
+  } else if (chartB?.positions) {
+    textureB = inferBigFiveFromChart({ positions: chartB.positions, angle_signs: chartB.angle_signs });
+    if (textureB) {
+      console.log('[PoeticBrain] Computed constitutional texture for Person B');
+    }
+  }
+
+  // Generate vocabulary shaping from textures
+  const shapingA = textureA ? getVocabularyShaping(textureA) : null;
+  const shapingB = textureB ? getVocabularyShaping(textureB) : null;
+
+  if (shapingA) {
+    console.log('[PoeticBrain] Vocabulary shaping A:', shapingA._technicalSummary);
+  }
+  if (shapingB) {
+    console.log('[PoeticBrain] Vocabulary shaping B:', shapingB._technicalSummary);
+  }
+
+  return { textureA, textureB, shapingA, shapingB };
+}
+
+/**
+ * Generate an architectural opening using vocabulary shaping
+ * This replaces generic descriptions with texture-informed language
+ */
+function generateTexturedOpening(name: string, shaping: VocabularyShaping | null): string {
+  if (!shaping) {
+    return `${name}'s baseline architecture...`;
+  }
+
+  // Pick phrases from each category to build a rich opening
+  const aperture = shaping.aperture[0] || 'balanced aperture';
+  const energy = shaping.energy[0] || 'context-dependent energy';
+  const structure = shaping.structure[0] || 'adaptive structure';
+
+  return `Your architecture shows a **${aperture}**—${energy}. There's a **${structure}** quality here.`;
+}
+
+/**
+ * Generate relational field description using both textures
+ */
+function generateRelationalTextureDescription(
+  nameA: string,
+  nameB: string,
+  shapingA: VocabularyShaping | null,
+  shapingB: VocabularyShaping | null
+): string[] {
+  const lines: string[] = [];
+
+  if (!shapingA && !shapingB) {
+    return lines;
+  }
+
+  lines.push(`### Constitutional Texture — How Each System Moves`);
+  lines.push('');
+
+  if (shapingA) {
+    const aperture = shapingA.aperture[0] || 'balanced aperture';
+    const relational = shapingA.relational[0] || 'selective harmonizing';
+    const sensitivity = shapingA.sensitivity[0] || 'calibrated sensitivity';
+    lines.push(`**${nameA}** tends to operate with a ${aperture}, ${relational}, and a ${sensitivity}.`);
+    lines.push('');
+  }
+
+  if (shapingB) {
+    const aperture = shapingB.aperture[0] || 'balanced aperture';
+    const relational = shapingB.relational[0] || 'selective harmonizing';
+    const sensitivity = shapingB.sensitivity[0] || 'calibrated sensitivity';
+    lines.push(`**${nameB}** tends to operate with a ${aperture}, ${relational}, and a ${sensitivity}.`);
+    lines.push('');
+  }
+
+  // If both are present, describe the interplay
+  if (shapingA && shapingB) {
+    const aEnergy = shapingA.energy[0] || 'context-dependent energy';
+    const bEnergy = shapingB.energy[0] || 'context-dependent energy';
+
+    if (aEnergy !== bEnergy) {
+      lines.push(`In the shared field, ${nameA}'s ${aEnergy} meets ${nameB}'s ${bEnergy}. This difference in energy direction often creates a particular rhythm—sometimes complementary, sometimes requiring conscious calibration.`);
+      lines.push('');
+    }
+  }
+
+  return lines;
 }
 
 interface IntimacyCalibration {
@@ -909,7 +1104,14 @@ function generateSoloMirror(person: any, chart: any, calibration: IntimacyCalibr
  * Uses Four Report Types architecture with bidirectional attribution
  * Language follows E-Prime (conditional, testable phrasing)
  */
-function generateRelationalEngine(personA: any, personB: any, geometry: any, calibration: IntimacyCalibration): string {
+function generateRelationalEngine(
+  personA: any,
+  personB: any,
+  geometry: any,
+  calibration: IntimacyCalibration,
+  shapingA: VocabularyShaping | null = null,
+  shapingB: VocabularyShaping | null = null
+): string {
   const nameA = personA.name || 'Person A';
   const nameB = personB?.name || 'Person B';
   const synastrySource = geometry?.synastryAspects || [];
@@ -955,6 +1157,16 @@ function generateRelationalEngine(personA: any, personB: any, geometry: any, cal
   } else {
     lines.push(`Both charts are present, though the core signatures (Sun, Moon, Rising) could not be parsed directly. The relational field exists in the geometry—the pattern recognition below still applies.`);
     lines.push('');
+  }
+
+  // ============================================
+  // NEW: CONSTITUTIONAL TEXTURE (Vocabulary-Shaped)
+  // ============================================
+  if (shapingA || shapingB) {
+    const textureLines = generateRelationalTextureDescription(nameA, nameB, shapingA, shapingB);
+    if (textureLines.length > 0) {
+      lines.push(...textureLines);
+    }
   }
 
   // ============================================
@@ -1184,6 +1396,10 @@ export function processMirrorDirective(payload: InputPayload): {
   const chartA = geometry.chartA || {};
   const chartB = geometry.chartB;
 
+  // Extract constitutional texture for vocabulary shaping
+  // This shapes HOW Raven speaks without naming the Big Five framework
+  const { textureA, textureB, shapingA, shapingB } = extractConstitutionalTexture(payload, chartA, chartB);
+
   // Build narratives object
   const narratives: {
     solo_mirror_a?: string;
@@ -1199,6 +1415,8 @@ export function processMirrorDirective(payload: InputPayload): {
     hasPersonB: !!personB,
     chartB_aspects: chartB?.aspects?.length || 0,
     isRelational,
+    synastryAspects: geometry.synastryAspects?.length || 0,
+    synastryComputed: geometry.synastryComputed || false,
   });
 
 
@@ -1272,7 +1490,9 @@ If this keeps happening, you can describe the issue by typing "report issue" and
       personA,
       personB,
       geometry,
-      calibration
+      calibration,
+      shapingA,
+      shapingB
     );
   }
 
@@ -1317,6 +1537,9 @@ If this keeps happening, you can describe the issue by typing "report issue" and
     const synastryCount = geometry.synastryAspects?.length ?? 0;
     if (synastryCount === 0) {
       diagnosticIssues.push('⚠️ No synastry aspects found - cross-chart analysis will be limited');
+    } else if (geometry.synastryComputed) {
+      // Positive note: synastry was computed internally
+      console.log(`[PoeticBrain] ✓ Synastry computed internally: ${synastryCount} cross-chart aspects`);
     }
   }
 
@@ -1339,6 +1562,7 @@ If this keeps happening, you can describe the issue by typing "report issue" and
       soloB: narratives.solo_mirror_b?.length ?? 0,
       relational: narratives.relational_engine?.length ?? 0,
       weather: narratives.weather_overlay?.length ?? 0,
+      synastrySource: geometry.synastryComputed ? 'computed_internally' : 'pre_provided',
     });
   }
 

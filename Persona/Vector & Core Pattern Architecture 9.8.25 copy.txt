@@ -1,0 +1,177 @@
+Alright—here’s a ground-up rewrite that folds everything you asked for into one clean, finalized protocol. It’s written in the same register as your other system docs so it can drop straight into the stack.
+
+---
+
+# VECTOR INTERPRETATION OVERRIDE SYSTEM v2.0
+
+Containment ↔ Release Polarity • Suppression Logic • Diagnostic Enforcement
+**Woven Map System Protocol — Finalized September 2025**
+
+*A Precision Diagnostic Framework for Structural Tension*
+
+Vectors are not personality types. They are **architectural signatures** of how a system holds, redirects, or discharges symbolic pressure. Every vector is flagged by geometry, mapped as FIELD → MAP → VOICE, and mirrored whether or not it has shown up behaviorally. Silence never equals absence.
+
+---
+
+## I. Containment–Release Polarity Taxonomy
+
+The system now names both sides of the pressure spectrum.
+
+* **Containment Shades** = how pressure narrows, braces, locks, or binds.
+* **Release Shades** = how pressure lets go, opens, or restores movement.
+
+Mirrors must specify which shade is active, which is blocked, or which is seeking balance.
+
+---
+
+### A. Containment Shades (How Pressure Holds)
+
+**Constriction**
+
+* **MAP signatures:** Saturn–Mercury/Moon hard aspects; Saturn in air signs; Saturn/Chiron on ASC/MC; 12th/6th house heavies.
+* **FIELD:** Chest/jaw tightens, breath shortens, voice narrowed.
+
+**Grip**
+
+* **MAP signatures:** Mars–Saturn hard aspects; fixed sign dominance (Taurus, Leo, Scorpio, Aquarius); angular Mars/Saturn; Mars exalted in Capricorn.
+* **FIELD:** Muscular bracing, body holds the line.
+
+**Lock**
+
+* **MAP signatures:** Saturn to personal planets; fixed Mercury or Sun; Saturn on angles; Saturn in 3rd/9th; Mercury retrograde in earth/fixed signs.
+* **FIELD:** Mental or temporal stasis, rigid routines.
+
+**Compression**
+
+* **MAP signatures:** Stelliums in one house; Pluto/Saturn on IC or MC; Grand Cross or T-square; Pluto conjunct Saturn; Capricorn stellium.
+* **FIELD:** Heavy load, downward pull, chronic strain.
+
+**Bind**
+
+* **MAP signatures:** Saturn/Neptune in 7th, 12th, 6th; Venus/Moon hard to Saturn/Neptune; Nodes/Chiron tied to Venus or 7th/12th house.
+* **FIELD:** Relational tether, duty thread, obligation knot.
+
+---
+
+### B. Release Shades (How Pressure Opens)
+
+**Expansion**
+
+* **MAP signatures:** Jupiter trine/sextile Sun, Moon, ASC; Jupiter transits through 1st/9th/11th; fire/air grand trines; Sun–Jupiter conjunction.
+* **FIELD:** Breath deepens, chest broadens, space returns.
+
+**Unwinding**
+
+* **MAP signatures:** Neptune/Venus easing Mars or Saturn; mutable sign weight; Mars or Uranus stationing direct; Neptune in 6th/12th, Venus trine Neptune.
+* **FIELD:** Muscles soften, knots dissolve, slow letting-go.
+
+**Unlocking**
+
+* **MAP signatures:** Uranus trine/sextile Mercury, Mars, ASC; Mercury/Uranus conjunction; Uranus crossing angles; fixed sign retrogrades ending.
+* **FIELD:** Stuck pattern cracks, timing loosens, flow resumes.
+
+**Lightening**
+
+* **MAP signatures:** Jupiter/Venus angular; Sun trine Uranus/Jupiter/Mercury; lunar/solar progressions to benefics; Moon trine Jupiter.
+* **FIELD:** Heaviness lifts, buoyancy returns, energy rises.
+
+**Unbinding**
+
+* **MAP signatures:** Nodes/Uranus to Venus, Moon, DESC; Saturn moving off Venus/Moon; Neptune transit endings; Uranus in 7th; Venus–Uranus trine.
+* **FIELD:** Ties loosen, obligation dissolves, autonomy restored.
+
+---
+
+## II. Core Vector Patterns (with Polarity Language)
+
+1. **Volatility Vector — Thrill-Seeking ↔ Truth-Seeking Impulse**
+
+* Catalytic fire/earth tension; Mars–Uranus–Pluto patterns.
+* **Containment:** grip, lock, compression.
+* **Release:** expansion, unlocking, lightening.
+
+2. **Emotional Sponge Vector — Dissolving Boundaries**
+
+* Water/Neptune/12th weighting.
+* **Containment:** bind, constriction.
+* **Release:** unbinding, unwinding.
+
+3. **Contained Rebel Vector — Volatile System-Fixer**
+
+* Mars–Uranus–Pluto compression in Virgo/Capricorn.
+* **Containment:** grip until rupture.
+* **Release:** unwinding, unlocking, precision rupture.
+
+4. **Unacknowledged Seismologist Vector — Pressure Mapper**
+
+* Moon/Saturn/Chiron/Mercury under load.
+* **Containment:** compression.
+* **Release:** lightening, expansion.
+
+5. **Architect of Internal Negotiation Vector — Multivalent Core Drive**
+
+* Opposed dominant drivers (Sun/Moon, ASC/MC).
+* **Containment:** lock.
+* **Release:** unlocking, expansion of choice.
+
+6. **Strategic Private Self Vector — Narrative Weaver**
+
+* Mercury–Pluto or Mercury–Saturn in 8th/12th.
+* **Containment:** bind.
+* **Release:** unbinding, lightening of voice.
+
+7. **Cyclical Overturner Vector — Stability Rejector**
+
+* Angular Uranus/Saturn, return cycles.
+* **Containment:** grip during buildup.
+* **Release:** expansion, lightening, reinvention rupture.
+
+---
+
+## III. Suppression-Correction Rules
+
+All structural vectors must be mirrored, tagged when quiet:
+
+* **Latent conditional impulse**
+* **Suppressed under containment**
+* **Dormant but pressure-sensitive**
+* **Compensated via opposing vector**
+
+Containment ≠ absence. Release blocked ≠ release gone.
+
+---
+
+## IV. Balance Meter Integration
+
+* Containment shades correlate with **negative valence modes** (🌋 Pressure/Eruption, ⏳ Saturn Weight, 🧩 Fragmentation).
+* Release shades correlate with **positive valence modes** (🦋 Liberation/Release, 💎 Expansion Lift, 🌊 Flow Tide, 🌱 Fertile Field).
+
+Mirrors must track both ends: name when one pole is missing.
+
+---
+
+## V. Hook Stack Placement
+
+Open mirrors with dual-line recognition:
+
+* **Resonance:** name the active containment or release.
+* **Paradox:** name the blocked or counter-pole.
+  This ensures immediate ping before analysis.
+
+---
+
+## VI. Implementation Checklist
+
+1. Identify structural vector(s).
+2. Assign active containment/release shade(s).
+3. Apply suppression tags if invisible in behavior.
+4. Place polarity hook stack.
+5. Translate FIELD → MAP → VOICE.
+6. Record SST outcome (WB / ABE / OSR).
+
+---
+
+## Closing Reflection
+
+A system is never only braced or only open. Integrity comes from mirroring both ends of the polarity—naming constriction and expansion, bind and unbinding, compression and lightening. The mirror is diagnostic terrain, not prescriptive fate.
+

@@ -15,6 +15,9 @@ import { checkAllowlist } from '@/lib/auth/allowlist';
 import { processMirrorDirective } from '@/poetic-brain/src/index';
 import { sanitizeDirectiveForMode } from '@/lib/raven/sanitizeDirectiveForMode';
 import { enforceRelationalMirrorTone } from '@/lib/poetic-brain/runtime';
+import { generateSymbolToPoem } from '@/lib/poetics/symbolToPoem';
+import { inferBigFiveFromChart } from '@/lib/bigfive/inferBigFiveFromChart';
+import { detectTensions } from '@/lib/bigfive/tensionSynthesis';
 import {
   createProbe,
   commitProbe,
@@ -303,6 +306,69 @@ export async function POST(req: Request) {
       sessionLog.probes.push(probe);
       updateSession(sid, () => { }); // Persist
       return NextResponse.json({ intent, ok: true, draft, prov, sessionId: sid, probe });
+    }
+
+    if (intent === 'symbol_to_poem') {
+      // 1. Resolve geometry from context
+      const rawContexts = Array.isArray(resolvedOptions.reportContexts) ? resolvedOptions.reportContexts : [];
+      let geometry: any = null;
+      let subjectName = "Subject";
+
+      // Try to extract from provided report contexts
+      if (rawContexts.length > 0) {
+        // Look for the first valid context with geometry
+        for (const ctx of rawContexts) {
+          // Parse content if string
+          const content = typeof ctx.content === 'string' ? safeParseJSON(ctx.content) : ctx.content;
+          if (content && content.person_a && content.person_a.chart && content.person_a.chart.positions) {
+            geometry = content.person_a.chart;
+            subjectName = content.person_a.name || "Subject";
+            break;
+          }
+        }
+      }
+
+      if (!geometry) {
+        // Fallback message if no geometry found
+        const fallbackMsg = "To weave a poem from the chart, I need the active geometry. Please ensure a reading is open or upload the Mirror Directive again.";
+        return NextResponse.json({
+          intent: 'conversation',
+          ok: true,
+          draft: { conversation: fallbackMsg },
+          sessionId: sid,
+          probe: null
+        });
+      }
+
+      // 2. Run Diagnostics
+      const positions = geometry.positions;
+      const angleSigns = geometry.angle_signs || geometry.angles; // handle schema variations
+      const profile = inferBigFiveFromChart({ positions } as any);
+
+      // Dual-Trigger Tension Detection
+      const tensions = detectTensions(profile, positions, angleSigns);
+
+      // 3. Generate Poem
+      const result = generateSymbolToPoem(profile, tensions, positions, subjectName);
+
+      // 4. Return as Raven response
+      const prov = stampProvenance({ source: 'Poetic Brain (Symbol-to-Poem)' });
+
+      // Log it
+      appendHistoryEntry(sessionLog, 'user', textInput);
+      appendHistoryEntry(sessionLog, 'raven', result.formattedMarkdown);
+      updateSession(sid, () => { });
+
+      return NextResponse.json({
+        intent: 'symbol_to_poem',
+        ok: true,
+        // We return the markdown in the 'draft' field for rendering
+        draft: { conversation: result.formattedMarkdown },
+        prov,
+        sessionId: sid,
+        probe: null,
+        climate: "VOICE · Lyrical Translation"
+      });
     }
 
     const rawContexts = Array.isArray(resolvedOptions.reportContexts) ? resolvedOptions.reportContexts : [];
