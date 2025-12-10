@@ -434,31 +434,127 @@ export async function POST(req: Request) {
 
           // ============================================================
           // GEOMETRY GATE: Per FIELD → MAP → VOICE protocol
-          // If geometry validation failed, DO NOT proceed to LLM voicing
+          // If geometry validation failed, check for AUTO-RECOVERY opportunity
           // ============================================================
           if (!result.geometry_validation?.valid) {
             console.warn('[Raven] GEOMETRY GATE HALT:', result.geometry_validation);
 
-            // Return halt message WITHOUT voicing through LLM
-            const haltNarrative = result.narrative_sections?.solo_mirror_a ||
-              `## Mirror Halted\n\nThe geometry data couldn't be parsed. Please re-export from Math Brain.`;
+            // Check if we can auto-recover using birth data
+            const personA = usedContent?.person_a;
+            // birth_data might be nested or direct
+            const birthData = personA?.birth_data || personA?.details || personA;
+            const hasBirthData = Boolean(
+              birthData?.year &&
+              birthData?.month &&
+              birthData?.day &&
+              birthData?.city
+            );
 
-            appendHistoryEntry(sessionLog, 'user', textInput || "Reading request");
-            appendHistoryEntry(sessionLog, 'raven', haltNarrative);
-            updateSession(sid, () => { });
+            if (hasBirthData) {
+              console.log('[Raven] Auto-Recovery: Valid birth data found, attempting direct Math Brain call...');
 
-            const prov = stampProvenance({ source: 'Poetic Brain (Geometry Gate - Halted)' });
-            return NextResponse.json({
-              intent: 'geometry_halt',
-              ok: true, // Operation succeeded in detecting the issue
-              draft: { conversation: haltNarrative },
-              prov,
-              sessionId: sid,
-              probe: null,
-              geometry_validation: result.geometry_validation,
-              hook: 'Geometry Gate',
-              climate: 'MAP · Data Unavailable',
-            });
+              try {
+                // Construct Math Brain payload from birth data
+                const recoveryPayload = {
+                  mode: usedContent?.mirror_contract?.is_relational ? 'SYNASTRY' : 'NATAL_ONLY',
+                  report_type: usedContent?.mirror_contract?.is_relational ? 'relational_mirror' : 'solo_mirror',
+                  personA: {
+                    name: personA.name || 'Querent',
+                    year: birthData.year,
+                    month: birthData.month,
+                    day: birthData.day,
+                    hour: birthData.hour || 12,
+                    minute: birthData.minute || 0,
+                    city: birthData.city,
+                    state: birthData.state,
+                    nation: birthData.country || birthData.nation || 'US',
+                    // Use lat/lon if available, otherwise Math Brain will resolve city
+                    latitude: birthData.latitude || birthData.lat,
+                    longitude: birthData.longitude || birthData.lon,
+                    timezone: birthData.timezone,
+                  },
+                  // Add Person B if relational
+                  personB: usedContent?.mirror_contract?.is_relational && usedContent?.person_b
+                    ? {
+                      name: usedContent.person_b.name || 'Partner',
+                      year: usedContent.person_b.birth_data?.year,
+                      month: usedContent.person_b.birth_data?.month,
+                      day: usedContent.person_b.birth_data?.day,
+                      hour: usedContent.person_b.birth_data?.hour || 12,
+                      minute: usedContent.person_b.birth_data?.minute || 0,
+                      city: usedContent.person_b.birth_data?.city,
+                      state: usedContent.person_b.birth_data?.state,
+                      nation: usedContent.person_b.birth_data?.country || 'US',
+                      latitude: usedContent.person_b.birth_data?.latitude,
+                      longitude: usedContent.person_b.birth_data?.longitude,
+                      timezone: usedContent.person_b.birth_data?.timezone,
+                    }
+                    : undefined,
+                };
+
+                // Call Math Brain directly
+                const mbResult = await runMathBrain(recoveryPayload);
+
+                if (mbResult.success && mbResult.data) {
+                  console.log('[Raven] Auto-Recovery: Success! Regenerating directive...');
+                  // Re-process directive with fresh geometry
+                  const freshContent = mbResult.data.unified_output || mbResult.data;
+                  // Ensure format flag is set for compatibility
+                  freshContent._format = 'mirror-symbolic-weather-v1';
+
+                  // Recursive call to process with fresh data
+                  const recoveredResult = processMirrorDirective(freshContent);
+
+                  if (recoveredResult.success && recoveredResult.geometry_validation?.valid) {
+                    // Update result variable to use recovered data downstream
+                    Object.assign(result, recoveredResult);
+                    console.log('[Raven] Auto-Recovery: Directive re-processed successfully.');
+                  }
+                } else {
+                  console.warn('[Raven] Auto-Recovery: Math Brain call failed', mbResult.error);
+                }
+              } catch (recoveryError) {
+                console.error('[Raven] Auto-Recovery: Exception during recovery', recoveryError);
+              }
+            }
+
+            // Re-check validation after attempted recovery
+            if (!result.geometry_validation?.valid) {
+              // Return recovery message instead of hard halt
+              const isRelational = usedContent?.mirror_contract?.is_relational;
+              const missingDataName = !hasBirthData ? (personA?.name || 'Subject') : 'Partner';
+
+              const interactiveRecoveryMessage = `## Mirror Halted: Data Unavailable
+
+I can see the request, but the chart geometry is missing.
+
+**To generate this reading now, I just need the birth details:**
+
+- **Date:** (Year, Month, Day)
+- **Time:** (Hour, Minute) - *approximate is okay for now*
+- **Location:** (City, State/Country)
+
+${isRelational ? `\n*Please provide details for both people if they aren't already loaded.*` : ''}
+
+You can type them right here, and I'll calculate the map instantly.`;
+
+              appendHistoryEntry(sessionLog, 'user', textInput || "Reading request");
+              appendHistoryEntry(sessionLog, 'raven', interactiveRecoveryMessage);
+              updateSession(sid, () => { });
+
+              const prov = stampProvenance({ source: 'Poetic Brain (Interactive Recovery)' });
+              return NextResponse.json({
+                intent: 'geometry_halt',
+                ok: true,
+                draft: { conversation: interactiveRecoveryMessage },
+                prov,
+                sessionId: sid,
+                probe: null,
+                geometry_validation: result.geometry_validation,
+                hook: 'Interactive Recovery',
+                climate: 'MAP · Data Entry',
+              });
+            }
           }
 
           if (result.success && result.narrative_sections) {
