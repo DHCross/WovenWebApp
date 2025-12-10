@@ -103,7 +103,13 @@ const NATAL_ASPECTS = ['conjunction','square','opposition'];
  * @returns {number|null} House number (1-12) or null if invalid
  */
 function calculateNatalHouse(transitLongitude, houseCusps) {
-  if (!houseCusps || houseCusps.length !== 12 || typeof transitLongitude !== 'number') {
+  const cuspValues = Array.isArray(houseCusps)
+    ? houseCusps
+    : (houseCusps && typeof houseCusps === 'object'
+        ? Object.values(houseCusps).map(c => c.abs_pos)
+        : null);
+
+  if (!cuspValues || cuspValues.length < 12 || typeof transitLongitude !== 'number') {
     return null;
   }
   
@@ -113,8 +119,8 @@ function calculateNatalHouse(transitLongitude, houseCusps) {
   
   // Check each house
   for (let i = 0; i < 12; i++) {
-    const currentCusp = normalizeLon(houseCusps[i]);
-    const nextCusp = normalizeLon(houseCusps[(i + 1) % 12]);
+    const currentCusp = normalizeLon(cuspValues[i]);
+    const nextCusp = normalizeLon(cuspValues[(i + 1) % 12]);
     
     // Handle zodiac wrap-around (e.g., house 12 ending at 0° Aries)
     if (currentCusp < nextCusp) {
@@ -140,32 +146,25 @@ function calculateNatalHouse(transitLongitude, houseCusps) {
  * @returns {number[]|null} Array of 12 house cusp longitudes (degrees) or null
  */
 function extractHouseCusps(chartData) {
-  if (!chartData || typeof chartData !== 'object') return null;
-  
-  const cusps = [];
-  
-  // API returns houses as: first_house, second_house, ..., twelfth_house
-  const houseNames = [
-    'first_house', 'second_house', 'third_house', 'fourth_house',
-    'fifth_house', 'sixth_house', 'seventh_house', 'eighth_house',
-    'ninth_house', 'tenth_house', 'eleventh_house', 'twelfth_house'
-  ];
-  
-  for (const houseName of houseNames) {
-    const houseData = chartData[houseName];
-    if (houseData && typeof houseData.abs_pos === 'number') {
-      cusps.push(houseData.abs_pos);
-    } else if (houseData && typeof houseData.position === 'number') {
-      // Fallback: some APIs use 'position' instead of 'abs_pos'
-      cusps.push(houseData.position);
+  if (!chartData || typeof chartData !== 'object') {
+    return null;
+  }
+
+  const cusps = {};
+  const missing = [];
+  for (let i = 1; i <= 12; i++) {
+    const cuspName = `house_${i}`;
+    if (chartData[cuspName] && typeof chartData[cuspName] === 'object') {
+      cusps[i] = {
+        sign: chartData[cuspName].sign,
+        abs_pos: chartData[cuspName].abs_pos,
+        norm_pos: chartData[cuspName].norm_pos,
+      };
     } else {
-      // Missing house data - abort
-      // logger.debug(`Missing house cusp data for ${houseName}`);
-      return null;
+      missing.push(cuspName);
     }
   }
-  
-  return cusps.length === 12 ? cusps : null;
+  return { cusps, missing };
 }
 
 function resolveDayAspects(dayEntry) {
