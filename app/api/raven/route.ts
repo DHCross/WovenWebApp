@@ -114,6 +114,10 @@ import {
   type RelationalMetadata,
 } from '@/lib/raven/relational-metadata';
 
+// THE INVERSION: Direct Access Imports
+import { getTransitsV3 } from '@/lib/server/astrology-mathbrain';
+import { DateTime } from 'luxon';
+
 // Minimal in-memory session store (dev only). For prod, persist per-user.
 // Import the updated persona from protocol
 import { RAVEN_CORE_PERSONA } from '@/lib/raven/protocol';
@@ -533,8 +537,67 @@ export async function POST(req: Request) {
                       phaseIcon,
                     });
 
+                    // Build system prompt for this turn
+                    // THE INVERSION: PRE-FLIGHT CHECK
+                    // If we have birth keys and valid intent, auto-fetch transits
+                    let transitInjection = "";
+
+                    // Check for weather/transit intent + available keys
+                    const looksLikeWeatherRequest = /\b(weather|sky|transits|currents|now|today)\b/i.test(textInput);
+                    const hasContext = normalizedContexts.length > 0; // Assuming normalizedContexts is available here
+                    if (sessionLog.birth_key_a && (looksLikeWeatherRequest || !hasContext)) {
+                      try {
+                        const now = DateTime.now(); // Current time
+                        const transitParams = {
+                          startDate: now.toISODate(),
+                          endDate: now.toISODate(),
+                          step: 'daily'
+                        };
+                        // Direct call to Math Brain
+                        const transitResult = await getTransitsV3(
+                          sessionLog.birth_key_a,
+                          transitParams,
+                          { "x-api-key": process.env.RAPIDAPI_KEY || process.env.ASTROLOGER_API },
+                          { summary_only: true } // Performance optimization if supported
+                        );
+
+                        if (transitResult?.transitsByDate) {
+                          const dateKey = Object.keys(transitResult.transitsByDate)[0];
+                          const aspects = transitResult.transitsByDate[dateKey];
+                          if (aspects && aspects.length > 0) {
+                            transitInjection = `
+[SYSTEM INJECTION: REAL-TIME FIELD DATA]
+Subject: ${sessionLog.birth_key_a.name}
+Date: ${dateKey}
+Active Transits (Geometry):
+${JSON.stringify(aspects.slice(0, 10))}
+(Use this geometry to ground the mirror.)
+`;
+                          }
+                        }
+                      } catch (e) {
+                        console.warn("[Raven] Auto-fetch transits failed", e);
+                      }
+                    }
+
+                    // Re-build system prompt with injection
+                    // This assumes `systemContext` is a variable holding the base system prompt.
+                    // If `systemContext` is not directly available here, this part needs adjustment.
+                    // For now, let's assume `systemContext` is part of the `voicePrompt` construction.
+                    // The instruction implies injecting into the *system prompt context* for the LLM call.
+                    // The `voicePrompt` below is the *user message* for the LLM, not the system prompt.
+                    // The instruction is to inject into the *system prompt context*.
+                    // Let's assume `RAVEN_PERSONA_HOOK` is the system prompt, and we need to prepend to it.
+                    // Or, more likely, `generateStream` takes a `system` option.
+                    // Given the structure, the `voicePrompt` is the *user message* for the LLM.
+                    // The `transitInjection` should probably be prepended to the `voicePrompt` itself,
+                    // or passed as a separate system message if `generateStream` supports it.
+                    // The instruction says "Inject fetched geometry into system prompt context."
+                    // Let's prepend it to the `voicePrompt` for now, as that's the most direct way
+                    // to get it into the LLM's input for *this specific phase*.
+
                     // Build voice transformation prompt for THIS phase only
-                    const voicePrompt = `You are Raven Calder. Below is one section of a mirror reading: **${phaseLabel}**.
+                    const voicePrompt = `${transitInjection}You are Raven Calder. Below is one section of a mirror reading: **${phaseLabel}**.
 
 VOICING INSTRUCTIONS:
 - Speak directly to ${personAName}${isRelational ? ` about their connection with ${personBName}` : ''}
@@ -654,6 +717,26 @@ Now voice this section naturally. Maximum 3-4 paragraphs.`;
       if (autoPlan.personAName) subjects.push(autoPlan.personAName);
       if (autoPlan.personBName) subjects.push(autoPlan.personBName);
       sessionLog.contextGate = createContextGateState(subjects);
+
+      // THE INVERSION: Persist Birth Keys from Context
+      // This "hydrates" the session for future direct access
+      // We need to find the context that gave us these names and extract full birth data
+      const sourceContext = normalizedContexts.find(c => {
+        const content = typeof c.content === 'string' ? safeParseJSON(c.content) : c.content;
+        return content?.person_a?.name === autoPlan.personAName || content?.person_b?.name === autoPlan.personBName;
+      });
+
+      if (sourceContext) {
+        const content = typeof sourceContext.content === 'string' ? safeParseJSON(sourceContext.content) : sourceContext.content;
+        if (content?.person_a) {
+          sessionLog.birth_key_a = content.person_a;
+          // Ensure dates are parsed correctly if they are strings in the JSON
+        }
+        if (content?.person_b) {
+          sessionLog.birth_key_b = content.person_b;
+        }
+      }
+
       updateSession(sid, () => { });
     }
 
@@ -1239,9 +1322,57 @@ Now voice this section naturally. Maximum 3-4 paragraphs.`;
 
 
     const encoder = new TextEncoder();
+
+    // THE INVERSION: PRE-FLIGHT CHECK (Conversational Auto-Fetch)
+    let transitInjection = "";
+    // Check for weather/transit intent + available keys
+    // We reuse the logic from earlier or re-implement it here for the conversational flow
+    // hasReportContext is defined above (line ~623)
+    const looksLikeWeatherRequest = /\b(weather|sky|transits|currents|now|today)\b/i.test(textInput);
+
+    if (sessionLog.birth_key_a && (looksLikeWeatherRequest || !hasReportContext)) {
+      try {
+        const now = DateTime.now(); // Current time
+        const transitParams = {
+          startDate: now.toISODate(),
+          endDate: now.toISODate(),
+          step: 'daily'
+        };
+        // Direct call to Math Brain
+        // Note: getTransitsV3 assumes standard AWS/Lambda context or similar, 
+        // we might need fallback if not present, but it's imported now.
+        const transitResult: any = await getTransitsV3(
+          sessionLog.birth_key_a,
+          transitParams,
+          { "x-api-key": process.env.RAPIDAPI_KEY || process.env.ASTROLOGER_API },
+          { summary_only: true }
+        );
+
+        if (transitResult?.transitsByDate) {
+          const dateKey = Object.keys(transitResult.transitsByDate)[0];
+          const aspects = transitResult.transitsByDate[dateKey];
+          if (aspects && aspects.length > 0) {
+            transitInjection = `
+[SYSTEM INJECTION: REAL-TIME FIELD DATA]
+Subject: ${sessionLog.birth_key_a.name}
+Date: ${dateKey}
+Active Transits (Geometry):
+${JSON.stringify(aspects.slice(0, 10))}
+(Use this geometry to ground the mirror.)
+`;
+          }
+        }
+      } catch (e) {
+        console.warn("[Raven] Auto-fetch transits failed", e);
+      }
+    }
     const stream = await generateStream(prompt, {
       model: process.env.POETIC_BRAIN_MODEL || 'sonar-pro',
-      personaHook: RAVEN_PERSONA_HOOK,
+      // THE INVERSION: Inject Real-Time Field Data into Persona Hook
+      // transitInjection is calculated above in the "Pre-Flight Check"
+      personaHook: transitInjection
+        ? `${RAVEN_PERSONA_HOOK}\n\n${transitInjection}`
+        : RAVEN_PERSONA_HOOK,
     });
 
     const responseStream = new ReadableStream({

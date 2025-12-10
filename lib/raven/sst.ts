@@ -41,6 +41,12 @@ export interface SessionSSTLog {
   validationActive?: boolean;
   /** Context Gate state - tracks querent identity and role */
   contextGate?: ContextGateState;
+  /**
+   * THE INVERSION KEYS: Birth data persistence
+   * Enables Raven to fetch geometry directly without needing a new report.
+   */
+  birth_key_a?: any; // Full Subject object
+  birth_key_b?: any; // Full Subject object (if relational)
 }
 
 export interface SessionScores {
