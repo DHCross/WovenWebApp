@@ -1,9 +1,13 @@
 # Raven Calder (Poetic Brain) Reading Flow Documentation
 
-**Last Updated:** October 12, 2025  
-**Status:** ✅ All flows verified and working correctly
+> [!CAUTION]
+> **DEPRECATED — Pre-Shipyard / File-Upload Era**
+> This document describes the original architecture where users uploaded JSON/PDF reports.
+> The current Shipyard architecture uses conversational intake with the Chart Engine.
+> See: `/Shipyard/vessel/docs/READING_FLOW.md` for current documentation.
 
----
+**Last Updated:** October 12, 2025  
+**Status:** ⚠️ DEPRECATED — See Shipyard docs for current architecture
 
 ## 📖 Complete Reading Flow
 
