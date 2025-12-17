@@ -1212,7 +1212,7 @@ export default function ChatClient() {
           </div>
 
           {/* Conditional guidance based on whether they have Math Brain data */}
-          {hasMathBrainSession === false && (
+          {hasMathBrainSession === false && !canRecoverStoredPayload && (
             <div className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-4">
               <div className="flex items-start gap-3">
                 <span className="text-lg">✨</span>
@@ -1260,6 +1260,29 @@ export default function ChatClient() {
                       Load Math Brain Session
                     </button>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {hasMathBrainSession !== true && canRecoverStoredPayload && (
+            <div className="mt-5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-4">
+              <div className="flex items-start gap-3">
+                <span className="text-lg">📂</span>
+                <div>
+                  <p className="text-sm font-medium text-emerald-200">Saved Math Brain report detected</p>
+                  <p className="mt-1 text-xs text-emerald-200/80">
+                    I can restore your last export even though I couldn&apos;t automatically confirm Math Brain is active in this tab.
+                    Load it below to start the structured Poetic Brain reading.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={recoverLastStoredPayload}
+                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-100 transition hover:bg-emerald-500/30"
+                  >
+                    <span>📊</span>
+                    Load last report
+                  </button>
                 </div>
               </div>
             </div>
