@@ -5,6 +5,9 @@
 import { buildMandatesForChart, buildSynastryMandates } from '../../lib/poetics/mandate';
 import { enhancePromptWithMandates } from '../../lib/poetics/prompt-builder';
 import { generateSoloMirrorNarrative } from '../../lib/poetics/narrative-builder';
+import { calculateSynastryAspects, canCalculateSynastry } from '../../lib/poetics/synastry-calculator';
+import { inferBigFiveFromChart, type BigFiveProfile } from '../../lib/bigfive/inferBigFiveFromChart';
+import { getVocabularyShaping, getDominantPhrase, type VocabularyShaping } from '../../lib/bigfive/vocabularyShaper';
 import type { MandateAspect } from '../../lib/poetics/types';
 
 export type SectionType = 'MirrorVoice' | 'PolarityCardVoice' | string;
@@ -53,19 +56,35 @@ export interface EnhancedMatrix {
   lensRotationTriggered?: boolean;
 }
 
+/**
+ * Geometry Validation Result
+ * 
+ * Per Raven Calder Protocol: FIELD → MAP → VOICE
+ * If geometry is invalid, MAP layer must halt and VOICE layer must not fire.
+ * 
+ * This type enables explicit gating at the API layer.
+ */
+export type GeometryValidation =
+  | { valid: true }
+  | {
+    valid: false;
+    reason: 'missing_person_a' | 'missing_person_a_name' | 'missing_aspects_a' | 'missing_synastry_for_relational' | 'missing_both_aspects';
+    details?: string;
+  };
+
 export interface InputPayload {
   // Consolidated schemas (Oct 20, 2025) - Per Raven Calder directive
   _format?: 'mirror_directive_json' | 'symbolic_weather_json' | 'mirror-symbolic-weather-v1' | 'wm-fieldmap-v1' | string;
   _version?: string;
   _poetic_brain_compatible?: boolean;
   generated_at?: string;
-  
+
   // Consolidated Mirror + Symbolic Weather specific fields
   _natal_section?: {
     mirror_source?: string;
     note?: string;
   };
-  
+
   // NEW: Natal geometry (person_a/person_b charts)
   person_a?: {
     name?: string;
@@ -85,7 +104,7 @@ export interface InputPayload {
     details?: any;
     summary?: any;
   } | null;
-  
+
   // NEW: Mirror contract (report scope + intimacy tier)
   mirror_contract?: {
     report_kind?: string;
@@ -125,7 +144,7 @@ export interface InputPayload {
     synastry_aspects_raw?: any[];
     [key: string]: any;
   };
-  
+
   // NEW: Narrative sections (empty placeholders for Poetic Brain output)
   narrative_sections?: {
     solo_mirror_a?: string;
@@ -188,7 +207,7 @@ export interface InputPayload {
       };
     };
   };
-  
+
   // EXISTING: Legacy format support (backward compatibility)
   climateLine?: string;
   constitutionalClimate?: string;
@@ -322,12 +341,12 @@ function formatHooksLine(hooks: HookObject[]): string {
   const items = hooks.map(h => {
     const parts: string[] = [h.label];
     const tags: string[] = [];
-    
+
     // Add SRP hinge phrase if present (Phase 1 enhancement)
     if (h.srp?.hingePhrase) {
       parts.push(h.srp.hingePhrase);
     }
-    
+
     if (h.exact) tags.push('exact');
     if (typeof h.orb === 'number') tags.push(`${h.orb.toFixed(1)}° orb`);
     if (h.retrograde_involved) tags.push('retrograde signature');
@@ -339,7 +358,7 @@ function formatHooksLine(hooks: HookObject[]): string {
     // Add resonance state indicator
     if (h.resonanceState === 'ABE') tags.push('boundary edge');
     else if (h.resonanceState === 'OSR') tags.push('non-ping');
-    
+
     // Add SRP shadow collapse mode if present
     if (h.srp?.collapseMode) {
       tags.push(`⚠ ${h.srp.collapseMode}`);
@@ -373,7 +392,7 @@ function buildShadowLayerSummary(shadowLayer?: ShadowLayer, hooks?: HookObject[]
       .join(', ');
     parts.push(`Structural Tensions: ${tensionList}`);
   }
-  
+
   // NEW: SRP restoration cues (Phase 1)
   // Extract restoration cues from hooks with shadow references
   if (hooks) {
@@ -508,23 +527,23 @@ function buildMirrorVoice(payload: InputPayload): string {
   const provenanceLine = buildProvenanceLine(payload.provenance);
 
   if (!hasActivationData(payload)) {
-  const lines: string[] = [blueprintLine];
+    const lines: string[] = [blueprintLine];
 
-  if (matrixSummary) lines.push(matrixSummary);
-  if (toolFraming) lines.push(toolFraming);
+    if (matrixSummary) lines.push(matrixSummary);
+    if (toolFraming) lines.push(toolFraming);
 
-  lines.push('Current Mode — No activation data supplied; holding to the natal baseline.');
-  lines.push(`Baseline Hooks — ${formatHooksLine(hooks)}`);
+    lines.push('Current Mode — No activation data supplied; holding to the natal baseline.');
+    lines.push(`Baseline Hooks — ${formatHooksLine(hooks)}`);
 
-  // Build shadow summary with hook restoration cues
-  const shadowSummary = buildShadowLayerSummary(payload.shadowLayer, hooks);
-  if (shadowSummary) lines.push(shadowSummary);
+    // Build shadow summary with hook restoration cues
+    const shadowSummary = buildShadowLayerSummary(payload.shadowLayer, hooks);
+    if (shadowSummary) lines.push(shadowSummary);
 
-  lines.push('Reflection — Map, not mandate: integrate what resonates and release the rest.');
+    lines.push('Reflection — Map, not mandate: integrate what resonates and release the rest.');
 
-  if (provenanceLine) lines.push(provenanceLine);
+    if (provenanceLine) lines.push(provenanceLine);
 
-  return lines.join('\n');
+    return lines.join('\n');
   }
 
   const s = seismographSummary(payload);
@@ -593,10 +612,14 @@ interface MirrorDirectiveParsed {
     aspectsA: any[];
     aspectsB: any[];
     synastryAspects: any[];
+    synastryComputed: boolean; // True if aspects were calculated internally
   };
 }
 
-function extractSynastryAspects(payload: InputPayload): any[] {
+/**
+ * Extract pre-computed synastry aspects from various possible locations in the payload
+ */
+function extractPrecomputedSynastryAspects(payload: InputPayload): any[] {
   const candidates = [
     payload.synastry_aspects,
     payload.relationship_context?.synastry_aspects,
@@ -614,29 +637,91 @@ function extractSynastryAspects(payload: InputPayload): any[] {
     }
   }
 
-  return Array.isArray(payload.synastry_aspects) ? payload.synastry_aspects : [];
+  return [];
+}
+
+/**
+ * Extract synastry aspects - either from pre-computed data OR by calculating internally
+ * 
+ * Per Raven's Law: The system must never claim missing data when it has
+ * the raw geometry to compute what it needs.
+ */
+function extractSynastryAspects(
+  payload: InputPayload,
+  chartA: any,
+  chartB: any | null,
+  personAName: string,
+  personBName: string
+): { aspects: any[]; computed: boolean } {
+  // First, try to find pre-computed synastry aspects
+  const precomputed = extractPrecomputedSynastryAspects(payload);
+  if (precomputed.length > 0) {
+    console.log('[PoeticBrain] Using pre-computed synastry aspects:', precomputed.length);
+    return { aspects: precomputed, computed: false };
+  }
+
+  // If no pre-computed aspects, attempt to calculate from chart positions
+  if (!chartB) {
+    console.log('[PoeticBrain] No Person B chart - skipping synastry calculation');
+    return { aspects: [], computed: false };
+  }
+
+  const positionsA = chartA?.positions || {};
+  const positionsB = chartB?.positions || {};
+
+  if (!canCalculateSynastry(positionsA, positionsB)) {
+    console.log('[PoeticBrain] Insufficient position data for synastry calculation');
+    return { aspects: [], computed: false };
+  }
+
+  // Calculate synastry aspects internally
+  console.log('[PoeticBrain] Computing synastry aspects from chart positions...');
+  const result = calculateSynastryAspects(
+    positionsA,
+    positionsB,
+    personAName,
+    personBName,
+    { includeMinorAspects: false, maxAspects: 15, minWeight: 3 }
+  );
+
+  console.log('[PoeticBrain] Computed synastry aspects:', {
+    aspectCount: result.aspect_count,
+    planetCountA: result.planet_count_a,
+    planetCountB: result.planet_count_b,
+    source: result.source,
+  });
+
+  return { aspects: result.aspects, computed: true };
 }
 
 /**
  * Parse Mirror Directive JSON structure
  * Extracts natal geometry, mirror contract, and report configuration
+ * 
+ * If synastry_aspects are not provided but both charts have positions,
+ * aspects will be calculated internally.
  */
 function parseMirrorDirective(payload: InputPayload): MirrorDirectiveParsed {
   const contract = payload.mirror_contract || {};
-  
+
   // Get base chart objects
   const baseChartA = payload.person_a?.chart || {};
   const baseChartB = payload.person_b?.chart || null;
-  
+
   // Aspects can be at person.aspects OR person.chart.aspects - normalize to chart.aspects
   // buildMandatesForChart expects chart.aspects to exist
   const aspectsA = payload.person_a?.aspects || baseChartA.aspects || [];
   const aspectsB = payload.person_b?.aspects || baseChartB?.aspects || [];
-  
+
   // Attach aspects to chart objects so buildMandatesForChart can find them
   const chartA = { ...baseChartA, aspects: aspectsA };
   const chartB = baseChartB ? { ...baseChartB, aspects: aspectsB } : null;
-  
+
+  // Extract or compute synastry aspects
+  const personAName = payload.person_a?.name || 'Person A';
+  const personBName = payload.person_b?.name || 'Person B';
+  const synastryResult = extractSynastryAspects(payload, chartA, chartB, personAName, personBName);
+
   return {
     reportKind: contract.report_kind || 'mirror',
     intimacyTier: contract.intimacy_tier || null,
@@ -648,9 +733,135 @@ function parseMirrorDirective(payload: InputPayload): MirrorDirectiveParsed {
       chartB,
       aspectsA,
       aspectsB,
-      synastryAspects: extractSynastryAspects(payload),
+      synastryAspects: synastryResult.aspects,
+      synastryComputed: synastryResult.computed,
     }
   };
+}
+
+// ============================================================================
+// Constitutional Texture — Backstage Vocabulary Shaping
+// ============================================================================
+
+interface ConstitutionalTextures {
+  textureA: BigFiveProfile | null;
+  textureB: BigFiveProfile | null;
+  shapingA: VocabularyShaping | null;
+  shapingB: VocabularyShaping | null;
+}
+
+/**
+ * Extract constitutional texture from payload provenance or compute on the fly
+ * 
+ * The texture shapes HOW Raven speaks (vocabulary selection) without ever
+ * naming the Big Five framework frontstage.
+ */
+function extractConstitutionalTexture(payload: InputPayload, chartA: any, chartB: any | null): ConstitutionalTextures {
+  // First, try to extract from provenance (if Math Brain already computed it)
+  // Use type assertion since provenance allows any additional properties
+  const provenanceTexture = (payload.provenance as any)?._constitutional_texture;
+
+  let textureA: BigFiveProfile | null = null;
+  let textureB: BigFiveProfile | null = null;
+
+  if (provenanceTexture?.person_a) {
+    textureA = provenanceTexture.person_a as BigFiveProfile;
+    console.log('[PoeticBrain] Using pre-computed constitutional texture for Person A');
+  } else if (chartA?.positions) {
+    // Compute on the fly if not in provenance
+    textureA = inferBigFiveFromChart({ positions: chartA.positions, angle_signs: chartA.angle_signs });
+    if (textureA) {
+      console.log('[PoeticBrain] Computed constitutional texture for Person A');
+    }
+  }
+
+  if (provenanceTexture?.person_b) {
+    textureB = provenanceTexture.person_b as BigFiveProfile;
+    console.log('[PoeticBrain] Using pre-computed constitutional texture for Person B');
+  } else if (chartB?.positions) {
+    textureB = inferBigFiveFromChart({ positions: chartB.positions, angle_signs: chartB.angle_signs });
+    if (textureB) {
+      console.log('[PoeticBrain] Computed constitutional texture for Person B');
+    }
+  }
+
+  // Generate vocabulary shaping from textures
+  const shapingA = textureA ? getVocabularyShaping(textureA) : null;
+  const shapingB = textureB ? getVocabularyShaping(textureB) : null;
+
+  if (shapingA) {
+    console.log('[PoeticBrain] Vocabulary shaping A:', shapingA._technicalSummary);
+  }
+  if (shapingB) {
+    console.log('[PoeticBrain] Vocabulary shaping B:', shapingB._technicalSummary);
+  }
+
+  return { textureA, textureB, shapingA, shapingB };
+}
+
+/**
+ * Generate an architectural opening using vocabulary shaping
+ * This replaces generic descriptions with texture-informed language
+ */
+function generateTexturedOpening(name: string, shaping: VocabularyShaping | null): string {
+  if (!shaping) {
+    return `${name}'s baseline architecture...`;
+  }
+
+  // Pick phrases from each category to build a rich opening
+  const aperture = shaping.aperture[0] || 'balanced aperture';
+  const energy = shaping.energy[0] || 'context-dependent energy';
+  const structure = shaping.structure[0] || 'adaptive structure';
+
+  return `Your architecture shows a **${aperture}**—${energy}. There's a **${structure}** quality here.`;
+}
+
+/**
+ * Generate relational field description using both textures
+ */
+function generateRelationalTextureDescription(
+  nameA: string,
+  nameB: string,
+  shapingA: VocabularyShaping | null,
+  shapingB: VocabularyShaping | null
+): string[] {
+  const lines: string[] = [];
+
+  if (!shapingA && !shapingB) {
+    return lines;
+  }
+
+  lines.push(`### Constitutional Texture — How Each System Moves`);
+  lines.push('');
+
+  if (shapingA) {
+    const aperture = shapingA.aperture[0] || 'balanced aperture';
+    const relational = shapingA.relational[0] || 'selective harmonizing';
+    const sensitivity = shapingA.sensitivity[0] || 'calibrated sensitivity';
+    lines.push(`**${nameA}** tends to operate with a ${aperture}, ${relational}, and a ${sensitivity}.`);
+    lines.push('');
+  }
+
+  if (shapingB) {
+    const aperture = shapingB.aperture[0] || 'balanced aperture';
+    const relational = shapingB.relational[0] || 'selective harmonizing';
+    const sensitivity = shapingB.sensitivity[0] || 'calibrated sensitivity';
+    lines.push(`**${nameB}** tends to operate with a ${aperture}, ${relational}, and a ${sensitivity}.`);
+    lines.push('');
+  }
+
+  // If both are present, describe the interplay
+  if (shapingA && shapingB) {
+    const aEnergy = shapingA.energy[0] || 'context-dependent energy';
+    const bEnergy = shapingB.energy[0] || 'context-dependent energy';
+
+    if (aEnergy !== bEnergy) {
+      lines.push(`In the shared field, ${nameA}'s ${aEnergy} meets ${nameB}'s ${bEnergy}. This difference in energy direction often creates a particular rhythm—sometimes complementary, sometimes requiring conscious calibration.`);
+      lines.push('');
+    }
+  }
+
+  return lines;
 }
 
 interface IntimacyCalibration {
@@ -665,35 +876,35 @@ interface IntimacyCalibration {
  */
 function calibrateForIntimacyTier(tier: string | null): IntimacyCalibration {
   const tierMap: Record<string, IntimacyCalibration> = {
-    'P1': { 
-      boundaryMode: 'formal', 
-      toneDescriptor: 'respectful distance', 
-      disclosureLevel: 'minimal' 
+    'P1': {
+      boundaryMode: 'formal',
+      toneDescriptor: 'respectful distance',
+      disclosureLevel: 'minimal'
     },
-    'P2': { 
-      boundaryMode: 'friendly', 
-      toneDescriptor: 'warm but bounded', 
-      disclosureLevel: 'moderate' 
+    'P2': {
+      boundaryMode: 'friendly',
+      toneDescriptor: 'warm but bounded',
+      disclosureLevel: 'moderate'
     },
-    'P3': { 
-      boundaryMode: 'exploratory', 
-      toneDescriptor: 'curious, undefined', 
-      disclosureLevel: 'moderate' 
+    'P3': {
+      boundaryMode: 'exploratory',
+      toneDescriptor: 'curious, undefined',
+      disclosureLevel: 'moderate'
     },
-    'P4': { 
-      boundaryMode: 'casual', 
-      toneDescriptor: 'relaxed, low stakes', 
-      disclosureLevel: 'moderate' 
+    'P4': {
+      boundaryMode: 'casual',
+      toneDescriptor: 'relaxed, low stakes',
+      disclosureLevel: 'moderate'
     },
-    'P5a': { 
-      boundaryMode: 'intimate', 
-      toneDescriptor: 'deep, committed', 
-      disclosureLevel: 'full' 
+    'P5a': {
+      boundaryMode: 'intimate',
+      toneDescriptor: 'deep, committed',
+      disclosureLevel: 'full'
     },
-    'P5b': { 
-      boundaryMode: 'intimate-nonsexual', 
-      toneDescriptor: 'deep, non-romantic', 
-      disclosureLevel: 'full' 
+    'P5b': {
+      boundaryMode: 'intimate-nonsexual',
+      toneDescriptor: 'deep, non-romantic',
+      disclosureLevel: 'full'
     },
   };
   return tierMap[tier || 'P1'] || tierMap['P1'];
@@ -707,23 +918,23 @@ function extractGeometrySummary(chart: any): string {
   if (!chart || typeof chart !== 'object') {
     return 'Chart geometry unavailable.';
   }
-  
+
   // Try to extract planets - check multiple possible keys
   const planets = chart.positions || chart.planets || chart.planetary_positions || {};
   const planetCount = Object.keys(planets).length;
-  
+
   // Try to extract aspects
   const aspects = chart.aspects || [];
   const aspectCount = Array.isArray(aspects) ? aspects.length : 0;
-  
+
   if (planetCount === 0 && aspectCount === 0) {
     return 'Chart geometry present but unparsed.';
   }
-  
+
   const parts: string[] = [];
   if (planetCount > 0) parts.push(`${planetCount} planetary positions`);
   if (aspectCount > 0) parts.push(`${aspectCount} aspects`);
-  
+
   return parts.join(', ');
 }
 
@@ -734,24 +945,24 @@ function extractChartSignature(chart: any): { sun?: string; moon?: string; risin
   if (!chart || typeof chart !== 'object') {
     return { summary: 'chart signature unavailable' };
   }
-  
+
   const planets = chart.positions || chart.planets || chart.planetary_positions || {};
   const getSign = (planetName: string): string | undefined => {
     const planet = planets[planetName] || planets[planetName.toLowerCase()];
     if (!planet) return undefined;
     return planet.sign || planet.signName || planet.zodiac_sign;
   };
-  
+
   const sun = getSign('Sun');
   const moon = getSign('Moon');
   // Rising can be at ASC, Ascendant, or in a separate angles object
   const rising = getSign('ASC') || getSign('Ascendant') || chart.angles?.ascendant?.sign;
-  
+
   const parts: string[] = [];
   if (sun) parts.push(`${sun} Sun`);
   if (rising) parts.push(`${rising} rising`);
   if (moon) parts.push(`${moon} Moon`);
-  
+
   return {
     sun,
     moon,
@@ -771,7 +982,7 @@ function summarizeElementBalance(chart: any): string {
     air: ['Gemini', 'Libra', 'Aquarius'],
     water: ['Cancer', 'Scorpio', 'Pisces']
   };
-  
+
   const getElement = (sign?: string): string | undefined => {
     if (!sign) return undefined;
     for (const [element, signs] of Object.entries(elements)) {
@@ -781,19 +992,19 @@ function summarizeElementBalance(chart: any): string {
     }
     return undefined;
   };
-  
+
   const sunEl = getElement(sig.sun);
   const moonEl = getElement(sig.moon);
   const risingEl = getElement(sig.rising);
-  
+
   const counts: Record<string, number> = { fire: 0, earth: 0, air: 0, water: 0 };
   if (sunEl) counts[sunEl]++;
   if (moonEl) counts[moonEl]++;
   if (risingEl) counts[risingEl]++;
-  
+
   const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1]).filter(([, c]) => c > 0);
   if (dominant.length === 0) return '';
-  
+
   return dominant.map(([el]) => el).join(' and ');
 }
 
@@ -869,9 +1080,9 @@ function generateSoloMirror(person: any, chart: any, calibration: IntimacyCalibr
     personName: name,
     mandates: mandates
   };
-  
+
   // Generate the narrative content (includes polarity cards and mirror voice)
-  const narrative = generateSoloMirrorNarrative(chartMandates, { 
+  const narrative = generateSoloMirrorNarrative(chartMandates, {
     includeHeading: true,
     includeHookStack: true,
     includePolarityCards: true,
@@ -881,7 +1092,7 @@ function generateSoloMirror(person: any, chart: any, calibration: IntimacyCalibr
 
   // Build output with conversational framing (no scaffolding metadata)
   const lines: string[] = [];
-  
+
   // If we have valid mandates, use the full narrative
   if (mandates.length > 0) {
     lines.push(narrative.fullNarrative);
@@ -895,7 +1106,7 @@ function generateSoloMirror(person: any, chart: any, calibration: IntimacyCalibr
     lines.push('');
     lines.push(`If you're seeing this, try re-exporting your Math Brain report, or ask me directly about specific planetary placements you'd like to explore.`);
   }
-  
+
   lines.push('');
   lines.push('---');
   lines.push('');
@@ -909,40 +1120,47 @@ function generateSoloMirror(person: any, chart: any, calibration: IntimacyCalibr
  * Uses Four Report Types architecture with bidirectional attribution
  * Language follows E-Prime (conditional, testable phrasing)
  */
-function generateRelationalEngine(personA: any, personB: any, geometry: any, calibration: IntimacyCalibration): string {
+function generateRelationalEngine(
+  personA: any,
+  personB: any,
+  geometry: any,
+  calibration: IntimacyCalibration,
+  shapingA: VocabularyShaping | null = null,
+  shapingB: VocabularyShaping | null = null
+): string {
   const nameA = personA.name || 'Person A';
   const nameB = personB?.name || 'Person B';
   const synastrySource = geometry?.synastryAspects || [];
   const synastryMandates = buildSynastryMandates(nameA, nameB, synastrySource, { limit: 5 });
-  
+
   // Extract chart signatures for both people
   const sigA = extractChartSignature(geometry.chartA);
   const sigB = extractChartSignature(geometry.chartB);
   const elementsA = summarizeElementBalance(geometry.chartA);
   const elementsB = summarizeElementBalance(geometry.chartB);
-  
+
   const lines: string[] = [];
   lines.push(`## Relational Mirror: ${nameA} ↔ ${nameB}`);
   lines.push('');
-  
+
   // ============================================
   // SECTION 1: FIELD OVERVIEW
   // ============================================
   lines.push(`### 1. Field Overview`);
   lines.push('');
-  
+
   if (sigA.summary !== 'chart signature unavailable' || sigB.summary !== 'chart signature unavailable') {
     // Describe the joint field using both charts
-    const aDesc = sigA.summary !== 'chart signature unavailable' 
-      ? `${nameA} arrives as ${sigA.summary}` 
+    const aDesc = sigA.summary !== 'chart signature unavailable'
+      ? `${nameA} arrives as ${sigA.summary}`
       : `${nameA}'s chart signature`;
     const bDesc = sigB.summary !== 'chart signature unavailable'
       ? `${nameB} arrives as ${sigB.summary}`
       : `${nameB}'s chart signature`;
-    
+
     lines.push(`${aDesc}. ${bDesc}.`);
     lines.push('');
-    
+
     // Element interplay
     if (elementsA && elementsB) {
       lines.push(`The joint field may carry ${elementsA} tones from ${nameA} meeting ${elementsB} tones from ${nameB}. This combination often creates a particular rhythm—neither person's pattern dominates; instead, they tend to weave together.`);
@@ -956,13 +1174,23 @@ function generateRelationalEngine(personA: any, personB: any, geometry: any, cal
     lines.push(`Both charts are present, though the core signatures (Sun, Moon, Rising) could not be parsed directly. The relational field exists in the geometry—the pattern recognition below still applies.`);
     lines.push('');
   }
-  
+
+  // ============================================
+  // NEW: CONSTITUTIONAL TEXTURE (Vocabulary-Shaped)
+  // ============================================
+  if (shapingA || shapingB) {
+    const textureLines = generateRelationalTextureDescription(nameA, nameB, shapingA, shapingB);
+    if (textureLines.length > 0) {
+      lines.push(...textureLines);
+    }
+  }
+
   // ============================================
   // SECTION 2: POLARITY MAPPING (Bidirectional)
   // ============================================
   lines.push(`### 2. Polarity Mapping`);
   lines.push('');
-  
+
   // A → B perspective
   lines.push(`**${nameA} → ${nameB}**`);
   lines.push('');
@@ -972,7 +1200,7 @@ function generateRelationalEngine(personA: any, personB: any, geometry: any, cal
     lines.push(`${nameA}'s pattern, as ${nameB} may encounter it, carries its own rhythm and timing. The specific quality depends on how the natal geometry expresses in practice.`);
   }
   lines.push('');
-  
+
   // B → A perspective
   lines.push(`**${nameB} → ${nameA}**`);
   lines.push('');
@@ -982,23 +1210,23 @@ function generateRelationalEngine(personA: any, personB: any, geometry: any, cal
     lines.push(`${nameB}'s pattern, as ${nameA} may encounter it, carries its own distinct signature. The specific quality emerges through repeated interaction.`);
   }
   lines.push('');
-  
+
   // ============================================
   // SECTION 3: TENSION ARCHITECTURE
   // ============================================
   lines.push(`### 3. Tension Architecture`);
   lines.push('');
-  
+
   if (synastryMandates.mandates.length > 0) {
     lines.push(`The following high-charge aspects describe where the two patterns tend to activate each other. These represent pressure lines—not problems, but areas where energy concentrates.`);
     lines.push('');
-    
+
     synastryMandates.mandates.forEach((mandate, index) => {
       const ownerA = mandate.archetypes.a.owner || nameA;
       const ownerB = mandate.archetypes.b.owner || nameB;
       const orb = mandate.geometry.orbDegrees.toFixed(1);
       const aspectType = mandate.geometry.aspectType;
-      
+
       lines.push(`**${String.fromCharCode(97 + index)}) ${ownerA}'s ${mandate.archetypes.a.planet} ${aspectType} ${ownerB}'s ${mandate.archetypes.b.planet}** *(${orb}° orb)*`);
       lines.push('');
       // Use conditional language
@@ -1016,13 +1244,13 @@ function generateRelationalEngine(personA: any, personB: any, geometry: any, cal
     lines.push(`The individual patterns above still apply. For the relational dynamics, you might explore how ${nameA}'s ${sigA.sun || 'Sun'} energy meets ${nameB}'s ${sigB.sun || 'Sun'} energy in practice—where does activation occur? Where does friction surface?`);
     lines.push('');
   }
-  
+
   // ============================================
   // SECTION 4: INTEGRATION BLUEPRINT
   // ============================================
   lines.push(`### 4. Integration Blueprint`);
   lines.push('');
-  
+
   lines.push(`**${nameA}'s position in this field:**`);
   if (sigA.summary !== 'chart signature unavailable') {
     lines.push(`${nameA}'s pattern (${sigA.summary}) may function as ${sigA.rising === 'Scorpio' || sigA.rising === 'Capricorn' || sigA.rising === 'Virgo' ? 'a container—someone who holds and processes before revealing' : sigA.rising === 'Aries' || sigA.rising === 'Leo' || sigA.rising === 'Sagittarius' ? 'an initiator—someone who often moves first and adjusts later' : sigA.rising === 'Libra' || sigA.rising === 'Gemini' || sigA.rising === 'Aquarius' ? 'a reader—someone who scans the field before committing' : 'a stabilizer—someone who seeks consistent ground'}. Growth edges in this relational field may involve ${sigA.sun === 'Leo' || sigA.sun === 'Aries' ? 'allowing vulnerability to surface earlier rather than waiting for perfect conditions' : sigA.sun === 'Scorpio' || sigA.sun === 'Cancer' ? 'experimenting with transparency when the protective instinct wants to close' : 'noticing where habitual patterns might be updated through this connection'}.`);
@@ -1030,7 +1258,7 @@ function generateRelationalEngine(personA: any, personB: any, geometry: any, cal
     lines.push(`${nameA}'s growth edges in this field may involve noticing which habitual patterns serve the connection and which might be ready for updating.`);
   }
   lines.push('');
-  
+
   lines.push(`**${nameB}'s position in this field:**`);
   if (sigB.summary !== 'chart signature unavailable') {
     lines.push(`${nameB}'s pattern (${sigB.summary}) may function as ${sigB.rising === 'Libra' || sigB.rising === 'Gemini' || sigB.rising === 'Aquarius' ? 'a mirror—someone who reflects the relational space clearly' : sigB.rising === 'Aries' || sigB.rising === 'Leo' || sigB.rising === 'Sagittarius' ? 'a catalyst—someone who tends to accelerate movement' : sigB.rising === 'Cancer' || sigB.rising === 'Pisces' || sigB.rising === 'Scorpio' ? 'a depth-seeker—someone who tracks what lies beneath the surface' : 'a grounding presence—someone who values consistency'}. Growth edges may involve ${sigB.sun === 'Aries' || sigB.sun === 'Sagittarius' ? 'honoring how much the other person values depth and continuity—slowing pace when needed' : sigB.sun === 'Cancer' || sigB.sun === 'Pisces' ? "allowing the other person's timing without interpreting distance as rejection" : 'finding the rhythm that serves both patterns rather than defaulting to familiar habits'}.`);
@@ -1038,12 +1266,12 @@ function generateRelationalEngine(personA: any, personB: any, geometry: any, cal
     lines.push(`${nameB}'s growth edges in this field may involve discovering which aspects of their pattern meet ${nameA}'s pattern productively and where adjustment serves.`);
   }
   lines.push('');
-  
+
   // Closing
   lines.push('---');
   lines.push('');
   lines.push(`*This mirror reflects pattern, not prediction. The geometry describes tendencies that may or may not express in your actual experience. Track how these dynamics actually play out—your lived evidence calibrates the map.*`);
-  
+
   return lines.join('\n');
 }
 
@@ -1129,6 +1357,7 @@ export function generateSection(sectionType: SectionType, inputPayload: InputPay
  */
 export function processMirrorDirective(payload: InputPayload): {
   success: boolean;
+  geometry_validation: GeometryValidation;
   narrative_sections: {
     solo_mirror_a?: string;
     solo_mirror_b?: string;
@@ -1138,7 +1367,9 @@ export function processMirrorDirective(payload: InputPayload): {
   intimacy_tier?: string | null;
   report_kind?: string;
   error?: string;
+  diagnostics?: string[];
 } {
+
   // Fast path: validate format first
   // Accept both 'mirror_directive_json' and 'mirror-symbolic-weather-v1' formats
   const validFormats = ['mirror_directive_json', 'mirror-symbolic-weather-v1'];
@@ -1146,10 +1377,14 @@ export function processMirrorDirective(payload: InputPayload): {
   if (!validFormats.includes(payloadFormat)) {
     return {
       success: false,
+      geometry_validation: { valid: false, reason: 'missing_person_a', details: 'Invalid payload format' },
       narrative_sections: {},
       error: `Invalid format: expected one of ${validFormats.join(', ')}, got ${payload._format}`
     };
   }
+
+  console.log('[PoeticBrain] Processing Mirror Directive', { format: payloadFormat });
+
 
   // Stamp persona excerpt (best-effort, non-blocking)
   try {
@@ -1172,12 +1407,16 @@ export function processMirrorDirective(payload: InputPayload): {
   const directive = parseMirrorDirective(payload);
   const { isRelational, personA, personB, geometry, intimacyTier, reportKind } = directive;
   const calibration = calibrateForIntimacyTier(intimacyTier);
-  
+
   // Pre-compute names (used multiple times)
   const nameA = personA?.name || 'Person A';
   const nameB = personB?.name || 'Person B';
   const chartA = geometry.chartA || {};
   const chartB = geometry.chartB;
+
+  // Extract constitutional texture for vocabulary shaping
+  // This shapes HOW Raven speaks without naming the Big Five framework
+  const { textureA, textureB, shapingA, shapingB } = extractConstitutionalTexture(payload, chartA, chartB);
 
   // Build narratives object
   const narratives: {
@@ -1187,26 +1426,124 @@ export function processMirrorDirective(payload: InputPayload): {
     weather_overlay?: string;
   } = {};
 
+
+  console.log('[PoeticBrain] Geometry Stats', {
+    personA: !!personA,
+    chartA_aspects: chartA.aspects?.length || 0,
+    hasPersonB: !!personB,
+    chartB_aspects: chartB?.aspects?.length || 0,
+    isRelational,
+    synastryAspects: geometry.synastryAspects?.length || 0,
+    synastryComputed: geometry.synastryComputed || false,
+  });
+
+  // ============================================================================
+  // GEOMETRY GATE: Per FIELD → MAP → VOICE protocol, halt if geometry is invalid
+  // If synastry is required but missing, MAP layer cannot proceed
+  // ============================================================================
+  const aspectsACount = chartA.aspects?.length ?? 0;
+  const aspectsBCount = chartB?.aspects?.length ?? 0;
+  const synastryCount = geometry.synastryAspects?.length ?? 0;
+
+  // Perform geometry validation
+  let geometryValidation: GeometryValidation = { valid: true };
+
+  if (!personA) {
+    geometryValidation = { valid: false, reason: 'missing_person_a', details: 'person_a is null or undefined' };
+  } else if (!personA.name) {
+    geometryValidation = { valid: false, reason: 'missing_person_a_name', details: 'person_a.name is missing' };
+  } else if (isRelational && synastryCount === 0 && !geometry.synastryComputed) {
+    // Relational mode requires synastry aspects - this is the CRITICAL gate
+    geometryValidation = {
+      valid: false,
+      reason: 'missing_synastry_for_relational',
+      details: `Relational reading requested but synastry aspects could not be parsed (0 cross-chart aspects found)`
+    };
+  } else if (aspectsACount === 0 && (!isRelational || aspectsBCount === 0)) {
+    geometryValidation = { valid: false, reason: 'missing_both_aspects', details: 'No natal aspects could be parsed for either chart' };
+  }
+
+  // If validation failed, return early with halt message - DO NOT PROCEED TO VOICE
+  if (!geometryValidation.valid) {
+    console.warn('[PoeticBrain] GEOMETRY GATE HALT:', geometryValidation);
+
+    const haltMessage = `## Mirror Halted: Data Unavailable
+
+I tried to open this reading, but the geometry couldn't be parsed completely.
+
+**What's missing:** ${(geometryValidation as any).details || 'Required chart data'}
+
+**Recovery options:**
+- Return to Math Brain and regenerate the chart with "Export to Poetic Brain"
+- Verify all birth data fields (date, time, location) are complete
+- If this is a relational reading, ensure both charts are fully exported
+
+I'm here when the coordinates arrive. You can still ask me general questions about patterns and navigation while we troubleshoot.
+
+---
+
+*This is a data availability issue, not an error in your chart. The MAP layer cannot proceed without valid geometry.*`;
+
+    return {
+      success: false,
+      geometry_validation: geometryValidation,
+      narrative_sections: { solo_mirror_a: haltMessage },
+      intimacy_tier: intimacyTier,
+      report_kind: reportKind,
+      error: `Geometry validation failed: ${(geometryValidation as any).reason}`,
+      diagnostics: [(geometryValidation as any).details || 'Geometry validation failed'],
+    };
+  }
+
+
   // Generate mandates only when needed (lazy evaluation)
   let mandatesA: ReturnType<typeof buildMandatesForChart> | null = null;
   let mandatesB: ReturnType<typeof buildMandatesForChart> | null = null;
-  
+
   const getMandatesA = () => {
     if (!mandatesA) {
       mandatesA = buildMandatesForChart(nameA, chartA, { limit: 5 });
+      console.log('[PoeticBrain] Mandates generated for A', { count: mandatesA.mandates.length });
     }
     return mandatesA;
   };
-  
+
+
   const getMandatesB = () => {
     if (!mandatesB && chartB) {
       mandatesB = buildMandatesForChart(nameB, chartB, { limit: 5 });
+      console.log('[PoeticBrain] Mandates generated for B', { count: mandatesB.mandates.length });
     }
     return mandatesB;
   };
 
+
   // Generate solo mirror for Person A (most common path)
-  if (personA) {
+  // DEFENSIVE LAYER 2: Graceful degradation when personA is missing or incomplete
+  if (!personA || !personA.name) {
+    // Generate informative fallback when person_a is missing entirely
+    // This catches the case where the payload has person_a: null or person_a: {}
+    narratives.solo_mirror_a = `## Solo Mirror: Chart Data Missing
+
+I'm ready to generate your reading, but the chart geometry didn't arrive completely. This usually means:
+
+- The Math Brain report wasn't fully generated
+- There's a connection issue between systems  
+- The birth data wasn't fully captured
+
+**What you can do:**
+- Return to Math Brain and regenerate your chart
+- Check that all required fields (name, date, time, location) were filled
+- If the issue persists, try refreshing the page
+
+I'm here when you're ready. Feel free to ask questions in the meantime—I can still discuss patterns, archetypes, and general navigation.
+
+If this keeps happening, you can describe the issue by typing "report issue" and I'll help you document it.
+
+---
+
+*This is a data availability issue, not an error in your chart.*`;
+  } else {
     narratives.solo_mirror_a = generateSoloMirror(
       personA,
       chartA,
@@ -1229,7 +1566,9 @@ export function processMirrorDirective(payload: InputPayload): {
       personA,
       personB,
       geometry,
-      calibration
+      calibration,
+      shapingA,
+      shapingB
     );
   }
 
@@ -1239,17 +1578,103 @@ export function processMirrorDirective(payload: InputPayload): {
     narratives.weather_overlay = generateWeatherOverlay(weatherSource);
   }
 
+  // ==========================================================================
+  // SELF-DIAGNOSTIC: Report what went wrong if narratives are sparse
+  // ==========================================================================
+  const diagnosticIssues: string[] = [];
+
+  // Check Person A narrative quality
+  if (!narratives.solo_mirror_a || narratives.solo_mirror_a.includes('Chart Data Missing')) {
+    diagnosticIssues.push('❌ Person A chart data incomplete or missing');
+  } else if (narratives.solo_mirror_a.length < 200) {
+    diagnosticIssues.push('⚠️ Person A narrative is unusually short');
+  }
+
+  // Check mandate generation
+  const mandatesACount = mandatesA !== null ? (mandatesA as { mandates: any[] }).mandates.length : 0;
+
+
+  if (mandatesACount === 0 && personA?.name) {
+
+    diagnosticIssues.push(`❌ No mandates generated for ${personA.name} - aspect data may be missing or in wrong format`);
+  }
+
+  // Check relational content if expected
+  if (isRelational) {
+    if (!personB?.name) {
+      diagnosticIssues.push('❌ Relational mode requested but Person B name is missing');
+    }
+    if (!narratives.solo_mirror_b) {
+      diagnosticIssues.push('❌ Person B solo mirror failed to generate');
+    }
+    if (!narratives.relational_engine) {
+      diagnosticIssues.push('❌ Relational engine narrative failed to generate');
+    }
+    const synastryCount = geometry.synastryAspects?.length ?? 0;
+    if (synastryCount === 0) {
+      diagnosticIssues.push('⚠️ No synastry aspects found - cross-chart analysis will be limited');
+    } else if (geometry.synastryComputed) {
+      // Positive note: synastry was computed internally
+      console.log(`[PoeticBrain] ✓ Synastry computed internally: ${synastryCount} cross-chart aspects`);
+    }
+  }
+
+  // Check chart geometry (reusing aspectsACount/aspectsBCount from earlier validation)
+  if (aspectsACount === 0) {
+    diagnosticIssues.push(`❌ Person A chart has 0 aspects - this is the likely cause of empty readings`);
+  }
+  if (isRelational && aspectsBCount === 0) {
+    diagnosticIssues.push(`❌ Person B chart has 0 aspects`);
+  }
+
+  // Log diagnostics (always, for server-side visibility)
+  if (diagnosticIssues.length > 0) {
+    console.warn('[PoeticBrain] Self-Diagnostic Report:', diagnosticIssues);
+  } else {
+    console.log('[PoeticBrain] ✓ All checks passed', {
+      soloA: narratives.solo_mirror_a?.length ?? 0,
+      soloB: narratives.solo_mirror_b?.length ?? 0,
+      relational: narratives.relational_engine?.length ?? 0,
+      weather: narratives.weather_overlay?.length ?? 0,
+      synastrySource: geometry.synastryComputed ? 'computed_internally' : 'pre_provided',
+    });
+  }
+
+  // If there are critical issues, append a diagnostic summary to the narrative
+  const criticalIssues = diagnosticIssues.filter(i => i.startsWith('❌'));
+  if (criticalIssues.length > 0 && narratives.solo_mirror_a) {
+    const diagnosticNote = `
+
+---
+
+**🔧 Diagnostic Report** (What I couldn't process)
+
+${criticalIssues.join('\n')}
+
+This isn't a problem with your chart—it's a data-flow issue between Math Brain and Poetic Brain. The fix is usually one of:
+1. Re-export the report from Math Brain (use "Export to Poetic Brain")
+2. Ensure all birth data fields are complete
+3. If using a saved report, try generating a fresh one
+
+Type "help" if you'd like me to walk you through recovery options.`;
+
+    narratives.solo_mirror_a += diagnosticNote;
+  }
+
   return {
     success: true,
+    geometry_validation: { valid: true },
     narrative_sections: narratives,
     intimacy_tier: intimacyTier,
     report_kind: reportKind,
+    diagnostics: diagnosticIssues.length > 0 ? diagnosticIssues : undefined,
   };
 }
 
+
 // Export helper functions for external use
-export { 
-  parseMirrorDirective, 
+export {
+  parseMirrorDirective,
   calibrateForIntimacyTier,
   extractGeometrySummary,
   generateSoloMirror,

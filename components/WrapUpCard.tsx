@@ -33,9 +33,10 @@ interface WrapUpCardProps {
     sessionStats?: any;
     rubricScores?: any;
   }) => void;
+  onRequestPoem?: () => void;
 }
 
-const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, exportData, onExportClearMirror }) => {
+const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, exportData, onExportClearMirror, onRequestPoem }) => {
   const [composite, setComposite] = useState<ActorRoleComposite | null>(null);
   const [sessionStats, setSessionStats] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -1052,6 +1053,15 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
               🪞 Clear Mirror PDF
             </button>
           )}
+          {onRequestPoem && (
+            <button
+              className="btn export-btn poem-btn"
+              onClick={onRequestPoem}
+              title="Translate this session's geometry into a Poem"
+            >
+              🔮 Translate to Poem
+            </button>
+          )}
         </div>
       </div>
 
@@ -1314,6 +1324,8 @@ const WrapUpCard: React.FC<WrapUpCardProps> = ({ sessionId, onClose, onSealed, e
         .export-btn:hover { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.5); }
         .export-btn.clear-mirror { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: #6ee7b7; }
         .export-btn.clear-mirror:hover { background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.5); }
+        .export-btn.poem-btn { background: rgba(168, 85, 247, 0.1); border-color: rgba(168, 85, 247, 0.3); color: #c084fc; }
+        .export-btn.poem-btn:hover { background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.5); }
       `}</style>
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>

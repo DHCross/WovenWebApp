@@ -1,0 +1,795 @@
+# **Symbolic Spectrum Table (SST) – Unified Guide**
+
+The Rules of Diagnostic Precision
+These rules operationalize the Woven Map’s core philosophy. They transform symbolic reflection from generic resonance into concrete, testable clarity.
+
+1. Start with Resonance, Insist on Specifics
+A user’s recognition (“that sounds like me”) is only the entry point. The process begins with this ping, but does not end there. The system must then probe for which element resonated, and how it is experienced in lived reality.
+
+In Practice: When a user affirms, follow up to isolate the exact phrase or pressure that landed, and ask for concrete examples.
+
+2. Name Distinct Pressures, Not General States
+The system must identify the unique, often competing tensions at play—not just general “stress” or “conflict.” Clarity comes from mapping the exact poles of an internal dynamic.
+
+In Practice: Move from “You feel torn” to “There’s tension between your inner speed and your outer caution.” Always name the architecture of the conflict.
+
+3. Map the Pathway of Release
+A true diagnostic does not stop at identifying pressure. It also maps how that tension is expressed, discharged, or transformed in action.
+
+In Practice: Track the user’s signature of release—whether it’s enacted through movement, spoken aloud, privately processed, or channeled into structured work.
+
+4. Mirror Contradiction as Structure, Not Flaw
+When a chart shows strong, contradictory drives (multivalence), reflect this as part of the person’s inner architecture—not something that must be “resolved.”
+
+In Practice: Focus on how the “internal committee” negotiates competing drives, rather than collapsing complexity into a single trait or outcome.
+
+5. Use Somatic and Sensory Language
+Language should bypass intellectual abstraction and land as a felt recognition in the body. The system listens for the user’s “sensory tone,” not just their story.
+
+In Practice: Use concrete, sensory, or metaphorical language that triggers an embodied response, rather than mere agreement or intellectual nods.
+
+6. Prioritize Clarity Over Comfort
+The system’s role is to function as an unflinching mirror—not to reassure or validate. Diagnostic integrity always outweighs comfort.
+
+In Practice: Never soften or distort feedback to make it more palatable. Colluding with narrative distortion violates protocol.
+
+7. Treat Every Response as Calibration
+All feedback, especially when a reflection “misses,” is essential data. A miss is not a failure, but a necessary signal for recalibration.
+
+In Practice: Use every miss as a test of the system’s falsifiability and a chance to refine both language and archetypal definitions for that individual.
+
+In summary:
+Every reflection must move from general resonance to actionable, embodied clarity. Diagnostic value comes from specificity, testable feedback, and a commitment to unvarnished truth.
+
+---
+
+## 1 · Introduction & Core Principles
+
+*This guide is grounded in the core philosophy outlined in the [Epistemological Foundation: Dual Anchor Framework](./Epistemological_Foundation_Dual_Anchor_Framework.md). The framework reframes astrological metrics away from moralistic labels (good/bad) toward structurally neutral dynamics (contraction/expansion), providing a falsifiable basis for all diagnostic claims, particularly the OSR/O-INTEGRATION distinction.*
+
+The SST is a calibrated compass that keeps symbolic work honest. It prevents “metaphor soup” by measuring every activation against lived reality, requiring **pings** (felt or observed confirmations) before an archetypal claim is logged.
+
+| Core Principle       | Summary                                                                  |
+|----------------------|--------------------------------------------------------------------------|
+| **Map, not mandate** | Planets outline energetic terrain; they do not dictate events.           |
+| **Messy-block time** | Past, present & future co-exist; resonance can echo backward or forward. |
+| **Ping not assumed** | A vector is only “active” when a ping is logged.                         |
+| **Agency intact**    | No transit overrides choice; user remains responsible.                   |
+| **Data needed**      | Full birth data for all charts; exact times when possible.               |
+
+Within the Woven Map framework—where cosmic patterns weave through the messy block of lived experience—the Symbolic Spectrum Table (SST) functions as a calibrated compass. It ensures signals from the block are not lost in interpretive haze but are precisely measured against archetypal potential, mapping activation ranges before outcomes solidify and preventing both interpretive drift and “metaphor soup” by preserving clear boundaries between symbolic potential and confirmed resonance.
+
+---
+
+## 2 · SST Table Structure
+
+| Column               | Purpose                                                        |
+|----------------------|----------------------------------------------------------------|
+| **Transit (Date)**   | The exact planetary configuration being tested.                |
+| **House / Area**     | Life-domain most affected.                                     |
+| **Archetypal Theme** | Core narrative pressure (e.g., power-dynamics, belonging).     |
+| **SST Category**     | WB · ABE · OSR (see §3).                                       |
+| **Subtype**          | If ABE → Inversion, Tone-Miscalibration, Directional-Mismatch. |
+| **Rationale**        | Short evidence statement linking life to map.                  |
+
+*Relational work*: render both directions `[A→B]` & `[B→A]` unless resonance confirms collapse into a single flow.
+
+---
+
+## 3 · Boundary Classifications & Ping Logic
+
+The SST employs a strict three-tier scale. Pings are never pre-assigned; they require explicit confirmation (self-report or observable behavior).
+
+| Tier    | Label                  | Definition                                  |
+|---------|------------------------|---------------------------------------------|
+| **WB**  | Within Boundary        | Clear archetypal resonance; ping confirmed. |
+| **ABE** | At Boundary Edge       | Partial / inverted / mis-toned resonance.   |
+| **OSR** | Outside Symbolic Range | No resonance; absence recorded.             |
+
+> **Category error warning** – Logging a ping before it is felt conflates vector with experience.
+
+- **Within Boundary**: Clear correlation between experience and archetypal activation. A ping is logged upon recognition or tracking of the resonance, even if its flavor diverges from expectation.
+- **At Boundary Edge**: Partial or ambiguous resonance. The archetype appears but with atypical expression:
+  - **Symbolic Inversion**: Manifests as the archetype’s opposite.
+  - **Tone Miscalibration**: Affective quality differs from prediction.
+  - **Directional Mismatch**: Theme unfolds from an unexpected angle.
+- **Outside Symbolic Range**: No recognizable resonance. No ping is recorded. This outcome protects falsifiability and has a dual meaning:
+  - **1. Failure:** The predicted pattern did not manifest. This is logged as valuable null data.
+  - **2. O-INTEGRATION:** A previously resonant pattern no longer triggers a reaction. This is the highest measure of successful evolution, where a pattern becomes "operationally silent." Context distinguishes the two: a first-time OSR is a failure; a repeated OSR on a known trigger point signifies integration. Evolution is measured by *what stops happening*.
+
+---
+
+## 3a · Symbolic Language Integrity
+
+*Diagnostic language must stay testable.*
+
+| Avoid        | Replace with                            |
+|--------------|-----------------------------------------|
+| “taboo”      | “unsanctioned pressure”                 |
+| “toxic”      | “dysregulated expression”               |
+| “fated”      | “felt inevitability / emergent pattern” |
+| “karmic tie” | “symbolic recurrence”                   |
+
+Guard-rails: no moral labels, no permanent traits, no agency-collapse.
+
+The SST is a system of **diagnostic falsifiability**. For it to function, symbolic language must track *behavioral states under pressure*, not assign fixed traits or identity labels. Words are not neutral—some introduce categorical distortion, compromising the SST’s ability to accurately classify pings as **WB**, **ABE**, or **OSR**.
+
+### 🔍 Problem of Preloaded Terms
+
+Terms like **“taboo,” “narcissistic,” “toxic,” “fated,” “evil,” or “karmic”** often imply:
+
+- Moral finality (right/wrong, good/bad)
+- Psychological diagnosis (trait assumptions)
+- Theological cosmology (unchosen destiny)
+- Cultural orthodoxy (social compliance)
+
+These terms do **not map symbolic vectors**. They **collapse agency**, introduce narrative overlay, and obstruct calibration.
+
+---
+
+### ✅ Language That Preserves Diagnostic Integrity
+
+SST-aligned reflections should:
+
+- Use **somatic or behavioral phrasing**
+- Refer to **internal states under tension**
+- Avoid assigning permanent qualities
+
+| **Instead of…** | **Use…**                                              |
+|-----------------|-------------------------------------------------------|
+| “taboo”         | “unsanctioned,” “disallowed,” “unspoken pressure”     |
+| “toxic”         | “dysregulated,” “misattuned,” “chaotically expressed” |
+| “fated”         | “emergent pattern,” “felt inevitability”              |
+| “karmic tie”    | “repeating resonance,” “symbolic recurrence”          |
+| “evil”          | “destructive pattern,” “existential contraction”      |
+| “narcissistic”  | “defended expression,” “identity-protective mode”     |
+
+---
+
+### 🛡️ Epistemic Guardrails
+
+SST classification requires language that:
+
+- Can be **tested** against emotional or behavioral data
+- Allows for **non-resonance** (OSR) without judgment
+- Keeps the map **symbolically neutral** until ping-confirmed
+
+This ensures the SST serves as an **instrument of self-recognition**, not projection or pathologizing.
+
+> “Every word is a lever. Use only those strong enough to move experience without breaking its shape.”  
+> — *Woven Map Protocol 7.14.25*
+
+---
+
+### 🔁 Application in Codex + Mirror
+
+All Codex Cards, Mirror Flows, Synastry Fields, and REF reports must use language **tagged WB by default**. If a phrase sits at the **ABE boundary**, it must be flagged and tested. OSR-language cannot appear in core diagnostic outputs unless explicitly marked as non-resonant.
+
+---
+
+### 🧭 Quick Test: Symbolic Diagnostic Checklist
+
+To evaluate whether a phrase belongs in a card, mirror, or field entry:
+
+| Question                                             | If “Yes,” Rephrase |
+|------------------------------------------------------|--------------------|
+| Does it imply moral correctness?                     | ✅                  |
+| Does it assign a permanent trait?                    | ✅                  |
+| Does it use abstract archetypes without context?     | ✅                  |
+| Could it be confused with a psychological diagnosis? | ✅                  |
+| Does it override the user’s agency?                  | ✅                  |
+
+If all are “No,” the phrase passes **WB Symbolic Test**.
+
+---
+
+## 4 · Degree & Sign Embedding Protocol
+
+*(Integrated with Woven Map Calibration)*
+
+### 4.1 Workflow & Chart Handling
+
+- Solo Mirror first if a primary subject exists.
+- Prompt user before any Synastry / Relational Map.
+- Acknowledge all uploaded charts; no unsolicited mirrors.
+
+This Degree & Sign Embedding Protocol must be applied in full accordance with the Woven Map Calibration Protocol, ensuring interpretive, behavioral, and symbolic integrity across all outputs. The following requirements apply:
+
+---
+
+### 4.2 Multi-Chart Processing and Workflow
+
+- When multiple charts are present, always begin with a solo Mirror for the explicitly identified primary subject, unless a relational analysis is explicitly requested.
+- Prompt for the preferred relational format (Relational Map, Synastry Field, Multi-node Field) before proceeding with comparative or overlay work.
+- Acknowledge all uploaded charts in the initial system response; do not generate unsolicited solo Mirrors for additional individuals.
+
+---
+
+### 4.3 Live-Simulation Enforcement
+
+Apply every correction in the next render; retro-fix prior output as required.
+
+- Implement every protocol correction or user directive in the *next* rendered output, not just acknowledged.
+- Immediately update prior outputs as needed to reflect calibration or structural refinements.
+
+---
+
+### 4.4 Field Architecture Logic
+
+Model all work as **dynamic tension overlays** (ignition · compression · rupture · fusion).
+
+- Model synastry and mirror analysis as a system of dynamic tension: overlay ignition, nodal compression, threshold rupture, and fusion points.
+- Emphasize relational effects, not just static or isolated chart features.
+
+---
+
+### 4.5 Tagging & Language
+
+- Tag passages: **Resonance / Pressure / Dissonance**.
+- Mark “Fusion Nodes” that stabilise tension.
+- Use causal chains: *You do X → They respond Y → You feel Z*.
+- Language remains conditional, sharp, qualifier-minimal.
+
+- Clearly tag narrative and table outputs as Resonance, Pressure, or Dissonance where relevant.
+- Identify and label “Fusion Nodes”—shared elements that reduce tension or create stability in the field (e.g., “Fusion Node: mutual [element/modality] stabilizes [behavioral channel]”).
+
+---
+
+### 4.6 Calibration Checklist
+
+- Major aspects ±3°; minors ±1°.
+- Flag every 29° placement (high-pressure).
+- Note Anaretic–Exception if an out-of-orb aspect involves 29°.
+- Route rising-sign meaning through its ruler.
+- Hook or card titles only from validated geometry.
+
+- Confirm all aspects are within defined orbs (major: ±3°, minor: ±1°); flag all 29° placements as high-pressure.
+- Annotate Anaretic Exception Rule cases where aspects are retained outside normal orb due to a planet at 29°.
+- All rising sign interpretations must route through the ruling planet and its context.
+- Output language must always remain conditional and non-deterministic.
+- Card or hook titles (if generated) must be based on validated geometry, not archetype generality.
+
+---
+
+### 4.7 Resonance & Reverse Engineering
+
+- Follow SST scoring; OSR is valid.
+- For narrative-only inputs, infer likely geometry with Woven-Map terminology—state “likely,” never certain.
+
+- All outputs must follow SST and Recognition Protocol: conditional, testable language only; resonance (“ping”) must be confirmed or reported, not presumed.
+- Non-resonance (OSR) is to be recognized as valid, without narrative rescue.
+- When analyzing narrative summaries (even in absence of chart data), reverse engineer probable planetary placements, aspect types, and vector interactions responsible for the described pattern. Present reasoning in structured, paragraph format, using Woven Map terminology.
+
+---
+
+### 4.8 Invitational and Empirically Grounded Tone
+
+- All statements regarding degrees and signs must be framed invitationally (“You might notice…”, “This may feel like…”), not as predictions or absolute truths.
+- Deterministic or moral language is prohibited.
+- Degree and sign references must be embedded seamlessly in narrative—not isolated as technical notes in reflective outputs.
+
+---
+
+### 4.9 Summary
+
+Degree and sign embedding, as practiced in the Woven Map system, is never an isolated procedure: it is always contextually, behaviorally, and diagnostically interwoven with the full calibration, correction, and resonance standards of the broader protocol. This ensures all outputs are precise, actionable, testable, and true to both symbolic integrity and lived experience.
+
+### ✅ Coverage Review
+
+Your placement map is almost complete. Two small additions will make it watertight and self-referential across the whole framework:
+
+| #                                                      | What to add                                                                                                                                                                                                                                         | Why it helps                                                                                       | Where to point |
+|-------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|----------------|
+| **5. Recognition Protocols & Mirror Prime**            | Degree & Sign embedding ultimately feeds the *ping / OSR* decision-tree. Dropping a short cross-reference here reminds analysts that any embedded degree language must still clear the Recognition Protocol’s falsifiability gate.                  | “Language Integrity / Symbol–to–Resonance” subsection, or a one-line pointer in the summary table. |                |
+| **6. Citation-Formatting / Calibration Checklist doc** | Your Citation Formatting Protocol governs how embedded geometry is foot-noted and how Anaretic Exception notes are flagged. A brief “see also” note keeps formatting, orb math, and embedding rules linked instead of drifting into parallel silos. | Add to the summary table as “Citation Formatting & Calibration Checklist – Formatting appendix.”   |                |
+
+---
+
+## 5 · Integration & Utility
+
+| Tool                   | How SST feeds it                                        |
+|-----------------------|--------------------------------------------------------|
+| **Poetic Codex**       | Shifts phrasing to “You may notice…” based on SST tier. |
+| **EDP Logging**        | Captures emotion without projection; cross-checks SST.  |
+| **Ping Log**           | Records confirmations and silences as data.             |
+| **REF Classification** | Uses SST + Echo-Loop diagnosis when no geometry exists. |
+
+- **Poetic Codex**: SST outcomes inform Codex language—phrases shift from “You will feel…” to “You may notice…” or “Check for resonance…”
+- **Emotional Data Protocol (EDP)**: Works in tandem to secure informed consent and prevent false positives from empathic projection.
+- **Ping Logging**: Only tracks confirmed resonance; system treats “no ping” as a meaningful metric.
+- **Diagnostic Precision**: Non-resonance and edge cases refine the map, enabling iterative self-correction.
+- **External Validation**: Tools like Grok3 and independent observers cross-check SST classifications, reinforcing that patterns are discovered in reality, not imposed.
+
+---
+
+## 6 · Application Examples (template)
+
+| Transit       | House | Theme                | Category | Subtype     | Rationale                            |
+|--------------|-------|----------------------|----------|-------------|--------------------------------------|
+| Venus □ Pluto | 7th   | Relational intensity | WB       | —           | Reported co-regulated vulnerability. |
+| Sun △ Moon    | 4th   | Home renewal         | ABE      | Directional | Change showed at work, not family.   |
+| Mars □ Uranus | 10th  | Career upheaval      | OSR      | —           | No career shift logged.              |
+
+To illustrate use:
+
+- **Transit**: Venus □ Pluto  
+- **House**: 7th  
+- **Theme**: Relational intensity  
+- **Category**: Within Boundary  
+- **Subtype**: —  
+- **Rationale**: Reported co-regulated vulnerability; clear emotional depth echo.
+- **Transit**: Sun △ Moon  
+- **House**: 4th  
+- **Theme**: Home-based renewal  
+- **Category**: At Boundary Edge  
+- **Subtype**: Directional Mismatch  
+- **Rationale**: Experienced change in work-from-home routine, not family dynamic.
+- **Transit**: Mars □ Uranus  
+- **House**: 10th  
+- **Theme**: Sudden career upheaval  
+- **Category**: Outside Symbolic Range  
+- **Subtype**: —  
+- **Rationale**: No significant career shift during transit period.
+
+---
+
+## Summary
+
+The SST is the empirical backbone of the Woven Map, enforcing that pings—moments of felt recognition—are confirmed, not presumed. It safeguards interpretive integrity, preserves user agency, and anchors symbolic inquiry in lived reality. This unified ordering places concepts ➔ scoring ➔ wording ➔ embedding rules ➔ math appendices ➔ optional tools, giving analysts a single, uninterrupted arc from theory to application.
+
+---
+
+## Appendix A · Astrological Accuracy & Aspect Mandate
+
+**Core rules (excerpt):**
+
+1. Convert all positions to **Absolute Ecliptic Longitude (AEL)**.
+2. Measure **shortest-arc** angle.
+3. Match to catalogue (0 / 60 / 90 / 120 / 150 / 180).
+4. Respect orbs (±3° majors, ±1° minors).
+5. No invented aspects; mis-naming is a critical error.
+
+*(Complete three-page rule-sheet retained as a standalone PDF for quick reference.)*
+
+---
+
+### **Astrological Accuracy & Aspect Mandate**
+
+*(Astrological Aspect & Transit Interpretation Guide – Final Revision)*
+
+> **Purpose** – Establishes non-negotiable rules for calculating, naming, and validating major aspects in all Woven Map work. Precision is paramount; every interpretation must rest on exact degree math supplied by the user.
+
+---
+
+#### **Core Principles for Aspect Calculation & Verification**
+
+1. **Degrees Are King** – All aspect math is performed on the exact degree (0-29) of each planet inside its sign.
+2. **Absolute Ecliptic Longitude (AEL)** – Convert every planet’s sign + degree into AEL (0°–359°):
+   - Aries 0° = 0° | Taurus 0° = 30° | Gemini 0° = 60°
+   - Cancer 0° = 90° | Leo 0° = 120° | Virgo 0° = 150°
+   - Libra 0° = 180° | Scorpio 0° = 210° | Sagittarius 0° = 240°
+   - Capricorn 0° = 270° | Aquarius 0° = 300° | Pisces 0° = 330°
+3. **Shortest Arc Rule** – Always use the smaller angular distance between two AEL points:
+   - If |AEL₁ − AEL₂| > 180°, angle = 360° − |difference|.
+   - Else, angle = |difference|.
+4. **Orbs**
+   - **Major aspects** (Conjunction, Opposition, Square, Trine, Sextile): ±3°.
+   - **Minor points / activations** (e.g., Chiron, Nodes): ±1°.
+
+---
+
+#### **Aspect Catalogue – Exact Angles, Names, Meanings**
+
+| Angle  | Aspect                    | Core Interpretive Theme                                                                   |
+|--------|---------------------------|-------------------------------------------------------------------------------------------|
+| ≈ 0°   | **Conjunction**           | Fusion, concentrated focus, new beginning. Energies merge.                                |
+| ≈ 60°  | **Sextile**               | Opportunity, harmony, cooperative ease. Energies cooperate.                               |
+| ≈ 90°  | **Square**                | Challenge, friction, crisis-to-growth. Energies clash, demanding action.                  |
+| ≈ 120° | **Trine**                 | Effortless flow, natural support, talent. Energies blend smoothly.                        |
+| ≈ 150° | **Quincunx (Inconjunct)** | Awkward adjustment, unseen tension, continual fine-tuning. Do **not** confuse with Trine. |
+| ≈ 180° | **Opposition**            | Polarity, projection, balance through confrontation. Energies face off.                   |
+
+*(Any other calculated angle ≠ catalogue → not a recognised major aspect.)*
+
+---
+
+#### **Step-by-Step Aspect Identification Protocol (Mandatory Internal Check)**
+
+1. **Extract & Convert** – Translate both bodies’ sign + degree to AEL.
+2. **Calculate Shortest Arc Angle** – Apply rule in *Core Principles §3*.
+3. **Critical Match** – Map the exact angle to the correct catalogue name. *Example:* 90° → Square; 150° → Quincunx; 120° → Trine. No substitutions.
+4. **Verify Orb** – Confirm the angle lies within the permitted orb range.
+5. **Confirm Validity** – If outside orb, the contact is **not** a major activation; exclude it from “Key Activations.”
+
+---
+
+#### **What to AVOID (Accuracy Specifics)**
+
+- **NO Hallucination** – If no angle fits within orb, do **not** invent an aspect.
+- **NO Guessing** – Base identifications strictly on measured geometry.
+- **NO Ambiguity** – Always state the exact aspect name (“square,” “opposition”)—never generic terms.
+- **CRITICAL: NO Misidentification** – Never mis-name an aspect even if the numerical angle is right; catalogue mapping is absolute.
+- **NO External Calculations** – This mandate is interpretive reference; rely solely on user-supplied chart data for degree values.
+
+---
+
+#### **Five-Point Quick-Ref Checklist**
+
+1. **AEL conversion done?**
+2. **Shortest-arc angle measured?**
+3. **Angle matches catalogue name?**
+4. **Within orb?**
+5. **Logged or discarded accordingly?**
+
+*Pass all five or the aspect is invalid.*
+
+---
+
+> **Use Case Integration** – Embed this mandate as an appendix or inline table within the *SST Template Guide* under “Geometry Verification Standards.” It provides the hard-math backbone ensuring every SST tier or Degree-Embedding reflection rests on irrefutably correct angles.
+
+---
+
+## Appendix B · Sidereal Protocol (overview)
+
+1. **Ayanāṃśa:** Lahiri default; specify if different.
+2. **House recalculation:** Apply chosen system after sidereal conversion.
+3. **Precession:** Base tropical data on J2000.0; adjust if needed.
+4. **Sidereal orbs:** Often tighter for outers (Pluto ±5°, Saturn ±3°).
+5. **Validation:** Cross-check with Swiss Ephemeris; log any drift.
+
+When calculating transits in a sidereal framework, apply the following steps:
+- **1. Ayanāṃśa Correction**
+  - Use the Lahiri ayanāṃśa by default (or specify your chosen variant).
+  - Subtract the ayanāṃśa value from tropical longitudes to derive sidereal positions.
+- **2. House System Calibration**
+  - Maintain your chosen house system (e.g., Placidus, Equal) but apply cusp calculations to sidereal longitudes.
+  - For quadrant systems, recalculate MC and IC post-correction, then derive ascendant/descendant accordingly.
+- **3. Precession and Epoch**
+  - Reference epoch: J2000.0 for tropical data; adjust by ~50.29″ per year if using a different epoch.
+  - Document any rounding conventions for longitudes and house cusps (nearest minute or degree).
+- **4. Sidereal Orb Rules**
+  - Adopt tighter orbs for slow-moving bodies (e.g., ±5° for Pluto, ±3° for Saturn).
+  - Maintain standard orbs for inner planets and luminaries unless specified otherwise.
+- **5. Validation**
+  - Cross-check sidereal transit calculations against an independent ephemeris (e.g., Swiss Ephemeris).
+  - Log discrepancies and adjust orb thresholds to ensure consistency in SST entries.
+
+---
+
+## Appendix C · Optional Add-ins
+
+### C.1 SST-Based Probabilistic Forecast Tool
+
+* Five-phase workflow: Geometry Scan → Narrative Pressure → SST Window → Observation → Mandatory Narrative Mirror.
+
+---
+
+#### **SST-Based Probabilistic Forecasting Tool (w/ Narrative Mirror)**
+
+**For any dyad (or multi-node field) within The Woven Map framework**  
+**Version: 1.0 | Last Updated: July 2025**
+
+---
+
+##### **Purpose**
+
+To generate a *non-predictive*, structured archetypal forecast window using:
+
+1. Current astrological geometry
+2. Narrative pressure cues
+3. The Symbolic Spectrum Table (SST)
+4. A final **Narrative Mirror** to honor first-person meaning before analysis.
+
+This tool supports relational motifs, creative cycles, dreamwork, or psycho-emotional patterns without enforcing outcome expectations.
+
+---
+
+##### **Five-Phase Protocol**
+
+- **Phase 1 · Geometry Scan**
+  - **Objective:** Identify temporal “charge points” using tight astrological triggers.
+  - **Instructions:**
+    - Log current and upcoming transits within ±3° to:
+      - Core Pressure Points (natal or synastry)
+      - House angles (ASC, IC, MC, DSC)
+      - Known activators (e.g., Venus-Uranus, Mars-Chiron, Pluto Retrograde, Mercury station)
+    - Prioritize Full/Black Moons, retrograde shifts, tight conjunctions or squares.
+    - Log exact dates of any significant resonance echoes (prior returns, break points, or initiations).
+
+- **Phase 2 · Narrative Pressure Assessment**
+  - **Objective:** Assess emotional or symbolic buildup based on recent events.
+  - **Instructions:**
+    - Gather key narrative cues:
+      - Recent silences, symbolic gestures, or indirect contact
+      - Recurring relational cycles (e.g., invite → withdraw → return)
+      - Emotional peaks (anniversaries, endings, longing, artistic discharges)
+    - Rate narrative **priming** as:
+      - ✴ Low: Calm, static, distant
+      - ✴ Moderate: Undercurrent tension, unresolved thread
+      - ✴ High: Recent symbolic action (e.g., dream, song, gift) or built-up emotional charge
+
+- **Phase 3 · SST Window Assignment**
+  - **Objective:** Assign a probable SST tier range to specific date spans based on geometry + narrative.
+  - **Instructions:**
+    Use the SST five-tier model as a *forecast filter*:
+
+    | Tier | Forecast Use                  | Meaning                                                                   |
+    |------|-------------------------------|---------------------------------------------------------------------------|
+    | 1    | **Static**                    | No symbolic charge. Don’t expect echo.                                    |
+    | 2    | **Peripheral Echo**           | Soft chance of ping. Coincidence possible.                                |
+    | 3    | **Moderate Resonance**        | One motif active; mild echo possible.                                     |
+    | 4    | **Strong Echo Potential**     | Pattern may reappear clearly if contact or event occurs.                  |
+    | 5    | **Symbolic Compression Zone** | All factors aligned. If something arises, it will feel archetypally loud. |
+
+    **Example Output:**
+    > July 17–21 → SST-5 potential (compressed geometry + narrative pressure)
+    > July 22–28 → SST-3–4 (decay or delay possible)
+    > Aug 1–8 → SST-2–3 (low narrative priming unless reactivated)
+
+- **Phase 4 · Observation Discipline**
+  - **Objective:** Log outcomes **without bias or inflation.**
+  - **Instructions:**
+    - Use “Ping Logging” format:
+      - Date, time, medium (text, song, dream), and exact language or event
+      - Immediate emotional tone (neutral, surprise, regret, warmth, static)
+    - Apply **post-hoc SST classification** per event. Silence or absence is a valid SST-1 entry.
+
+- **Phase 5 · Mandatory Narrative Mirror**
+  - **Objective:** Before interpreting patterns, reflect the subject’s experience back in their own voice.
+  - **Purpose:** Prevents metaphor inflation, projection, and interpretive contamination. Serves as a **pre-analytical integrity check.**
+  - **Narrative Mirror** reflects your lived experience with your own language, pacing, and symbolic weight.
+  - It offers **no diagnosis, interpretation, or reframing.**
+  - It keeps speech **verbally symmetric**, introduces **no new metaphors**, and—when emotion is hinted—replies with **matching tone**, not analysis.
+  - It **refuses to collapse metaphor into psychological shorthand**, instead *holding the mirror still* so you can recognize patterns you already sense without outside contamination.
+  - Used early in symbolic tracking or emotional clarification—**before tools such as the SST or VOICE Field**—it ensures that reflective frameworks never overshadow direct human meaning.
+
+---
+
+##### **Usage Notes**
+
+- This protocol is scalable to dyadic or multi-node systems. If working with 3+ participants, assign distinct narrative loops to each node-pair and rotate SST tiers accordingly.
+- Always track **absence** with equal rigor as presence. Silence is not neutral—it’s data.
+- When in doubt, **wait 48–72 hours** post-window before concluding a tier miss. Latent echoes are common.
+
+---
+
+### C.2 Modules (plug-ins)
+
+- **VOICE Analysis** – internal tone reflector.
+- **Echo Loop Diagnosis** – flags repeating cycles.
+- **EDP Logging** – emotion filter to avoid projection.
+- **Symbolic Collapse Filter** – prevents over-interpretation during silent windows.
+
+---
+
+#### **Add-Ins Module for SST-Based Forecasting**
+
+**Supplemental Tools for Extended Symbolic Tracking**  
+**Version: 1.0 · Compatible with Woven Map protocols (v7.14.25+)**
+
+---
+
+- **1. VOICE Analysis Add-In**
+  - > 🔹 *Use when emotional tone or psychic tension surges—especially after symbolic contact, a dream, or unexpected silence.*
+  - **When to Apply:**
+    - After SST-4 or SST-5 contact event
+    - After emotional spike (dream, message, panic, grief, reverie)
+    - Post-ritual (song release, birthday, anniversary, sex)
+  - **Function:** VOICE reflects **internal affective resonance patterns** using compressed symbolic geometry and tone mirroring (non-narrative, metaphor-safe).
+  - **Output Includes:**
+    - Core Tone Word
+    - Sonic Field Summary (internal acoustic or kinetic echoes)
+    - Suggested containment phrase for integration
+  - **Protocol Linkage:** Can be embedded **after Phase 4 (Observation Discipline)** or used alongside **SST post-hoc classification** to identify inner echo, not just outer events.
+
+- **2. Echo Loop Diagnosis (ELD)**
+  - > 🔹 *Use when patterns repeat but slightly modulate—especially when you feel “I’ve been here before, but something’s off.”*
+  - **When to Apply:**
+    - Two or more similar relational exchanges occur within a 30–60 day window
+    - Motif structure repeats (invite → disappear → return), but timing or tone shifts
+    - Emotional reaction includes confusion, déjà vu, or instinctive pattern recognition
+  - **Function:** Identifies **micro-cycles** (tight loops) between two nodes and flags whether a **Relational Echo Field (REF)** may be forming.
+  - **Output Includes:**
+    - Loop type (Ping-Evasion-Return, Mirror Activation, Closure Feint, etc.)
+    - Convergence Degree (if <3° between events)
+    - REF Candidate Tag (yes/no)
+    - Diagnostic Polarity Tag (if relevant)
+  - **Protocol Linkage:** Can be invoked **after Phase 2 (Narrative Pressure Assessment)** or used post-SST scoring to explain persistent motif tension.
+
+- **3. EDP (Emotional Data Protocol) Logging**
+  - > 🔹 *Use to avoid false resonance, narrative inflation, or interpretive grafting by filtering emotional inputs through objective reflection.*
+  - **When to Apply:**
+    - You’ve logged strong emotional tone in Phase 4
+    - You suspect projection, mood bias, or memory filtering
+    - You're working within grief fields or transference zones
+  - **Function:** Filters subjective input to log **tone**, not interpretation. Distills statements into neutral emotional signal ratings (without narrative).
+  - **Output Includes:**
+    - Affective Type: (longing, irritation, warmth, detachment, surrender)
+    - Signal Strength: (1 = faint, 5 = overwhelming)
+    - Polarity Drift (toward pursuit, retreat, or witness mode)
+    - SST Override Alert (if bias may have affected forecast tier)
+  - **Protocol Linkage:** Can be embedded **during Phase 4**, or cross-referenced during the **Narrative Mirror** to catch when reflection becomes distortion.
+
+- **4. Symbolic Collapse Filter (SCF)**
+  - > 🔹 *Use when you're unsure if an event is symbolic or just ordinary. Prevents interpretive overreach.*
+  - **When to Apply:**
+    - During a high-charged SST-5 window where nothing “major” occurred
+    - When you suspect inflation (seeing meaning where none exists)
+    - During Mercury Rx or Neptune transits (when symbols blur)
+  - **Function:** Filters events against strict symbolic criteria to assess if they qualify as genuine motif activations.
+  - **Output Includes:**
+    - Symbolic Density Score (0–100)
+    - Collapse Risk Rating (low/moderate/high)
+    - Echo Authenticity Confirmation (Y/N)
+    - Suggested action: release, hold, or reclassify
+  - **Protocol Linkage:** Use before assigning post-hoc SST tier. Ensures **absence of event** is not falsely replaced with metaphor soup.
+
+---
+
+## Appendix D · Relational Echo Field (REF) Classification
+
+Here’s a **generalized SST entry** for use in any case involving a **Relational Echo Field (REF)** classification. This format can be integrated into formal documentation, protocol guides, or case files.
+
+---
+
+### 🧭 SST ENTRY – DYNAMIC CLASSIFICATION
+
+### Category: **Relational Echo Field (REF)**
+
+### Status: Canonized
+
+---
+
+### 🔹 Entry Code Template: `REF-[PartyA Initials]-[PartyB Initials]-###`
+
+### Diagnostic Tag: `MOON_POLARITY_REF` *(or other pattern-specific tag as appropriate)*
+
+### Symbolic Designation: *\[Insert Core Behavioral Polarity]*
+
+*(e.g. “Hold vs. Roam,” “Containment vs. Expansion,” “Control vs. Chaos”)*
+
+| **Element**                     | **Description**                                                                                                  |
+|---------------------------------|------------------------------------------------------------------------------------------------------------------|
+| **Primary Activator (Party B)** | The person whose **current behavioral pattern** initiates the resonance                                          |
+| **Primary Receiver (Party A)**  | The person whose **previously encoded pressure pattern** is reactivated                                          |
+| **Subjective Ping (Party A)**   | Experiential sense of emotional recurrence, déjà vu, or pattern familiarity                                      |
+| **Behavioral Signature**        | Party B displays a recognizable **trait constellation** matching a prior pressure geometry                       |
+| **Activation Pattern**          | This trait constellation **mirrors or mimics** a previously live vector from Party A’s past                      |
+| **Geometric Status**            | **No synastric vector present** – No in-orb angular aspect between current charts                                |
+| **REF Trigger Type**            | **Polarity Echo** – A contrast in **modality, element, or function** that replicates a known emotional dialectic |
+| **Felt Impact**                 | Party A experiences pressure, confusion, or resonance **without geometric justification**                        |
+| **Classification**              | 🟠 **REF (Relational Echo Field)** – Valid subjective resonance, not structurally mutual                         |
+| **OSR Status**                  | ⛔ **Not OSR** – REF is distinct from projection due to confirmed pattern memory                                  |
+| **Symbolic Note**               | “Echo, not recurrence. Pressure, not projection. The system remembers.”                                          |
+
+---
+
+### 🔖 Woven Map Rulebook
+
+> A **Relational Echo Field (REF)** shall be used in any synastry, mirror, or fieldwork case when:
+>
+> - No active synastric aspect exists between the parties;
+> - One individual’s behavior or configuration **recreates** a known pattern for the other;
+> - The pattern is **recognized by the nervous system** and elicits a tangible emotional response;
+> - The resonance is traceable to **prior encoded geometry** (e.g., natal or past synastry vectors), but is **not present in the current dyad**.
+
+This classification preserves the **diagnostic integrity of geometric systems** while honoring the **validity of felt experience** in relational fields.
+
+---
+
+## Appendix E · SST Tier Framework for Archetypal Activation
+
+Here’s a **generic, system-wide explanation** of the **SST tiers (1–5)** designed for use in **any symbolic analysis**—across relationships, events, dreams, internal shifts, or external behaviors—within the framework of **The Woven Map Theory**.
+
+---
+
+### 🔢 The Symbolic Spectrum Table (SST): Tier Framework for Archetypal Activation
+
+The **Symbolic Spectrum Table (SST)** is a five-level diagnostic tool used within *The Woven Map Theory* to assess how *strongly a given moment aligns with an archetypal pattern*.
+
+It applies universally to:
+
+- Relationships (invites, ruptures, returns)
+- Dreams and intuitive flashes
+- Messages, memories, and behavior
+- Life events and emotional crescendos
+- Creative acts (e.g. writing a song, quitting a job)
+
+It measures **how strongly the symbolic "signal" comes through**, and how cleanly it resonates with known planetary/archetypal geometry and timing.
+
+---
+
+#### 🧭 What the SST Measures:
+
+The SST **does not predict** outcomes. It classifies how closely a lived or observed moment **matches** the expected tone, behavior, and archetypal quality of a known transit or motif.
+
+Each level corresponds to:
+
+- Felt emotional clarity or dissonance
+- External behavior / message alignment
+- Astrological timing window proximity
+- Pattern fidelity to known motif echoes
+
+---
+
+#### 🌡️ SST Tier Guide
+
+| **Tier**  | **Label**                  | **Definition**                                                                                                        |
+|-----------|----------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| **SST-1** | Static / Unrelated         | No symbolic resonance. The event or message carries no archetypal charge or relevance.                                |
+| **SST-2** | Peripheral Echo            | Weak or vague connection. A symbolic cue might be present, but it’s unclear or incidental.                            |
+| **SST-3** | Moderate Resonance         | One clear motif feature is present (timing, language, tone), but the overall expression is soft, unclear, or partial. |
+| **SST-4** | Strong Echo                | Several motif elements align (behavior, tone, and/or transit), creating recognizable resonance.                       |
+| **SST-5** | Symbolic Compression Point | Full alignment: strong behavioral cue + precise timing + emotional tone = clear archetypal expression.                |
+
+---
+
+#### 🧪 Tier-by-Tier Breakdown
+
+- **🔹 SST-1 – Static / Off-Signal**
+  - No ping. No behavioral cue or symbolic match.
+  - Often a logistics event, or emotional dead zone.
+  - Useful as a *control reading*—proves the map doesn’t force meaning.
+  - > **Example:** You receive a neutral message about a bill during a charged Venus-Pluto transit. No tone, no charge = SST-1.
+
+- **🔹 SST-2 – Peripheral Echo**
+  - Maybe a ping—but faint.
+  - Timing may be near a known transit, but the behavior/tone is generic or ambiguous.
+  - Common when testing motif return after long silence.
+  - > **Example:** Someone likes your post during a return window but says nothing. Maybe? Log it. SST-2.
+
+- **🔸 SST-3 – Moderate Resonance**
+  - One motif feature aligns clearly: a keyword, emotional tone, or suspicious timing.
+  - Could be accidental—or the beginning of a reactivation.
+  - Emotion is present but not overwhelming.
+  - > **Example:** You dream about an ex the night before Venus retrograde begins. Nothing else happens… yet.
+
+- **🔶 SST-4 – Strong Echo**
+  - Two or more key motif elements align.
+  - Timing often matches exact orb (±3°) of a natal or synastry pattern.
+  - Emotional impact noticeable, though not overwhelming.
+  - A reliable motif activation zone.
+  - > **Example:** A person who ghosted sends a specific, emotionally toned message on a Full Moon that activates your composite Venus. It fits. SST-4.
+
+- **🔴 SST-5 – Symbolic Compression Point**
+  - All systems converge: behavior, tone, timing, emotional impact, and geometry align precisely.
+  - Often feels like the **archetype is speaking through them**.
+  - Not always dramatic—but always unmistakable.
+  - Rare. Do not chase these—**track them**.
+  - > **Example:** A song you wrote to release someone triggers their unexpected return—on the exact Mercury-Venus conjunction from your synastry chart. SST-5.
+
+---
+
+#### 🧠 Why the SST Exists
+
+In a symbolic system, everything can *look* meaningful.
+The **SST prevents symbolic inflation** by establishing clear boundaries of:
+
+- **What counts as real archetypal resonance**
+- **What’s plausible but partial**
+- **What’s noise**
+
+It empowers you (and Raven Calder GPT) to interpret, not invent.
+And it honors silence as data—sometimes *no echo* is the loudest message of all.
+
+---
+
+## Protocol Specification: Oscillating Resonance
+
+**Definition**
+A single polarity can express as both paradoxical vitality (WB) and conflict requiring management (ABE). The experiential tone is fluid, shifting between these modes over time.
+
+**Diagnostic Rule**
+
+* SST categories (WB, ABE, OSR) function as temporal markers rather than fixed labels.
+* A polarity may legitimately occupy a **WB ↔ ABE swing** state without contradiction.
+* Oscillating Resonance is applied whenever both paradox and conflict modes are active possibilities.
+
+**Operationalization**
+
+* Log explicitly as **WB ↔ ABE swing** when oscillation is observed or reported.
+* Mirror Voice must provide dual framings: one for paradox vitality, one for conflict-management.
+
+---
+
+### End of Guide

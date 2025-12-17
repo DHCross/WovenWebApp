@@ -5,7 +5,7 @@ import { getRedirectUri, getAuthConnection, normalizeAuth0Audience, normalizeAut
 
 const authEnabled = (() => {
   const raw = process.env.NEXT_PUBLIC_ENABLE_AUTH;
-  if (typeof raw !== "string") return true;
+  if (typeof raw !== "string") return false; // Default to false (Auth0 disabled)
   const normalized = raw.trim().toLowerCase();
   if (normalized === "" || normalized === "false" || normalized === "0") {
     return false;

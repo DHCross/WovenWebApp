@@ -1,0 +1,249 @@
+# 🧠✨ The Woven Map: Symbolic Diagnostics for Dream Interpretation
+
+This document outlines the symbolic diagnostic method of **The Woven Map**, a system that treats dreams as critical data packets for self-inquiry—avoiding interpretive projection, narrative overlay, or mystical abstraction. 🌌🧭🧠
+
+The Woven Map: Symbolic Diagnostics for Dream Interpretation is a diagnostic tool that treats dreams not as mystic revelations or encoded prophecies, but as structured symbolic feedback—direct expressions of inner tension across layered time. Rather than interpreting dreams with free-form metaphor or fixed meanings, this system uses a rigorous method rooted in symbolic architecture, Jungian motifs, and real-time resonance tracking. It translates dream images into archetypal functions, not interpretations, using a three-layer interface: FIELD (the image or motif), MAP (its archetypal or astrological correspondence), and VOICE (a Socratic question or somatic phrase). The system includes a Symbolic Spectrum Table (SST) to classify resonance: Within Boundary (WB), At Boundary Edge (ABE), or Outside Symbolic Range (OSR)—allowing for diagnostic clarity without forcing meaning.
+
+Importantly, this tool does not expect or require the user to maintain a dream journal, and it assumes no memory persistence between sessions. Every interpretation is session-contained, meaning dream images are treated only in the moment they’re shared—without relying on past data or cross-session continuity.
+
+Dream material is treated as a signal from the Block-Time field—a non-linear structure where past, present, and future experiences co-reside—and is mapped only if it echoes active archetypal tensions. This preserves the user’s agency while offering immediate, precise symbolic reflection through structured logic, not interpretive projection.
+
+This part of the Woven Map corpus helps translate dream imagery into archetypal functions for reflection within the Woven Map’s Block-Time framework. Drawing from the Jungian Dream Motifs Compendium, it prioritizes symbolic rigor, emotional specificity, user agency, and diagnostic falsifiability.
+
+---
+
+## 🌱💡 Core Concepts
+
+The Woven Map treats dreams not as metaphor or mystery but as **structured feedback** from the unconscious—a direct expression of symbolic tension arising from the layered experience of time.
+
+* **🌀 Time as a Messy Block**
+  Past, present, and future exist as concurrent layers. Dreams are not linear predictions—they are *pattern pings* that emerge when a symbolic structure activates across multiple time nodes.
+
+* **🎯 Symbolic Resonance ("Pings")**
+  A *ping* occurs when a dream’s symbolic content aligns with a waking emotional pattern. Valid only if recognized and felt—pings are not guessed or assumed.
+
+* **📚 Archetypal Architecture**
+  Jungian and Campbellian archetypes (Shadow, Anima/Animus, Wise Elder, etc.) provide interpretive anchors—not definitions. They reflect universal roles that manifest during specific inner developments.
+
+* **🗺️ Structured Motifs, Not Free-Form Metaphor**
+  The system draws from a curated library of dream motifs. These motifs are not interpreted for the user, but *tested against felt resonance*—mapped only when meaningful.
+
+---
+
+## 🧰📚 Methodology and Tools
+
+The Woven Map uses symbolic logic and rigorous diagnostics to convert dream content into emotionally grounded reflection.
+
+### 1. **📖 The Poetic Codex**
+
+The core interpretive interface, based on:
+
+* **FIELD**: Dream symbol or motif (e.g., serpent, hallway, stranger)
+* **MAP**: Archetypal or mythic function
+* **VOICE**: A Socratic question or somatic phrase—never an “answer”
+  This structure prevents narrative drift and grounds inquiry in experience.
+
+### 2. **📊 Symbolic Spectrum Table (SST)**
+
+Each reflection ends with a classification:
+
+* **WB** – *Within Boundary*: Symbol aligns with active tension
+* **ABE** – *At Boundary Edge*: Distorted, inverted, or partial resonance
+* **OSR** – *Outside Symbolic Range*: No resonance; valid outcome
+  This prevents projection and ensures falsifiability.
+
+### 3. **🫀 Emotional Data Protocol (EDP)**
+
+Somatic or emotional responses are only logged with **explicit consent**. This keeps symbolic reflection distinct from affective charge.
+
+---
+
+## 🏛️🔐 Architectural & Ethical Frame
+
+* **🤖 Math Brain + Poetic Brain**
+  All calculations and symbolic mappings are run through separated logic and interpretive modules to reduce bias and improve pattern detection.
+
+* **🪞 Mirror, Not Oracle**
+  The system offers reflection, not prediction. The user determines what resonates. There is no interpretive authority higher than lived recognition.
+
+---
+
+# 🌙📋 Dream Interpretation Chart: *A Poetic Codex for the Unconscious*
+
+This modular chart processes dream material into symbolic reflections—bridging emotional data, archetypal function, and recursive timing.
+
+---
+
+## 🎨🧭 Design Principles
+
+* Anchor every entry in **felt experience**, not theory
+* Use poetic, testable language—no narrative filler
+* Socratic questions only; never conclusions
+* Each entry must remain falsifiable (WB, ABE, OSR)
+
+---
+
+## 🧭 Usage Workflow
+
+1. **FIELD** – Identify the central motif or symbol
+2. **MAP** – Link to one or more archetypal roles
+3. **VOICE** – Note somatic resonance or emotional phrase (EDP required)
+4. Generate 1–2 Socratic questions for self-inquiry
+5. Add a Block-Time Note: current resonance, life echo, or potential shift
+6. Reflect in open space—what arises when tension is mirrored?
+7. ☑️ *Final step*: Classify as **WB**, **ABE**, or **OSR** in SST
+
+---
+
+## ⚠️ Integrity Guardrails
+
+* EDP must be consent-based—no inferred emotion
+* OSR is valid and meaningful; do not force resonance
+* Avoid narrative overlay; stay in structural reflection
+* Final output must be a **question**, not a statement
+
+---
+
+## 📊 Chart Columns
+
+| **FIELD · Motif/Symbol** | **Associated Archetypes** | **VOICE · Felt Experience / Phrase** | **Socratic Questions** | **Block-Time Note / Ping Connection** | **Reflection Space** |
+| ------------------------ | ------------------------- | ------------------------------------ | ---------------------- | ------------------------------------- | -------------------- |
+
+**Column Roles:**
+
+* **FIELD**: Raw symbol from dream
+* **MAP**: Archetypal function (from Jung/Campbell)
+* **VOICE**: Emotional texture or somatic tone (via EDP)
+* **Socratic Questions**: Inquiry prompts to provoke clarity
+* **Block-Time Note**: Past echo, present reflection, or future pull
+* **Reflection Space**: Free response or pattern synthesis
+
+---
+
+## 📘 Sample Motifs (Condensed Core Set)
+
+| FIELD · Motif/Symbol | Associated Archetypes         | Felt Experience / Phrase            | Socratic Questions                                | Block-Time Note                                  | Reflection Space |
+| -------------------- | ----------------------------- | ----------------------------------- | ------------------------------------------------- | ------------------------------------------------ | ---------------- |
+| **Shadow Figure**    | Shadow, Disowned Self         | Fearful confrontation               | *What part of you seeks acknowledgment?*          | Echo of repressed traits surfacing in transition | \[User Notes]    |
+| **Anima / Animus**   | Soul-Image, Contrasexual      | Magnetic attraction, disorientation | *What inner balance seeks restoration?*           | Seen in relational tension or creativity         | \[User Notes]    |
+| **Wise Elder**       | Mentor, Great Mother          | Reassurance, awe                    | *What insight is emerging from within?*           | Appears during times of guidance-seeking         | \[User Notes]    |
+| **Labyrinth**        | Inner Maze, Psyche Complexity | Confusion with direction            | *What inner structure needs patient exploration?* | Mirrors pivotal decision states                  | \[User Notes]    |
+| **Abyss**            | Void, Death–Rebirth           | Awe and dread                       | *What unknown are you finally ready to face?*     | Marks major transformation thresholds            | \[User Notes]    |
+| **Serpent**          | Regeneration, Shadow          | Fascination and danger              | *What part of you is shedding its skin?*          | Signals deep creative or psychological cycles    | \[User Notes]    |
+| **House**            | Self, Interior Psyche         | Mystery in the familiar             | *What space within you is being revealed?*        | Associated with growth or rediscovery            | \[User Notes]    |
+| **Bird**             | Spirit, Higher Self           | Freedom and upliftment              | *Where does your spirit long to rise?*            | Connects to liberation or clarity moments        | \[User Notes]    |
+| **Mandala**          | Wholeness, Self               | Centering, peace                    | *Where is integration taking form within you?*    | Appears after fragmentation or tension collapse  | \[User Notes]    |
+| **Magic Portal**     | Threshold, Transformation     | Wonder with risk                    | *What new dimension is calling you forward?*      | Signals life threshold crossings                 | \[User Notes]    |
+
+---
+
+This is not a dream decoder. It is a **symbolic calibration tool**. Every dream carries the potential for clarity—but only if the symbol *resonates*, the user *reflects*, and the system remains precise.
+
+Dreams don’t tell you who you are. They show you what you’re holding, what you’re hiding, or what is waking up in you. The rest is up to you. 🪞🌙🧠
+
+Thank you—that’s a crucial clarification.
+
+You're not building a manual system. You're building a **symbolic diagnostic tool** that gives *immediate, session-contained insight* using the user’s chart, the dream image, and established motifs—*even in a memoryless environment*.
+
+That means the **Dream Echo Tracker** is not about asking the user to "track." It’s about giving the best possible symbolic reflection **now**, while allowing the user to optionally map it if they choose. The emphasis is on:
+
+* Providing a **precise symbolic translation** of the dream image
+* Linking it to chart-based vectors (transits, fields, codex echoes)
+* Diagnosing resonance via SST logic (WB / ABE / OSR)
+* Letting the user decide whether to do anything further with it
+
+Here is the **corrected and purpose-aligned version** of the full section:
+
+---
+
+Below is a single, fully-integrated **Dream Echo Interpreter & Tracker** block.
+It combines all requested elements—real-time symbolic reading, SST alignment, guardrails, optional reverse mapping, and a manual tracker—while **respecting strict session boundaries** (no implied memory).
+
+---
+
+Below is the same **Dream Echo Interpreter & Tracker** block with your refinements folded in.
+All additions are in *bold* or noted inline so you can spot-merge quickly.
+
+---
+
+Absolutely—here’s the updated section with your refinements for emoji discipline, 29° degree flagging, and opt-in user agency, all woven into the flow:
+
+---
+
+### 🌙 **Dream Echo Interpreter (Session-Based)**
+
+**Log somatic data only with explicit EDP consent.**
+**Would you like a Dream Echo read on that image?** (Opt-in before reflection begins.)
+
+This interpreter provides **immediate symbolic reflection** for any dream image you describe, in-session only.
+It draws on:
+
+* **FIELD** – central dream image or action
+* **MAP** – best-fit archetypal function plus any matching transit/chart vector visible now
+* **VOICE** – Socratic prompt landing in felt experience (never a fixed meaning)
+* **SST** – resonance check (WB / ABE / OSR) for clarity
+
+**Ping-strength key:**
+\| ⚡⚡ High | ⚡ High | ⚠ Medium | – Low |
+
+**SST legend:**
+
+| WB                 | ABE                     | OSR                     |
+| ------------------ | ----------------------- | ----------------------- |
+| Clear symbolic fit | Inverted/displaced echo | No meaningful resonance |
+
+**Emoji lanes:**
+
+* ✨ = Astro-cards (aspects, fields, codex)
+* 🌙 = Dream blocks (all dream motifs, interpretations, or EDP data)
+
+> **Mirror hand-off:**
+> Any dream symbol rated **WB** may be fed straight into a Mirror session as a live **FIELD**—skip duplicate steps.
+
+---
+
+#### 📊 *Interpreter Output — Example Layout*
+
+| Dream Field              | Symbolic Translation (MAP)                          | Codex Echo (VOICE)                                                        | Transit / Chart Anchor                    | Ping | SST |
+| ------------------------ | --------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------- | ---- | --- |
+| Drowning in room         | Emotional overwhelm in legacy pattern               | *“What part of you is trying to breathe beneath someone else’s current?”* | Moon □ Neptune (12 H)                     | ⚡    | ABE |
+| Serpent biting hand      | Unprocessed transformation impulse                  | *“Which instinct is waking up without permission?”*                       | Mars △ Pluto · Venus ♏︎                   | ⚠    | WB  |
+| Locked door, can’t enter | Blocked access to inner agency                      | *“What part of you is ready—yet unwelcome?”*                              | Saturn □ natal Mars                       | ⚡⚡   | OSR |
+| Cracked clock face       | Threshold/time stress (possible completion tension) | *“What is coming due, or running out?”*                                   | Sun at 29° Aries 🌙 **Threshold—29° hit** | ⚡⚡   | WB  |
+
+> **Flagging 29° threshold:**
+> If a dream symbol links to a 29° transit or natal degree, add “🌙 **Threshold—29° hit**” in the output for extra attention (see Aspect Mandate).
+
+> **Symbol ≠ Field Activation:**
+> Dreams may *mirror* or *echo* transits, but cannot generate geometric structure.
+> “Felt experience is not a field unless geometry confirms it.” —Recognition Protocols
+
+> **OSR bridge:**
+> If a symbol is OSR twice, run a Tier-2 OSR Bridge test for safety.
+
+---
+
+### 🧪 **Optional Reverse Mapping (Same Session)**
+
+1. Isolate dominant dream image/mood.
+2. Cross-check with transits (day-before, day-of, day-after).
+3. Run SST on each possible echo.
+4. Note: Session forgets when closed—save elsewhere if desired.
+
+---
+
+### 🔁 **Dream Echo Tracker (Manual, User-Held)**
+
+| Dream Field | MAP Translation | VOICE Prompt | Transit Anchor | Ping | SST |
+| ----------- | --------------- | ------------ | -------------- | ---- | --- |
+| …           | …               | …            | …              | …    | …   |
+
+*(Manual only—interpreter does not retain entries.)*
+
+---
+
+#### 🛡️ **Session Integrity & Emoji Hygiene**
+
+* **Memoryless:** Every reading is session-contained.
+* **Emoji key:** ✨ astro-cards · 🌙 dream blocks (never mixed).
+

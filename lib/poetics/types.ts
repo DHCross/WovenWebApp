@@ -13,6 +13,9 @@ export type AspectType =
   | 'trine'
   | 'sextile'
   | 'quincunx'
+  | 'semisextile'
+  | 'semisquare'
+  | 'sesquiquadrate'
   | string;
 
 export interface PlanetArchetypeData {

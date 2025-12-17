@@ -39,59 +39,66 @@ export function useUserProfiles(userId: string | null): UseUserProfilesResult {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadProfiles = useCallback(async () => {
-    if (!userId) {
-      setProfiles([]);
-      return;
-    }
+  const LOCAL_STORAGE_KEY = 'woven_user_profiles';
 
+  const loadProfiles = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
-      const res = await fetch(`/api/user-profiles?userId=${encodeURIComponent(userId)}`);
-      const data = await res.json();
+      if (userId) {
+        // Authenticated: Load from API
+        const res = await fetch(`/api/user-profiles?userId=${encodeURIComponent(userId)}`);
+        const data = await res.json();
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to load profiles');
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to load profiles');
+        }
+
+        const normalized = (data.profiles || []).map((profile: BirthProfile) => {
+          const lat = profile.lat ?? profile.latitude;
+          const lng = profile.lng ?? profile.longitude;
+          return {
+            ...profile,
+            lat: typeof lat === 'number' ? lat : lat != null ? Number(lat) : undefined,
+            lng: typeof lng === 'number' ? lng : lng != null ? Number(lng) : undefined,
+          } as BirthProfile;
+        });
+        setProfiles(normalized);
+      } else {
+        // Unauthenticated: Load from localStorage
+        const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (localData) {
+          try {
+            const parsed = JSON.parse(localData);
+            if (Array.isArray(parsed)) {
+              setProfiles(parsed);
+            }
+          } catch (e) {
+            console.warn('Failed to parse local profiles', e);
+          }
+        }
       }
-
-      const normalized = (data.profiles || []).map((profile: BirthProfile) => {
-        const lat = profile.lat ?? profile.latitude;
-        const lng = profile.lng ?? profile.longitude;
-
-        return {
-          ...profile,
-          lat: typeof lat === 'number' ? lat : lat != null ? Number(lat) : undefined,
-          lng: typeof lng === 'number' ? lng : lng != null ? Number(lng) : undefined,
-        } as BirthProfile;
-      });
-
-      setProfiles(normalized);
     } catch (err: any) {
       console.error('[useUserProfiles] Load failed:', err);
       setError(err.message || 'Failed to load profiles');
-      setProfiles([]);
+      if (!userId) {
+        // Fallback to empty if local load fails
+        setProfiles([]);
+      }
     } finally {
       setLoading(false);
     }
   }, [userId]);
 
   const saveProfile = useCallback(async (profile: BirthProfile): Promise<SaveResult> => {
-    if (!userId) {
-      const err = 'User not authenticated';
-      setError(err);
-      return { success: false, error: err };
-    }
-
     setLoading(true);
     setError(null);
 
     try {
-      // Check if profile already exists
+      // Check if profile already exists (in current state)
       const existingIndex = profiles.findIndex(p => p.id === profile.id);
 
-      // STRICT SANITIZATION: Only allow specific fields to prevent report data leakage
+      // STRICT SANITIZATION
       const sanitizedProfile: BirthProfile = {
         id: profile.id,
         name: profile.name,
@@ -112,30 +119,31 @@ export function useUserProfiles(userId: string | null): UseUserProfilesResult {
       };
 
       let updatedProfiles: BirthProfile[];
-
       if (existingIndex >= 0) {
-        // Update existing
         updatedProfiles = [...profiles];
         updatedProfiles[existingIndex] = sanitizedProfile;
       } else {
-        // Add new
         updatedProfiles = [...profiles, sanitizedProfile];
       }
 
-      const res = await fetch('/api/user-profiles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          profiles: updatedProfiles
-        })
-      });
+      if (userId) {
+        // Authenticated: Save to API
+        const res = await fetch('/api/user-profiles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            profiles: updatedProfiles
+          })
+        });
 
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        const errMsg = data.error || `HTTP ${res.status}: ${res.statusText}`;
-        throw new Error(errMsg);
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+      } else {
+        // Unauthenticated: Save to localStorage
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedProfiles));
       }
 
       setProfiles(updatedProfiles);
@@ -151,29 +159,27 @@ export function useUserProfiles(userId: string | null): UseUserProfilesResult {
   }, [userId, profiles]);
 
   const deleteProfile = useCallback(async (profileId: string): Promise<SaveResult> => {
-    if (!userId) {
-      const err = 'User not authenticated';
-      setError(err);
-      return { success: false, error: err };
-    }
-
     setLoading(true);
     setError(null);
 
     try {
-      const res = await fetch(
-        `/api/user-profiles?userId=${encodeURIComponent(userId)}&profileId=${encodeURIComponent(profileId)}`,
-        { method: 'DELETE' }
-      );
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        const errMsg = data.error || `HTTP ${res.status}: ${res.statusText}`;
-        throw new Error(errMsg);
+      if (userId) {
+        // Authenticated: Delete via API
+        const res = await fetch(
+          `/api/user-profiles?userId=${encodeURIComponent(userId)}&profileId=${encodeURIComponent(profileId)}`,
+          { method: 'DELETE' }
+        );
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        setProfiles(prev => prev.filter(p => p.id !== profileId));
+      } else {
+        // Unauthenticated: Delete from localStorage
+        const updatedProfiles = profiles.filter(p => p.id !== profileId);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedProfiles));
+        setProfiles(updatedProfiles);
       }
-
-      setProfiles(prev => prev.filter(p => p.id !== profileId));
       return { success: true };
     } catch (err: any) {
       console.error('[useUserProfiles] Delete failed:', err);
@@ -183,7 +189,7 @@ export function useUserProfiles(userId: string | null): UseUserProfilesResult {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, profiles]);
 
   const updateProfile = useCallback(async (profileId: string, updates: Partial<BirthProfile>): Promise<SaveResult> => {
     const profile = profiles.find(p => p.id === profileId);
@@ -192,20 +198,14 @@ export function useUserProfiles(userId: string | null): UseUserProfilesResult {
       setError(err);
       return { success: false, error: err };
     }
-
     const updatedProfile = { ...profile, ...updates };
     return await saveProfile(updatedProfile);
   }, [profiles, saveProfile]);
 
-  // Load profiles when userId changes
-  // Using userId directly in dependency array ensures reload when auth completes
+  // Initial load
   useEffect(() => {
-    if (userId) {
-      loadProfiles();
-    } else {
-      setProfiles([]);
-    }
-  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps -- loadProfiles is stable per userId
+    loadProfiles();
+  }, [loadProfiles]);
 
   return {
     profiles,

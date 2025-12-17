@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+#### Poetic Brain Authentication & Build Fixes (2025-12-08)
+
+**Impact**: Restored access to Poetic Brain for all users; fixed production build errors.
+
+**Changes**:
+- **Auth Disabled by Default**: Switched from strict Auth0 token validation to an optional feature flag (`POETIC_BRAIN_AUTH_ENABLED`). Auth is now disabled by default to prevent login loops.
+- **Build Fixes**: Resolved TypeErrors in `MathBrainPage` (`padStart` on numbers) and React hook ordering issues.
+- **Diagnostics**: Added self-diagnostic reporting to Raven. If narrative generation fails (e.g., "Empty Narrative"), Raven now reports exactly which data was missing (e.g., "0 aspects found").
+
+**Technical Details**: See [Developers Notes/poetic_brain_auth_fix_dec2025.md](Developers Notes/poetic_brain_auth_fix_dec2025.md)
+
+### Fixed
+
 #### Person B Relocation in Synastry and Dual Natal Modes (2025-12-01)
 
 **Impact**: Critical bug affecting all relational reports using `BOTH_LOCAL` or `B_LOCAL` relocation modes.

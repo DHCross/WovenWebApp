@@ -1,0 +1,243 @@
+# Advice Ladder Tree — Integration Protocol 9.3.25
+
+**Woven Map × DBT × ACT Therapeutic Integration Framework**
+*Version: 9.3.25 | Last Updated: September 3, 2025*
+
+---
+
+## **Overview & Purpose**
+
+The **Advice Ladder Tree** integrates the **Woven Map’s** symbolic climate assessment with evidence-based therapeutic modalities (DBT, ACT) to provide structured, actionable guidance when users explicitly request advice. It preserves the Map’s diagnostic—not prescriptive—nature, maintaining **agency, falsifiability, and poetic precision** while extending usability through skill-based translation.
+
+**Core Principle:**
+The framework acts as a **skill translation layer**—transforming symbolic weather into practical options without collapsing nuance into prescription. Weather remains primary; skills are secondary support.
+
+**New Integration Directive — Live Test Protocol Overlay:**
+The Ladder Tree now incorporates the **Live Test Protocol**, a falsifiability and behavioral confirmation system that interrupts recursive insight loops. When users reach clarity without change, the system triggers a short, bounded **action experiment** with an **exit ramp**—ensuring insight yields to movement.
+
+---
+
+## **Architectural Integration — Stacked Layer System**
+
+The Ladder Tree functions as the **application layer** of a three-tier diagnostic architecture:
+
+### **Layer 1: Hook Stack (Core Diagnostic Engine)**
+
+* **Function:** Identifies polarities and conditional impulses—the repeating tensions that anchor a person’s pattern.
+* **Output:** Names the impulse vector and its archetypal geometry.
+* **Example:** Reveals “clamp ↔ release” as the central polarity.
+
+### **Layer 2: Impact Protocol (Symbolic Pressure Translation)**
+
+* **Function:** Translates symbolic pressure into lived emotional, somatic, and behavioral data.
+* **Output:** “Stunned drop after clamp”—how the weather lands in real time.
+* **Integration:** Uses Impact vocabulary as the FIELD layer for diagnostic identification.
+
+### **Layer 3: Advice Ladder Tree (Therapeutic Integration)**
+
+* **Function:** Maps therapeutic skill-shapes to handle the lived experience with precision and compassion.
+* **Output:** Conditional DBT/ACT skill responses when advice is explicitly requested.
+* **Integration:** Routes Impact results into relevant therapeutic blocks.
+
+**Sequential Flow:**
+Hook Stack → reveals pattern tension → Impact Protocol → translates pressure into lived experience → Advice Ladder Tree → integrates therapeutic responses.
+
+**Shared DNA:**
+
+* Weather metaphor continuity (storm → ground → navigation)
+* Calibration loops (resonance testing, Socratic checks, falsifiability)
+* Agency preservation at every layer
+
+---
+
+## **Live Test Protocol — Falsifiability Overlay**
+
+### **Purpose:**
+
+To distinguish when mapping is a tool for clarity versus a mechanism for avoidance.
+
+### **Activation Criteria:**
+
+* Recurrent cycles of insight without structural change.
+* Emotional or relational clarity achieved but untested behaviorally.
+* The emergence of the self-question: *“Am I still mapping because I need clarity, or because movement feels unsafe?”*
+
+### **Execution Framework:**
+
+1. **Identify one structural constraint** (e.g., caregiving overload, work boundary erosion, relational uncertainty).
+2. **Define a binary test** with a time-boxed window (e.g., “By Friday, I will have acted or accepted that I’m staying”).
+3. **Disallow escape clauses**—no “unless” conditions.
+4. **Observe, don’t rationalize.** When justification appears, log it as a pattern survival mechanism.
+
+### **Closure Questions:**
+
+* Did action occur?
+* Did clarity increase through movement or only through mapping?
+* What constraint was revealed as real versus constructed?
+
+### **Output:**
+
+The Live Test Protocol adds falsifiability to introspection—an embedded **integrity loop** that prevents infinite reflection. Every Map now includes an optional **EXIT sign.**
+
+---
+
+## **Integration Philosophy**
+
+### **System Harmony**
+
+1. **Philosophical Fit:** The Ladder Tree maps atmospheric conditions and offers response *options*, not prescriptions.
+2. **Structure Alignment:** Thresholds and Socratic closure maintain testable, agency-based design.
+3. **Codex Harmony:** FIELD → MAP → VOICE chain ensures symbolic coherence across diagnostic and applied layers.
+4. **Mirror Protocol Integration:** Tools are framed as conditional options, never directives.
+5. **Math–Poetic Translation:** Seismograph readings are converted into emotional weather bands.
+
+### **Systemic Integration Points**
+
+#### **Hook Stack → Ladder Tree**
+
+* Mirrors intensity thresholds; Ladder Tree interprets “how strong is the pull?” as weather category.
+* Hook Stack identifies polarity; Ladder Tree maps what to *do* in that polarity.
+* Conditional routing between diagnosis and adaptive response.
+
+#### **Impact Protocol → Ladder Tree**
+
+* Impact describes *how pressure lands*; Ladder Tree describes *how to hold it skillfully.*
+* Somatic bridge: embodied states route directly into skill blocks.
+
+#### **Enhanced Diagnostic Matrix → Ladder Tree**
+
+* Expands “if this, then that” structure in plain therapeutic language.
+* Communication climates guide relational skill selection.
+
+#### **Poetic Codex Protocol → Ladder Tree**
+
+* Ladder Tree blocks act as micro-Codex cards (FIELD → MAP → VOICE).
+* Retains Clear Mirror tone, adds therapeutic vocabulary.
+
+#### **Config Enforcement Integration**
+
+* Honors prescriptive claim prohibition—skills are invitations.
+* Includes falsifiability and agency checks.
+* Embeds Socratic closure for user sovereignty.
+
+---
+
+## **Clinical Language Integration Guidelines**
+
+1. **Symbolic Embedding:** Frame all clinical skills as weather metaphors.
+
+   * ✅ “Cool the body to settle the storm.”
+   * ❌ “Use TIPP skills for distress.”
+2. **Invitation, Not Instruction:** Offer possibilities, not mandates.
+
+   * ✅ “One path through this weather might be…”
+   * ❌ “You should…”
+3. **Skill Echo, Not Teaching:** Reference shape, not mechanics.
+
+   * ✅ “Hold both ends without collapse.”
+   * ❌ “Integrate emotion and logic mind.”
+
+---
+
+## **Step 1 — Identify Climate (via Seismograph)**
+
+1. Crisis Spike
+2. Clamp / Weight / Eruption
+3. Relational Strain
+4. Cognitive Loop
+5. Post-Crisis Exhaustion
+6. Transition Fog
+7. Anticipatory Tension
+
+---
+
+## **Step 2 — Apply Severity Thresholds**
+
+* **Mild (0–3):** Mindfulness + validation
+* **Moderate (4–6):** Targeted skill block
+* **Severe (7–9):** Crisis intervention + skill block
+* **Extreme (10):** Immediate TIPP + professional support
+
+---
+
+## **Step 3 — Select Therapeutic Blocks per Climate**
+
+### 1) **Crisis Spike**
+
+* **TIPP Block:** Cold water, intense movement, paced breathing.
+* **Distress Tolerance Block:** “Contain and ride the front.”
+
+### 2) **Clamp / Weight / Eruption**
+
+* **Radical Acceptance Block:** “Pressure management, not surrender.”
+* **Validation Block:** “Heaviness makes sense inside this cycle.”
+
+### 3) **Relational Strain**
+
+* **Interpersonal Effectiveness Block:** GIVE/FAST methods within storm metaphor.
+* **DEAR MAN Block:** “Describe, Express, Assert, Reinforce…”
+
+### 4) **Cognitive Loop**
+
+* **Check the Facts Block:** “What happened vs. what story was added?”
+* **Wise Mind Block:** “Hold both ends.”
+* **PLEASE Block:** “Treat body weather first.”
+
+### 5) **Post-Crisis Exhaustion**
+
+* **Self-Compassion Block:** “Kindness for the survivor of this storm.”
+* **Opposite Action Block:** “One small counter-current.”
+
+### 6) **Transition Fog**
+
+* **Mindfulness Block:** “Name the in-between.”
+* **Values Clarification Block:** “Pick one value as your north star.”
+
+### 7) **Anticipatory Tension**
+
+* **Cope Ahead Block:** “Preload your supports.”
+* **Defusion Block:** “Thoughts as weather.”
+* **Present Moment Block:** “Return to what’s here.”
+
+---
+
+## **Foundational Blocks (Multi-Climate)**
+
+* **Distraction Block:** Interrupt spiral.
+* **Pros & Cons Block:** “Cost of riding out vs. acting.”
+* **Emotion Naming Block:** “Precision creates choice.”
+* **Values Compass Block:** “Anchor to what matters.”
+* **Committed Action Block:** “Tiny value-aligned move.”
+* **Self-as-Context Block:** “You are the sky, not the weather.”
+
+---
+
+## **Socratic Closure (ACT stance)**
+
+* “What action aligns with what matters?”
+* “If acceptance were easy for one minute, what would change?”
+* “What’s the smallest next step in this weather?”
+
+---
+
+## **Implementation Framework**
+
+* **Formula:** Weather → Symbolic Frame → Skill → Open Question
+* **Contexts:** Self-help, peer support, clinical.
+* **Safeguards:** Conditional phrasing, falsifiability, agency retention.
+
+---
+
+## **Ethical Boundaries**
+
+* Peer guidance only; not a substitute for therapy.
+* Extreme severity requires referral.
+* All skills optional and falsifiable.
+* Supervision recommended for professional use.
+
+---
+
+**Integration Outcome:**
+The Advice Ladder Tree now forms a complete diagnostic-to-action ecosystem—where insight, embodiment, and behavior meet.  It keeps the system honest: every map, however elegant, must now prove itself in the field.
+
+> *Mapping is not always movement. Insight is not always change. When insight becomes camouflage, initiate the Live Test Protocol—the truth lives in behavior.*

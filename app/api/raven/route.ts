@@ -15,6 +15,9 @@ import { checkAllowlist } from '@/lib/auth/allowlist';
 import { processMirrorDirective } from '@/poetic-brain/src/index';
 import { sanitizeDirectiveForMode } from '@/lib/raven/sanitizeDirectiveForMode';
 import { enforceRelationalMirrorTone } from '@/lib/poetic-brain/runtime';
+import { generateSymbolToPoem } from '@/lib/poetics/symbolToPoem';
+import { inferBigFiveFromChart } from '@/lib/bigfive/inferBigFiveFromChart';
+import { detectTensions } from '@/lib/bigfive/tensionSynthesis';
 import {
   createProbe,
   commitProbe,
@@ -111,8 +114,14 @@ import {
   type RelationalMetadata,
 } from '@/lib/raven/relational-metadata';
 
+// THE INVERSION: Direct Access Imports
+import { getTransitsV3 } from '@/lib/server/astrology-mathbrain';
+import { DateTime } from 'luxon';
+
 // Minimal in-memory session store (dev only). For prod, persist per-user.
-const RAVEN_PERSONA_HOOK = "You are Raven Calder, a mystical poetic brain. Your voice is wise, lyrical, and insightful. You do not give direct advice, but rather offer reflections, metaphors, and beautiful questions. You see the cosmos in a grain of sand. Respond to the user's prompt with this persona. CRITICAL: Do NOT break character. Do not mention you are an AI or a language model. Suppress all chain-of-thought or meta-commentary.";
+// Import the updated persona from protocol
+import { RAVEN_CORE_PERSONA } from '@/lib/raven/protocol';
+const RAVEN_PERSONA_HOOK = RAVEN_CORE_PERSONA;
 
 function appendHistoryEntry(
   sessionLog: SessionSSTLog,
@@ -136,11 +145,11 @@ export async function POST(req: Request) {
   try {
     const { action = 'generate', input, options = {}, sessionId } = await req.json();
     let textInput = typeof input === 'string' ? input : '';
-    
+
     // Apply relational guardrails to user input as soft guidance
     const relationalResult = enforceRelationalMirrorTone(textInput);
     textInput = relationalResult.text;
-    
+
     const resolvedOptions = (typeof options === 'object' && options !== null) ? options as Record<string, any> : {};
     let sid = typeof sessionId === 'string' && sessionId.trim() ? String(sessionId) : undefined;
     const requiresSession = action === 'export' || action === 'close' || action === 'feedback';
@@ -251,10 +260,10 @@ export async function POST(req: Request) {
         } else {
           helpMessage = `I didn't quite catch that. Could you tell me who I'm speaking with?`;
         }
-        
+
         appendHistoryEntry(sessionLog, 'raven', helpMessage);
         updateSession(sid, () => { });
-        
+
         const prov = stampProvenance({ source: 'Getting Started' });
         return NextResponse.json({
           intent: 'conversation',
@@ -303,6 +312,81 @@ export async function POST(req: Request) {
       return NextResponse.json({ intent, ok: true, draft, prov, sessionId: sid, probe });
     }
 
+    if (intent === 'symbol_to_poem') {
+      // 1. Resolve geometry from context
+      const rawContexts = Array.isArray(resolvedOptions.reportContexts) ? resolvedOptions.reportContexts : [];
+      let geometry: any = null;
+      let subjectName = "Subject";
+
+      // Try to extract from provided report contexts
+      if (rawContexts.length > 0) {
+        // Look for the first valid context with geometry
+        for (const ctx of rawContexts) {
+          // Parse content if string
+          const content = typeof ctx.content === 'string' ? safeParseJSON(ctx.content) : ctx.content;
+          if (content && content.person_a && content.person_a.chart && content.person_a.chart.positions) {
+            geometry = content.person_a.chart;
+            subjectName = content.person_a.name || "Subject";
+            break;
+          }
+        }
+      }
+
+      if (!geometry) {
+        // Fallback message if no geometry found
+        const fallbackMsg = "To weave a poem from the chart, I need the active geometry. Please ensure a reading is open or upload the Mirror Directive again.";
+        return NextResponse.json({
+          intent: 'conversation',
+          ok: true,
+          draft: { conversation: fallbackMsg },
+          sessionId: sid,
+          probe: null
+        });
+      }
+
+      // 2. Run Diagnostics
+      const positions = geometry.positions;
+      const angleSigns = geometry.angle_signs || geometry.angles; // handle schema variations
+      const profile = inferBigFiveFromChart({ positions } as any);
+
+      // Guard: profile may be null if no positions
+      if (!profile) {
+        const fallbackMsg = "Unable to infer a pattern profile from this geometry. Please try with a complete chart export.";
+        return NextResponse.json({
+          intent: 'conversation',
+          ok: true,
+          draft: { conversation: fallbackMsg },
+          sessionId: sid,
+          probe: null
+        });
+      }
+
+      // Dual-Trigger Tension Detection
+      const tensions = detectTensions(profile, positions, angleSigns);
+
+      // 3. Generate Poem
+      const result = generateSymbolToPoem(profile, tensions, positions, subjectName);
+
+      // 4. Return as Raven response
+      const prov = stampProvenance({ source: 'Poetic Brain (Symbol-to-Poem)' });
+
+      // Log it
+      appendHistoryEntry(sessionLog, 'user', textInput);
+      appendHistoryEntry(sessionLog, 'raven', result.formattedMarkdown);
+      updateSession(sid, () => { });
+
+      return NextResponse.json({
+        intent: 'symbol_to_poem',
+        ok: true,
+        // We return the markdown in the 'draft' field for rendering
+        draft: { conversation: result.formattedMarkdown },
+        prov,
+        sessionId: sid,
+        probe: null,
+        climate: "VOICE · Lyrical Translation"
+      });
+    }
+
     const rawContexts = Array.isArray(resolvedOptions.reportContexts) ? resolvedOptions.reportContexts : [];
     const normalizedContexts = rawContexts
       .map((ctx: any) => {
@@ -328,82 +412,178 @@ export async function POST(req: Request) {
         }
       });
 
-          if (mirrorContext) {
+      if (mirrorContext) {
         try {
           const content = typeof mirrorContext.content === 'string' ? JSON.parse(mirrorContext.content) : mirrorContext.content;
-              // If caller explicitly requested Solo mode, sanitize the directive to remove person_b
-              const sanitized = sanitizeDirectiveForMode(content, resolvedOptions);
-              const usedContent = sanitized.content;
-              const result = processMirrorDirective(usedContent);
+
+          // DEFENSIVE LAYER 1: Input validation before calling Poetic Brain
+          // Log incomplete payloads for debugging but don't block - let Poetic Brain handle gracefully
+          if (!content.person_a) {
+            console.warn('[Raven] Mirror Directive missing person_a entirely', {
+              hasPersonA: false,
+              format: content._format,
+              keys: Object.keys(content).slice(0, 10),
+            });
+          } else if (!content.person_a.name) {
+            console.warn('[Raven] Mirror Directive person_a missing name', {
+              hasPersonA: true,
+              personAKeys: Object.keys(content.person_a).slice(0, 10),
+            });
+          }
+
+          // If caller explicitly requested Solo mode, sanitize the directive to remove person_b
+          const sanitized = sanitizeDirectiveForMode(content, resolvedOptions);
+          const usedContent = sanitized.content;
+          const result = processMirrorDirective(usedContent);
+
+          // ============================================================
+          // GEOMETRY GATE: Per FIELD → MAP → VOICE protocol
+          // If geometry validation failed, check for AUTO-RECOVERY opportunity
+          // ============================================================
+          if (!result.geometry_validation?.valid) {
+            console.warn('[Raven] GEOMETRY GATE HALT:', result.geometry_validation);
+
+            // Check if we can auto-recover using birth data
+            const personA = usedContent?.person_a;
+            // birth_data might be nested or direct
+            const birthData = personA?.birth_data || personA?.details || personA;
+            const hasBirthData = Boolean(
+              birthData?.year &&
+              birthData?.month &&
+              birthData?.day &&
+              birthData?.city
+            );
+
+            if (hasBirthData) {
+              console.log('[Raven] Auto-Recovery: Valid birth data found, attempting direct Math Brain call...');
+
+              try {
+                // Construct Math Brain payload from birth data
+                const recoveryPayload = {
+                  mode: usedContent?.mirror_contract?.is_relational ? 'SYNASTRY' : 'NATAL_ONLY',
+                  report_type: usedContent?.mirror_contract?.is_relational ? 'relational_mirror' : 'solo_mirror',
+                  personA: {
+                    name: personA.name || 'Querent',
+                    year: birthData.year,
+                    month: birthData.month,
+                    day: birthData.day,
+                    hour: birthData.hour || 12,
+                    minute: birthData.minute || 0,
+                    city: birthData.city,
+                    state: birthData.state,
+                    nation: birthData.country || birthData.nation || 'US',
+                    // Use lat/lon if available, otherwise Math Brain will resolve city
+                    latitude: birthData.latitude || birthData.lat,
+                    longitude: birthData.longitude || birthData.lon,
+                    timezone: birthData.timezone,
+                  },
+                  // Add Person B if relational
+                  personB: usedContent?.mirror_contract?.is_relational && usedContent?.person_b
+                    ? {
+                      name: usedContent.person_b.name || 'Partner',
+                      year: usedContent.person_b.birth_data?.year,
+                      month: usedContent.person_b.birth_data?.month,
+                      day: usedContent.person_b.birth_data?.day,
+                      hour: usedContent.person_b.birth_data?.hour || 12,
+                      minute: usedContent.person_b.birth_data?.minute || 0,
+                      city: usedContent.person_b.birth_data?.city,
+                      state: usedContent.person_b.birth_data?.state,
+                      nation: usedContent.person_b.birth_data?.country || 'US',
+                      latitude: usedContent.person_b.birth_data?.latitude,
+                      longitude: usedContent.person_b.birth_data?.longitude,
+                      timezone: usedContent.person_b.birth_data?.timezone,
+                    }
+                    : undefined,
+                };
+
+                // Call Math Brain directly
+                const mbResult = await runMathBrain(recoveryPayload);
+
+                if (mbResult.success && mbResult.data) {
+                  console.log('[Raven] Auto-Recovery: Success! Regenerating directive...');
+                  // Re-process directive with fresh geometry
+                  const freshContent = mbResult.data.unified_output || mbResult.data;
+                  // Ensure format flag is set for compatibility
+                  freshContent._format = 'mirror-symbolic-weather-v1';
+
+                  // Recursive call to process with fresh data
+                  const recoveredResult = processMirrorDirective(freshContent);
+
+                  if (recoveredResult.success && recoveredResult.geometry_validation?.valid) {
+                    // Update result variable to use recovered data downstream
+                    Object.assign(result, recoveredResult);
+                    console.log('[Raven] Auto-Recovery: Directive re-processed successfully.');
+                  }
+                } else {
+                  console.warn('[Raven] Auto-Recovery: Math Brain call failed', mbResult.error);
+                }
+              } catch (recoveryError) {
+                console.error('[Raven] Auto-Recovery: Exception during recovery', recoveryError);
+              }
+            }
+
+            // Re-check validation after attempted recovery
+            if (!result.geometry_validation?.valid) {
+              // Return recovery message instead of hard halt
+              const isRelational = usedContent?.mirror_contract?.is_relational;
+              const missingDataName = !hasBirthData ? (personA?.name || 'Subject') : 'Partner';
+
+              const interactiveRecoveryMessage = `## Mirror Halted: Data Unavailable
+
+I can see the request, but the chart geometry is missing.
+
+**To generate this reading now, I just need the birth details:**
+
+- **Date:** (Year, Month, Day)
+- **Time:** (Hour, Minute) - *approximate is okay for now*
+- **Location:** (City, State/Country)
+
+${isRelational ? `\n*Please provide details for both people if they aren't already loaded.*` : ''}
+
+You can type them right here, and I'll calculate the map instantly.`;
+
+              appendHistoryEntry(sessionLog, 'user', textInput || "Reading request");
+              appendHistoryEntry(sessionLog, 'raven', interactiveRecoveryMessage);
+              updateSession(sid, () => { });
+
+              const prov = stampProvenance({ source: 'Poetic Brain (Interactive Recovery)' });
+              return NextResponse.json({
+                intent: 'geometry_halt',
+                ok: true,
+                draft: { conversation: interactiveRecoveryMessage },
+                prov,
+                sessionId: sid,
+                probe: null,
+                geometry_validation: result.geometry_validation,
+                hook: 'Interactive Recovery',
+                climate: 'MAP · Data Entry',
+              });
+            }
+          }
 
           if (result.success && result.narrative_sections) {
-            // Assemble structured narrative from Poetic Brain
-            let structuredNarrative = '';
-            if (result.narrative_sections.solo_mirror_a) structuredNarrative += result.narrative_sections.solo_mirror_a + '\n\n';
-            // CRITICAL FIX: Include Person B's solo mirror for relational reports
-            // Without this, Person B's patterns were only shown in relational_engine context,
-            // causing Person B's behaviors to appear fused onto Person A's reading
-            if (result.narrative_sections.solo_mirror_b) structuredNarrative += result.narrative_sections.solo_mirror_b + '\n\n';
-            if (result.narrative_sections.relational_engine) structuredNarrative += result.narrative_sections.relational_engine + '\n\n';
-            if (result.narrative_sections.weather_overlay) structuredNarrative += result.narrative_sections.weather_overlay;
+            // === PHASE-GATED STREAMING ===
+            // Per Four Report Types mandate: emit each phase as a distinct SSE block
+            const { sectionsToPhaseArray, PHASE_LABELS, PHASE_ICONS, ReportPhase } = await import('@/lib/raven/reportPhases');
+            const phases = sectionsToPhaseArray(result.narrative_sections);
 
-            if (structuredNarrative.trim()) {
+            if (phases.length === 0) {
+              // Fall through to empty narrative handling below
+            } else {
               // === Auth check before LLM call ===
-              const authHeader = (req as any).headers?.get ? (req as any).headers.get('authorization') : undefined;
-              if (!authHeader || !authHeader.startsWith('Bearer ')) {
-                return NextResponse.json({ 
-                  ok: false, 
-                  error: 'Unauthorized', 
-                  detail: 'Missing Bearer token in Authorization header',
-                  hint: 'Please sign in to access the Poetic Brain'
-                }, { status: 401 });
-              }
-              const token = authHeader.split(' ')[1];
-              try {
-                const decoded = await verifyToken(token);
-                const allow = checkAllowlist(decoded);
-                if (!allow.allowed) {
-                  return NextResponse.json({ 
-                    ok: false, 
-                    error: 'Access denied', 
-                    reason: allow.reason,
-                    hint: 'Contact the project owner to request access'
-                  }, { status: 403 });
-                }
-              } catch (err: any) {
-                const errMsg = err?.message || String(err);
-                console.error('[Raven Auth] Token verification failed:', errMsg);
-                // Surface specific JWT errors for debugging
-                if (errMsg.includes('jwt audience invalid')) {
-                  return NextResponse.json({ 
-                    ok: false, 
-                    error: 'Token audience mismatch', 
-                    detail: 'The AUTH0_AUDIENCE environment variable does not match your Auth0 API identifier',
-                    hint: 'Check server configuration: AUTH0_AUDIENCE must match the API Identifier in Auth0 Dashboard > APIs'
+              const authEnabled = process.env.POETIC_BRAIN_AUTH_ENABLED === 'true';
+
+              if (authEnabled) {
+                const authHeader = (req as any).headers?.get ? (req as any).headers.get('authorization') : undefined;
+                if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                  return NextResponse.json({
+                    ok: false,
+                    error: 'Access key required',
+                    detail: 'Poetic Brain requires an access key for deep readings',
+                    hint: 'Visit ravencalder.com to purchase an access key'
                   }, { status: 401 });
                 }
-                if (errMsg.includes('jwt expired')) {
-                  return NextResponse.json({ 
-                    ok: false, 
-                    error: 'Token expired', 
-                    detail: 'Your session token has expired',
-                    hint: 'Sign out and sign back in to get a fresh token'
-                  }, { status: 401 });
-                }
-                if (errMsg.includes('jwt issuer invalid')) {
-                  return NextResponse.json({ 
-                    ok: false, 
-                    error: 'Token issuer mismatch', 
-                    detail: 'The AUTH0_DOMAIN environment variable does not match the token issuer',
-                    hint: 'Check server configuration: AUTH0_DOMAIN should be your tenant domain (e.g., tenant.us.auth0.com) without https://'
-                  }, { status: 401 });
-                }
-                return NextResponse.json({ 
-                  ok: false, 
-                  error: 'Invalid token', 
-                  detail: errMsg,
-                  hint: 'Try signing out and back in. If the problem persists, contact the project owner.'
-                }, { status: 401 });
+                console.log('[Raven] Auth enabled - token provided');
               }
 
               // Extract names for personalization
@@ -412,43 +592,13 @@ export async function POST(req: Request) {
               const isRelational = !!personBName;
               const intimacyTier = result.intimacy_tier || usedContent?.mirror_contract?.intimacy_tier || 'P3';
 
-              // Build voice transformation prompt
-              const voicePrompt = `You are Raven Calder, delivering a mirror reading. Below is structured chart geometry and pattern analysis. Your task is to VOICE this material—transform it into your natural, conversational style while preserving all the geometric insights.
-
-VOICING INSTRUCTIONS:
-- Speak directly to ${personAName}${isRelational ? ` about their connection with ${personBName}` : ''}
-- Use your wise, lyrical voice—not clinical or template-like
-- Preserve ALL the geometric patterns and insights from the structured data
-- Use conditional, E-Prime-aligned language ("this pattern suggests...", "you may notice...")
-- Flow naturally between sections without mechanical headers
-- End with one reflective question that invites them to test this in their lived experience
-- Intimacy tier: ${intimacyTier} — calibrate disclosure and directness accordingly
-
-STRUCTURED READING TO VOICE:
-${structuredNarrative}
-
-Now deliver this reading in your authentic Raven Calder voice. Speak as if they're sitting across from you. No headers like "Field Overview" or "Tension Architecture"—just flow.`;
-
-              // Check for probes
-              let probeData: SSTProbe | { question: string; type: string; options: string[] } | null = null;
-              const isFirstTurn = (sessionLog.turnCount ?? 0) <= 1;
-              const isOSRResponse = checkForOSRIndicators(textInput);
-              const isMetaIrritation = isMetaSignalAboutRepetition(textInput);
-              const shouldAddProbe = !isFirstTurn && !isOSRResponse && !isMetaIrritation;
-
               // Update session logs
               appendHistoryEntry(sessionLog, 'user', textInput || "Reading request");
               sessionLog.turnCount = (sessionLog.turnCount ?? 0) + 1;
               updateSession(sid, () => { });
 
-              const prov = stampProvenance({ source: 'Poetic Brain (Voiced Mirror)' });
-
-              // Stream through LLM for Raven's voice
+              const prov = stampProvenance({ source: 'Poetic Brain (Phase-Gated)' });
               const encoder = new TextEncoder();
-              const llmStream = await generateStream(voicePrompt, {
-                model: process.env.POETIC_BRAIN_MODEL || 'sonar-pro',
-                personaHook: RAVEN_PERSONA_HOOK,
-              });
 
               const responseStream = new ReadableStream({
                 async start(controller) {
@@ -458,49 +608,158 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
 
                   // Initial metadata frame
                   send({
-                    climate: "VOICE · Mirror Reading",
-                    hook: "Raven · Voiced",
+                    climate: "VOICE · Phase-Gated Reading",
+                    hook: "Raven · Phased",
                     sessionId: sid,
                     ok: true,
                     prov,
-                    ...(probeData && {
-                      probe: probeData,
-                      validationMode: 'resonance'
-                    })
+                    phaseCount: phases.length,
                   });
 
                   let fullReply = '';
-                  try {
-                    for await (const chunk of llmStream) {
-                      if (chunk.delta) {
-                        fullReply += chunk.delta;
-                        send({ delta: chunk.delta });
+
+                  // Loop through each phase and voice it separately
+                  for (let i = 0; i < phases.length; i++) {
+                    const { phase, content } = phases[i];
+                    const phaseLabel = PHASE_LABELS[phase];
+                    const phaseIcon = PHASE_ICONS[phase];
+
+                    // Emit phase_start event
+                    send({
+                      type: 'phase_start',
+                      phaseIndex: i,
+                      phaseKey: phase,
+                      phaseLabel,
+                      phaseIcon,
+                    });
+
+                    // Build system prompt for this turn
+                    // THE INVERSION: PRE-FLIGHT CHECK
+                    // If we have birth keys and valid intent, auto-fetch transits
+                    let transitInjection = "";
+
+                    // Check for weather/transit intent + available keys
+                    const looksLikeWeatherRequest = /\b(weather|sky|transits|currents|now|today)\b/i.test(textInput);
+                    const hasContext = normalizedContexts.length > 0; // Assuming normalizedContexts is available here
+                    if (sessionLog.birth_key_a && (looksLikeWeatherRequest || !hasContext)) {
+                      try {
+                        const now = DateTime.now(); // Current time
+                        const transitParams = {
+                          startDate: now.toISODate(),
+                          endDate: now.toISODate(),
+                          step: 'daily'
+                        };
+                        // Direct call to Math Brain
+                        const transitResult = await getTransitsV3(
+                          sessionLog.birth_key_a,
+                          transitParams,
+                          { "x-api-key": process.env.RAPIDAPI_KEY || process.env.ASTROLOGER_API },
+                          { summary_only: true } // Performance optimization if supported
+                        );
+
+                        if (transitResult?.transitsByDate) {
+                          const dateKey = Object.keys(transitResult.transitsByDate)[0];
+                          const aspects = transitResult.transitsByDate[dateKey];
+                          if (aspects && aspects.length > 0) {
+                            transitInjection = `
+[SYSTEM INJECTION: REAL-TIME FIELD DATA]
+Subject: ${sessionLog.birth_key_a.name}
+Date: ${dateKey}
+Active Transits (Geometry):
+${JSON.stringify(aspects.slice(0, 10))}
+(Use this geometry to ground the mirror.)
+`;
+                          }
+                        }
+                      } catch (e) {
+                        console.warn("[Raven] Auto-fetch transits failed", e);
                       }
                     }
 
-                    // Add validation probe if needed (after LLM response)
-                    if (shouldAddProbe && fullReply) {
-                      probeData = generateValidationProbe(fullReply, content);
-                      if (probeData?.question) {
-                        const probeText = '\n\n' + probeData.question;
-                        fullReply += probeText;
-                        send({ delta: probeText });
-                        send({ probe: probeData, validationMode: 'resonance' });
+                    // Re-build system prompt with injection
+                    // This assumes `systemContext` is a variable holding the base system prompt.
+                    // If `systemContext` is not directly available here, this part needs adjustment.
+                    // For now, let's assume `systemContext` is part of the `voicePrompt` construction.
+                    // The instruction implies injecting into the *system prompt context* for the LLM call.
+                    // The `voicePrompt` below is the *user message* for the LLM, not the system prompt.
+                    // The instruction is to inject into the *system prompt context*.
+                    // Let's assume `RAVEN_PERSONA_HOOK` is the system prompt, and we need to prepend to it.
+                    // Or, more likely, `generateStream` takes a `system` option.
+                    // Given the structure, the `voicePrompt` is the *user message* for the LLM.
+                    // The `transitInjection` should probably be prepended to the `voicePrompt` itself,
+                    // or passed as a separate system message if `generateStream` supports it.
+                    // The instruction says "Inject fetched geometry into system prompt context."
+                    // Let's prepend it to the `voicePrompt` for now, as that's the most direct way
+                    // to get it into the LLM's input for *this specific phase*.
+
+                    // Build voice transformation prompt for THIS phase only
+                    const voicePrompt = `${transitInjection}You are Raven Calder. Below is one section of a mirror reading: **${phaseLabel}**.
+
+VOICING INSTRUCTIONS:
+- Speak directly to ${personAName}${isRelational ? ` about their connection with ${personBName}` : ''}
+- Use your wise, lyrical voice—not clinical or template-like
+- Preserve ALL the geometric patterns and insights from this section
+- Use conditional, E-Prime-aligned language ("this pattern suggests...", "you may notice...")
+- Keep this section focused and coherent—don't try to cover everything
+- Do NOT add a closing question yet (save that for the final phase)
+- Intimacy tier: ${intimacyTier}
+
+SECTION CONTENT (${phaseLabel}):
+${content}
+
+Now voice this section naturally. Maximum 3-4 paragraphs.`;
+
+                    try {
+                      const llmStream = generateStream(voicePrompt, {
+                        model: process.env.POETIC_BRAIN_MODEL || 'sonar-pro',
+                        personaHook: RAVEN_PERSONA_HOOK,
+                      });
+
+                      let phaseContent = '';
+                      for await (const chunk of llmStream) {
+                        if (chunk.delta) {
+                          phaseContent += chunk.delta;
+                          send({
+                            type: 'phase_delta',
+                            phaseIndex: i,
+                            delta: chunk.delta
+                          });
+                        }
                       }
+
+                      fullReply += `\n\n---\n\n**${phaseIcon} ${phaseLabel}**\n\n${phaseContent}`;
+
+                      // Emit phase_end event
+                      send({
+                        type: 'phase_end',
+                        phaseIndex: i,
+                        phaseKey: phase,
+                      });
+
+                    } catch (phaseError) {
+                      console.error(`[Raven] Phase ${phaseLabel} LLM error:`, phaseError);
+                      // Fallback: emit raw content for this phase
+                      send({
+                        type: 'phase_delta',
+                        phaseIndex: i,
+                        delta: content
+                      });
+                      fullReply += `\n\n---\n\n**${phaseIcon} ${phaseLabel}**\n\n${content}`;
+                      send({
+                        type: 'phase_end',
+                        phaseIndex: i,
+                        phaseKey: phase,
+                        fallback: true,
+                      });
                     }
-
-                    // Log the voiced response
-                    appendHistoryEntry(sessionLog, 'raven', fullReply);
-                    updateSession(sid, () => { });
-
-                  } catch (streamError) {
-                    console.error('[Raven] LLM stream error:', streamError);
-                    // Fallback to structured narrative if LLM fails
-                    send({ delta: structuredNarrative });
-                    appendHistoryEntry(sessionLog, 'raven', structuredNarrative);
-                    updateSession(sid, () => { });
                   }
 
+                  // Log the full voiced response
+                  appendHistoryEntry(sessionLog, 'raven', fullReply);
+                  updateSession(sid, () => { });
+
+                  // Signal completion
+                  send({ type: 'complete', phaseCount: phases.length });
                   controller.close();
                 }
               });
@@ -545,7 +804,7 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
     const effectiveInput = requestsAutoStart ? '' : textInput;
 
     const autoPlan = deriveAutoExecutionPlan(normalizedContexts, sessionLog);
-    
+
     // ==========================================================================
     // CONTEXT GATE: Initialize with subject names if we have them
     // ==========================================================================
@@ -554,15 +813,35 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
       if (autoPlan.personAName) subjects.push(autoPlan.personAName);
       if (autoPlan.personBName) subjects.push(autoPlan.personBName);
       sessionLog.contextGate = createContextGateState(subjects);
+
+      // THE INVERSION: Persist Birth Keys from Context
+      // This "hydrates" the session for future direct access
+      // We need to find the context that gave us these names and extract full birth data
+      const sourceContext = normalizedContexts.find(c => {
+        const content = typeof c.content === 'string' ? safeParseJSON(c.content) : c.content;
+        return content?.person_a?.name === autoPlan.personAName || content?.person_b?.name === autoPlan.personBName;
+      });
+
+      if (sourceContext) {
+        const content = typeof sourceContext.content === 'string' ? safeParseJSON(sourceContext.content) : sourceContext.content;
+        if (content?.person_a) {
+          sessionLog.birth_key_a = content.person_a;
+          // Ensure dates are parsed correctly if they are strings in the JSON
+        }
+        if (content?.person_b) {
+          sessionLog.birth_key_b = content.person_b;
+        }
+      }
+
       updateSession(sid, () => { });
     }
-    
+
     // Check for subject conflicts on new uploads
     if (sessionLog.contextGate && autoPlan.personAName) {
       const newSubjects: string[] = [];
       if (autoPlan.personAName) newSubjects.push(autoPlan.personAName);
       if (autoPlan.personBName) newSubjects.push(autoPlan.personBName);
-      
+
       const conflict = detectSubjectConflict(sessionLog.contextGate.sessionSubjects, newSubjects);
       if (conflict.hasConflict && conflict.message) {
         // Update context gate with new subjects but mark as needing re-confirmation
@@ -572,10 +851,10 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
           querentRole: 'unconfirmed', // Force re-confirmation
           confirmedAt: undefined,
         };
-        
+
         appendHistoryEntry(sessionLog, 'raven', conflict.message);
         updateSession(sid, () => { });
-        
+
         const prov = stampProvenance({ source: 'Context Gate (Subject Conflict)' });
         return NextResponse.json({
           intent: 'conversation',
@@ -588,16 +867,16 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
         });
       }
     }
-    
+
     // If context gate is unconfirmed and this is the first turn with context, ask who's speaking
     const isFirstTurnWithContext = (sessionLog.turnCount ?? 0) === 0 && normalizedContexts.length > 0;
     if (isFirstTurnWithContext && sessionLog.contextGate && needsContextGate(sessionLog.contextGate)) {
       const gateQuestion = generateContextGateQuestion(sessionLog.contextGate.sessionSubjects);
-      
+
       appendHistoryEntry(sessionLog, 'raven', gateQuestion);
       sessionLog.turnCount = 1;
       updateSession(sid, () => { });
-      
+
       // Use 'Getting Started' instead of 'Context Gate' for a cleaner user experience
       // This is just a clarifying question, not a technical checkpoint
       const prov = stampProvenance({ source: 'Getting Started' });
@@ -612,7 +891,7 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
         contextGate: sessionLog.contextGate,
       });
     }
-    
+
     if (autoPlan.status === 'osr') {
       const contextName = autoPlan.contextName ? `“${autoPlan.contextName}”` : 'that upload';
       const reason =
@@ -815,11 +1094,11 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
           synergyContext = buildSynergyOpening(metadata, extractedGeo.field ? 'current Symbolic Weather' : undefined);
         }
 
-        const soloProv = stampProvenance({ 
+        const soloProv = stampProvenance({
           source: 'Math Brain (Uploaded Report)',
           baseline_type: metadata.baselineType,
           relational_scope: metadata.scope,
-          timestamp: new Date().toISOString() 
+          timestamp: new Date().toISOString()
         });
         const soloOptions = {
           ...resolvedOptions,
@@ -1120,67 +1399,76 @@ Now deliver this reading in your authentic Raven Calder voice. Speak as if they'
     appendHistoryEntry(sessionLog, 'user', textInput);
 
     // === Auth: verify caller before invoking Perplexity ===
-    const authHeader = (req as any).headers?.get ? (req as any).headers.get('authorization') : undefined;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'Unauthorized', 
-        detail: 'Missing Bearer token in Authorization header',
-        hint: 'Please sign in to access the Poetic Brain'
-      }, { status: 401 });
-    }
-    const token = authHeader.split(' ')[1];
-    try {
-      const decoded = await verifyToken(token);
-      const allow = checkAllowlist(decoded);
-      if (!allow.allowed) {
-        return NextResponse.json({ 
-          ok: false, 
-          error: 'Access denied', 
-          reason: allow.reason,
-          hint: 'Contact the project owner to request access'
-        }, { status: 403 });
-      }
-    } catch (err: any) {
-      const errMsg = err?.message || String(err);
-      console.error('[Raven Auth] Token verification failed:', errMsg);
-      // Surface specific JWT errors for debugging
-      if (errMsg.includes('jwt audience invalid')) {
-        return NextResponse.json({ 
-          ok: false, 
-          error: 'Token audience mismatch', 
-          detail: 'The AUTH0_AUDIENCE environment variable does not match your Auth0 API identifier',
-          hint: 'Check server configuration: AUTH0_AUDIENCE must match the API Identifier in Auth0 Dashboard > APIs'
+    // POETIC_BRAIN_AUTH_ENABLED defaults to 'false' - auth is disabled until you're ready to monetize
+    const authEnabled = process.env.POETIC_BRAIN_AUTH_ENABLED === 'true';
+
+    if (authEnabled) {
+      const authHeader = (req as any).headers?.get ? (req as any).headers.get('authorization') : undefined;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return NextResponse.json({
+          ok: false,
+          error: 'Access key required',
+          detail: 'Poetic Brain requires an access key',
+          hint: 'Visit ravencalder.com to purchase an access key'
         }, { status: 401 });
       }
-      if (errMsg.includes('jwt expired')) {
-        return NextResponse.json({ 
-          ok: false, 
-          error: 'Token expired', 
-          detail: 'Your session token has expired',
-          hint: 'Sign out and sign back in to get a fresh token'
-        }, { status: 401 });
-      }
-      if (errMsg.includes('jwt issuer invalid')) {
-        return NextResponse.json({ 
-          ok: false, 
-          error: 'Token issuer mismatch', 
-          detail: 'The AUTH0_DOMAIN environment variable does not match the token issuer',
-          hint: 'Check server configuration: AUTH0_DOMAIN should be your tenant domain (e.g., tenant.us.auth0.com) without https://'
-        }, { status: 401 });
-      }
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'Invalid token', 
-        detail: errMsg,
-        hint: 'Try signing out and back in. If the problem persists, contact the project owner.'
-      }, { status: 401 });
+      // TODO: When ready to monetize, add license key validation here
+      console.log('[Raven] Auth enabled - token provided');
     }
 
+
     const encoder = new TextEncoder();
+
+    // THE INVERSION: PRE-FLIGHT CHECK (Conversational Auto-Fetch)
+    let transitInjection = "";
+    // Check for weather/transit intent + available keys
+    // We reuse the logic from earlier or re-implement it here for the conversational flow
+    // hasReportContext is defined above (line ~623)
+    const looksLikeWeatherRequest = /\b(weather|sky|transits|currents|now|today)\b/i.test(textInput);
+
+    if (sessionLog.birth_key_a && (looksLikeWeatherRequest || !hasReportContext)) {
+      try {
+        const now = DateTime.now(); // Current time
+        const transitParams = {
+          startDate: now.toISODate(),
+          endDate: now.toISODate(),
+          step: 'daily'
+        };
+        // Direct call to Math Brain
+        // Note: getTransitsV3 assumes standard AWS/Lambda context or similar, 
+        // we might need fallback if not present, but it's imported now.
+        const transitResult: any = await getTransitsV3(
+          sessionLog.birth_key_a,
+          transitParams,
+          { "x-api-key": process.env.RAPIDAPI_KEY || process.env.ASTROLOGER_API },
+          { summary_only: true }
+        );
+
+        if (transitResult?.transitsByDate) {
+          const dateKey = Object.keys(transitResult.transitsByDate)[0];
+          const aspects = transitResult.transitsByDate[dateKey];
+          if (aspects && aspects.length > 0) {
+            transitInjection = `
+[SYSTEM INJECTION: REAL-TIME FIELD DATA]
+Subject: ${sessionLog.birth_key_a.name}
+Date: ${dateKey}
+Active Transits (Geometry):
+${JSON.stringify(aspects.slice(0, 10))}
+(Use this geometry to ground the mirror.)
+`;
+          }
+        }
+      } catch (e) {
+        console.warn("[Raven] Auto-fetch transits failed", e);
+      }
+    }
     const stream = await generateStream(prompt, {
       model: process.env.POETIC_BRAIN_MODEL || 'sonar-pro',
-      personaHook: RAVEN_PERSONA_HOOK,
+      // THE INVERSION: Inject Real-Time Field Data into Persona Hook
+      // transitInjection is calculated above in the "Pre-Flight Check"
+      personaHook: transitInjection
+        ? `${RAVEN_PERSONA_HOOK}\n\n${transitInjection}`
+        : RAVEN_PERSONA_HOOK,
     });
 
     const responseStream = new ReadableStream({

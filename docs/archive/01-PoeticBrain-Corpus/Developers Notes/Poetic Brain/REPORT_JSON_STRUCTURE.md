@@ -1,10 +1,14 @@
 # Math Brain Report JSON Structure Reference
 
+> [!CAUTION]
+> **DEPRECATED — Pre-Shipyard / File-Upload Era**
+> This document uses "Math Brain" terminology and old code paths.
+> The current Shipyard architecture uses "Chart Engine" and conversational intake.
+> See: `/Shipyard/vessel/docs/CHART_ENGINE_API.md` for current documentation.
+
 **Purpose:** Guide for developers implementing Raven's report parsing  
 **Last Updated:** October 12, 2025  
-**Status:** 🚨 Currently NOT fully utilized by Raven
-
----
+**Status:** ⚠️ DEPRECATED — See Shipyard docs for current API structure
 
 ## 📁 Complete JSON Structure
 

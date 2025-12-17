@@ -1,0 +1,307 @@
+{
+  "_format": "mirror-symbolic-weather-v1",
+  "_version": "1.0",
+  "_contains_transits": true,
+  "_contains_weather_data": true,
+  "_range_dates": [
+    "2025-12-05",
+    "2025-12-13"
+  ],
+  "_transit_days": 9,
+  "_natal_sections": 1,
+  "_required_sections": [
+    "person_a"
+  ],
+  "generated_at": "2025-12-13T05:34:32.413Z",
+  "_natal_section": {
+    "mirror_source": "integrated",
+    "note": "Natal geometry integrated with symbolic weather in single file"
+  },
+  "person_a": {
+    "name": "Dan Cross",
+    "birth_data": {
+      "year": 1973,
+      "month": 7,
+      "day": 24,
+      "hour": 14,
+      "minute": 30,
+      "latitude": 40.016666666666666,
+      "longitude": -75.3,
+      "timezone": "US/Eastern",
+      "city": "Bryn Mawr",
+      "country_code": "US"
+    },
+    "chart": {
+      "angle_signs": {
+        "ascendant": "Sco",
+        "mc": "Leo"
+      },
+      "positions": {
+        "Sun": {
+          "abs_pos": 121.69,
+          "deg": 1.69,
+          "retrograde": false,
+          "house": 9,
+          "sign": "Leo"
+        },
+        "Moon": {
+          "abs_pos": 52.57,
+          "deg": 22.57,
+          "retrograde": false,
+          "house": 7,
+          "sign": "Tau"
+        },
+        "Mercury": {
+          "abs_pos": 114.58,
+          "deg": 24.58,
+          "retrograde": true,
+          "house": 9,
+          "sign": "Can"
+        },
+        "Venus": {
+          "abs_pos": 149.61,
+          "deg": 29.61,
+          "retrograde": false,
+          "house": 10,
+          "sign": "Leo"
+        },
+        "Mars": {
+          "abs_pos": 20.67,
+          "deg": 20.67,
+          "retrograde": false,
+          "house": 6,
+          "sign": "Ari"
+        },
+        "Jupiter": {
+          "abs_pos": 307.95,
+          "deg": 7.95,
+          "retrograde": true,
+          "house": 3,
+          "sign": "Aqu"
+        },
+        "Saturn": {
+          "abs_pos": 89.07,
+          "deg": 29.07,
+          "retrograde": false,
+          "house": 8,
+          "sign": "Gem"
+        },
+        "Uranus": {
+          "abs_pos": 199.28,
+          "deg": 19.28,
+          "retrograde": false,
+          "house": 12,
+          "sign": "Lib"
+        },
+        "Neptune": {
+          "abs_pos": 244.8,
+          "deg": 4.8,
+          "retrograde": true,
+          "house": 1,
+          "sign": "Sag"
+        },
+        "Pluto": {
+          "abs_pos": 182.17,
+          "deg": 2.17,
+          "retrograde": false,
+          "house": 11,
+          "sign": "Lib"
+        },
+        "Chiron": {
+          "abs_pos": 20.91,
+          "deg": 20.91,
+          "retrograde": true,
+          "house": 6,
+          "sign": "Ari"
+        },
+        "First_House": {
+          "abs_pos": 218.08,
+          "deg": 8.08,
+          "retrograde": false,
+          "house": 1,
+          "sign": "Sco"
+        },
+        "Tenth_House": {
+          "abs_pos": 131.71,
+          "deg": 11.71,
+          "retrograde": false,
+          "house": 1,
+          "sign": "Leo"
+        },
+        "Mean_Node": {
+          "abs_pos": 276.41,
+          "deg": 6.41,
+          "retrograde": true,
+          "house": 2,
+          "sign": "Cap"
+        }
+      },
+      "cusps": [
+        218.08,
+        247.16,
+        278.61,
+        311.71,
+        344.13,
+        13.2,
+        38.08,
+        67.16,
+        98.61,
+        131.71,
+        164.13,
+        193.2
+      ],
+      "transitsByDate": {
+        "2025-12-05": {
+          "seismograph": {
+            "magnitude": 2.5,
+            "directional_bias": -0.3,
+            "volatility": 1
+          }
+        },
+        "2025-12-06": {
+          "seismograph": {
+            "magnitude": 2.4,
+            "directional_bias": -0.1,
+            "volatility": 0
+          }
+        },
+        "2025-12-07": {
+          "seismograph": {
+            "magnitude": 2.4,
+            "directional_bias": -0.1,
+            "volatility": 0
+          }
+        },
+        "2025-12-08": {
+          "seismograph": {
+            "magnitude": 2.4,
+            "directional_bias": -0.4,
+            "volatility": 1.5
+          }
+        },
+        "2025-12-09": {
+          "seismograph": {
+            "magnitude": 2.3,
+            "directional_bias": -0.5,
+            "volatility": 1.5
+          }
+        },
+        "2025-12-10": {
+          "seismograph": {
+            "magnitude": 2.3,
+            "directional_bias": -0.5,
+            "volatility": 1.5
+          }
+        },
+        "2025-12-11": {
+          "seismograph": {
+            "magnitude": 2.3,
+            "directional_bias": -0.2,
+            "volatility": 1
+          }
+        },
+        "2025-12-12": {
+          "seismograph": {
+            "magnitude": 2.4,
+            "directional_bias": 0.3,
+            "volatility": 1
+          }
+        },
+        "2025-12-13": {
+          "seismograph": {
+            "magnitude": 2.4,
+            "directional_bias": 0,
+            "volatility": 0
+          }
+        }
+      }
+    }
+  },
+  "report_kind": "Balance Meter",
+  "mirror_contract": {
+    "report_kind": "Balance Meter",
+    "is_relational": false,
+    "intimacy_tier": null,
+    "relationship_type": null,
+    "contact_state": "ACTIVE"
+  },
+  "balance_meter_frontstage": {
+    "magnitude": 2.4,
+    "directional_bias": -0.2,
+    "volatility": 0.8,
+    "magnitude_label": "Active",
+    "directional_bias_label": "Equilibrium",
+    "volatility_label": "Low"
+  },
+  "daily_readings": [
+    {
+      "date": "2025-12-05",
+      "magnitude": 2.5,
+      "directional_bias": -0.3,
+      "volatility": 1
+    },
+    {
+      "date": "2025-12-06",
+      "magnitude": 2.4,
+      "directional_bias": -0.1,
+      "volatility": 0
+    },
+    {
+      "date": "2025-12-07",
+      "magnitude": 2.4,
+      "directional_bias": -0.1,
+      "volatility": 0
+    },
+    {
+      "date": "2025-12-08",
+      "magnitude": 2.4,
+      "directional_bias": -0.4,
+      "volatility": 1.5
+    },
+    {
+      "date": "2025-12-09",
+      "magnitude": 2.3,
+      "directional_bias": -0.5,
+      "volatility": 1.5
+    },
+    {
+      "date": "2025-12-10",
+      "magnitude": 2.3,
+      "directional_bias": -0.5,
+      "volatility": 1.5
+    },
+    {
+      "date": "2025-12-11",
+      "magnitude": 2.3,
+      "directional_bias": -0.2,
+      "volatility": 1
+    },
+    {
+      "date": "2025-12-12",
+      "magnitude": 2.4,
+      "directional_bias": 0.3,
+      "volatility": 1
+    },
+    {
+      "date": "2025-12-13",
+      "magnitude": 2.4,
+      "directional_bias": 0,
+      "volatility": 0
+    }
+  ],
+  "reading_count": 9,
+  "provenance": {
+    "math_brain_version": "3.3.0-four-report-types",
+    "ephemeris_source": "best-astrology-api-v3",
+    "build_ts": "2025-12-13T05:34:30.935Z",
+    "house_system": "Placidus",
+    "orbs_profile": "wm-spec-2025-09",
+    "timezone_db_version": "IANA-2024a",
+    "relocation_mode": "A_local",
+    "engine_versions": {
+      "seismograph": "2.1.0",
+      "balance_meter": "5.0.0",
+      "synastry": "1.0.0"
+    }
+  }
+}

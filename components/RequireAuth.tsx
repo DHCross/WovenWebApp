@@ -5,13 +5,13 @@ import { getRedirectUri, normalizeAuth0Audience, normalizeAuth0ClientId, normali
 
 const authEnabled = (() => {
   const raw = process.env.NEXT_PUBLIC_ENABLE_AUTH;
-  const isProduction = process.env.NODE_ENV === 'production';
-  if (typeof raw !== 'string') return isProduction;
+  // Default to false now for Poetic Brain "open" access
+  if (typeof raw !== 'string') return false;
   const normalized = raw.trim().toLowerCase();
-  if (normalized === '') return isProduction;
+  if (normalized === '') return false;
   if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
   if (['false', '0', 'no', 'off'].includes(normalized)) return false;
-  return isProduction;
+  return false;
 })();
 
 export default function RequireAuth({ children }: { children: React.ReactNode }) {

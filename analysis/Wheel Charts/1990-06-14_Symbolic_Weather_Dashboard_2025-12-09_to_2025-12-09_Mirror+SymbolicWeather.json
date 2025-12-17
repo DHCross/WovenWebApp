@@ -1,0 +1,203 @@
+{
+  "_format": "mirror-symbolic-weather-v1",
+  "_version": "1.0",
+  "_contains_transits": true,
+  "_contains_weather_data": true,
+  "_range_dates": [
+    "2025-12-09",
+    "2025-12-09"
+  ],
+  "_transit_days": 1,
+  "_natal_sections": 1,
+  "_required_sections": [
+    "person_a"
+  ],
+  "generated_at": "2025-12-09T09:49:20.075Z",
+  "_natal_section": {
+    "mirror_source": "integrated",
+    "note": "Natal geometry integrated with symbolic weather in single file"
+  },
+  "person_a": {
+    "name": "Emey",
+    "birth_data": {
+      "year": 1990,
+      "month": 6,
+      "day": 14,
+      "hour": 10,
+      "minute": 0,
+      "latitude": 33.88333333333333,
+      "longitude": -84.15,
+      "timezone": "US/Eastern",
+      "city": "Lilburn",
+      "country_code": "US"
+    },
+    "chart": {
+      "angle_signs": {
+        "ascendant": "Leo",
+        "mc": "Ari"
+      },
+      "positions": {
+        "Sun": {
+          "abs_pos": 83.25,
+          "deg": 23.25,
+          "retrograde": false,
+          "house": 11,
+          "sign": "Gem"
+        },
+        "Moon": {
+          "abs_pos": 333.25,
+          "deg": 3.25,
+          "retrograde": false,
+          "house": 8,
+          "sign": "Pis"
+        },
+        "Mercury": {
+          "abs_pos": 64.14,
+          "deg": 4.14,
+          "retrograde": false,
+          "house": 11,
+          "sign": "Gem"
+        },
+        "Venus": {
+          "abs_pos": 47.7,
+          "deg": 17.7,
+          "retrograde": false,
+          "house": 10,
+          "sign": "Tau"
+        },
+        "Mars": {
+          "abs_pos": 10.38,
+          "deg": 10.38,
+          "retrograde": false,
+          "house": 9,
+          "sign": "Ari"
+        },
+        "Jupiter": {
+          "abs_pos": 105.69,
+          "deg": 15.69,
+          "retrograde": false,
+          "house": 12,
+          "sign": "Can"
+        },
+        "Saturn": {
+          "abs_pos": 294.09,
+          "deg": 24.09,
+          "retrograde": true,
+          "house": 6,
+          "sign": "Cap"
+        },
+        "Uranus": {
+          "abs_pos": 278.2,
+          "deg": 8.2,
+          "retrograde": true,
+          "house": 6,
+          "sign": "Cap"
+        },
+        "Neptune": {
+          "abs_pos": 283.74,
+          "deg": 13.74,
+          "retrograde": true,
+          "house": 6,
+          "sign": "Cap"
+        },
+        "Pluto": {
+          "abs_pos": 225.42,
+          "deg": 15.42,
+          "retrograde": true,
+          "house": 4,
+          "sign": "Sco"
+        },
+        "Chiron": {
+          "abs_pos": 105.97,
+          "deg": 15.97,
+          "retrograde": false,
+          "house": 12,
+          "sign": "Can"
+        },
+        "First_House": {
+          "abs_pos": 125.97,
+          "deg": 5.97,
+          "retrograde": false,
+          "house": 1,
+          "sign": "Leo"
+        },
+        "Tenth_House": {
+          "abs_pos": 28.98,
+          "deg": 28.98,
+          "retrograde": false,
+          "house": 1,
+          "sign": "Ari"
+        },
+        "Mean_Node": {
+          "abs_pos": 309.75,
+          "deg": 9.75,
+          "retrograde": true,
+          "house": 7,
+          "sign": "Aqu"
+        }
+      },
+      "cusps": [
+        125.97,
+        149.42,
+        176.92,
+        208.98,
+        243.23,
+        276.07,
+        305.97,
+        329.42,
+        356.92,
+        28.98,
+        63.23,
+        96.07
+      ],
+      "transitsByDate": {
+        "2025-12-09": {
+          "seismograph": {
+            "magnitude": 2.1,
+            "directional_bias": 0.5,
+            "volatility": 1
+          }
+        }
+      }
+    }
+  },
+  "report_kind": "Balance Meter",
+  "mirror_contract": {
+    "report_kind": "Balance Meter",
+    "is_relational": false,
+    "intimacy_tier": null,
+    "relationship_type": null,
+    "contact_state": "ACTIVE"
+  },
+  "balance_meter_frontstage": {
+    "magnitude": 2.1,
+    "directional_bias": 0.5,
+    "volatility": 1,
+    "magnitude_label": "Active",
+    "directional_bias_label": "Equilibrium",
+    "volatility_label": "Moderate"
+  },
+  "daily_readings": [
+    {
+      "date": "2025-12-09",
+      "magnitude": 2.1,
+      "directional_bias": 0.5,
+      "volatility": 1
+    }
+  ],
+  "reading_count": 1,
+  "provenance": {
+    "math_brain_version": "3.3.0-four-report-types",
+    "ephemeris_source": "best-astrology-api-v3",
+    "build_ts": "2025-12-09T09:49:15.847Z",
+    "house_system": "Placidus",
+    "orbs_profile": "wm-spec-2025-09",
+    "timezone_db_version": "IANA-2024a",
+    "relocation_mode": "A_local",
+    "engine_versions": {
+      "seismograph": "2.1.0",
+      "balance_meter": "5.0.0",
+      "synastry": "1.0.0"
+    }
+  }
+}

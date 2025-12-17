@@ -2,6 +2,7 @@ import React from 'react';
 import './globals.css';
 import './styles/archival-mode.css';
 import { APP_NAME } from '../lib/ui-strings';
+import { PlainModeProvider } from '@/lib/plain-mode';
 
 export const metadata = { title: APP_NAME, description: `${APP_NAME} diagnostic chat` };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -12,7 +13,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="stylesheet" href="/dist/output.css" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
-      <body suppressHydrationWarning className="app antialiased">{children}</body>
+      <body suppressHydrationWarning className="app antialiased">
+        <PlainModeProvider>
+          {children}
+        </PlainModeProvider>
+      </body>
     </html>
   );
 }

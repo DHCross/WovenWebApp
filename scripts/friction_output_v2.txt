@@ -1,0 +1,69 @@
+👪 PARENT/CHILD FRICTION TEST (DUAL-TRIGGER ENGINE v2.0)
+======================================================================
+
+📊 Analyzing: Abby Cross
+----------------------------------------
+Big Five: O-moderate C-high E-moderate A-moderate N-moderate
+
+Core Tensions (2 detected):
+  ⚡⚡ The Absorber [WB] (intensity: 3)
+     Source: both
+     Signals: LOCAL: Water Moon + Earth Rising, LOCAL: Pisces/Cancer Moon + Virgo/Capricorn emphasis
+  📍 The Sponge Effect [WB] (intensity: 2)
+     Source: local
+     Signals: LOCAL: Water Moon in 4th/6th/8th/12th house
+
+Cognitive Architecture:
+  I↔E: center (moderate E)
+  N↔S: center (moderate O)
+  T↔F: center (moderate A)
+  J↔P: left (high C)
+
+📊 Analyzing: Carrie
+----------------------------------------
+Big Five: O-moderate C-high E-moderate A-moderate N-moderate
+
+Core Tensions (2 detected):
+  📍 The Anchor [WB] (intensity: 2)
+     Source: local
+     Signals: LOCAL: Sun in Fixed Fire + Moon in Fixed Air
+  📍 Ignition vs Inspection [WB] (intensity: 2)
+     Source: local
+     Signals: LOCAL: Mars in Mutable + Mercury/Saturn in Earth
+
+Cognitive Architecture:
+  I↔E: center (moderate E)
+  N↔S: center (moderate O)
+  T↔F: center (moderate A)
+  J↔P: left (high C)
+
+══════════════════════════════════════════════════════════════════════
+POLARITY CARDS: Abby Cross ↔ Carrie
+══════════════════════════════════════════════════════════════════════
+
+✓ Interior Chamber ↔ Shared Horizon [aligned]
+   Abby Cross: center | Carrie: center
+   Effect: The field rests at similar depth—both systems prefer the same ignition zone.
+
+✓ Pattern Lattice ↔ Concrete Anchor [aligned]
+   Abby Cross: center | Carrie: center
+   Effect: The field shares a similar focus—both systems track at the same zoom level.
+
+✓ Structure Spine ↔ Resonance Tide [aligned]
+   Abby Cross: center | Carrie: center
+   Effect: The field shares a similar decision engine—both systems weight the same currency.
+
+✓ Closure Gate ↔ Permeable Path [aligned]
+   Abby Cross: left | Carrie: left
+   Effect: The field shares a similar closure rhythm—both systems prefer the same pacing.
+
+──────────────────────────────────────────────────────────────────────
+NARRATIVE OUTPUT (Narrator Style):
+──────────────────────────────────────────────────────────────────────
+### Polarity Cards — Where the Compasses Differ
+
+The cognitive architectures are broadly aligned. No major axis stretch detected.
+
+══════════════════════════════════════════════════════════════════════
+✅ Dual-Trigger Engine Test Complete
+══════════════════════════════════════════════════════════════════════

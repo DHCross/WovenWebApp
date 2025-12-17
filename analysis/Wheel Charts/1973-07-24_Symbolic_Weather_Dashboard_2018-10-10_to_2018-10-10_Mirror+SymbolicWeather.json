@@ -1,13 +1,18 @@
 {
   "_format": "mirror-symbolic-weather-v1",
   "_version": "1.0",
-  "_contains_transits": false,
-  "_contains_weather_data": false,
+  "_contains_transits": true,
+  "_contains_weather_data": true,
+  "_range_dates": [
+    "2018-10-10",
+    "2018-10-10"
+  ],
+  "_transit_days": 1,
   "_natal_sections": 1,
   "_required_sections": [
     "person_a"
   ],
-  "generated_at": "2025-12-03T10:39:49.775Z",
+  "generated_at": "2025-12-09T12:27:17.980Z",
   "_natal_section": {
     "mirror_source": "integrated",
     "note": "Natal geometry integrated with symbolic weather in single file"
@@ -64,7 +69,7 @@
           "abs_pos": 20.67,
           "deg": 20.67,
           "retrograde": false,
-          "house": 5,
+          "house": 6,
           "sign": "Ari"
         },
         "Jupiter": {
@@ -85,7 +90,7 @@
           "abs_pos": 199.28,
           "deg": 19.28,
           "retrograde": false,
-          "house": 11,
+          "house": 12,
           "sign": "Lib"
         },
         "Neptune": {
@@ -106,19 +111,19 @@
           "abs_pos": 20.91,
           "deg": 20.91,
           "retrograde": true,
-          "house": 5,
+          "house": 6,
           "sign": "Ari"
         },
         "First_House": {
-          "abs_pos": 223.23,
-          "deg": 13.23,
+          "abs_pos": 218.08,
+          "deg": 8.08,
           "retrograde": false,
           "house": 1,
           "sign": "Sco"
         },
         "Tenth_House": {
-          "abs_pos": 142.17,
-          "deg": 22.17,
+          "abs_pos": 131.71,
+          "deg": 11.71,
           "retrograde": false,
           "house": 1,
           "sign": "Leo"
@@ -132,48 +137,63 @@
         }
       },
       "cusps": [
-        223.23,
-        252.56,
-        286.39,
-        322.17,
-        354.69,
-        21.44,
-        43.23,
-        72.56,
-        106.39,
-        142.17,
-        174.69,
-        201.44
+        218.08,
+        247.16,
+        278.61,
+        311.71,
+        344.13,
+        13.2,
+        38.08,
+        67.16,
+        98.61,
+        131.71,
+        164.13,
+        193.2
       ],
-      "transitsByDate": {}
+      "transitsByDate": {
+        "2018-10-10": {
+          "seismograph": {
+            "magnitude": 2.6,
+            "directional_bias": -0.5,
+            "volatility": 1
+          }
+        }
+      }
     }
   },
-  "report_kind": "Mirror",
+  "report_kind": "Balance Meter",
   "mirror_contract": {
-    "report_kind": "Mirror",
+    "report_kind": "Balance Meter",
     "is_relational": false,
     "intimacy_tier": null,
     "relationship_type": null,
     "contact_state": "ACTIVE"
   },
   "balance_meter_frontstage": {
-    "magnitude": 0,
-    "directional_bias": 0,
-    "volatility": 0,
-    "magnitude_label": null,
-    "directional_bias_label": null,
-    "volatility_label": null
+    "magnitude": 2.6,
+    "directional_bias": -0.5,
+    "volatility": 1,
+    "magnitude_label": "Active",
+    "directional_bias_label": "Equilibrium",
+    "volatility_label": "Moderate"
   },
-  "daily_readings": [],
-  "reading_count": 0,
+  "daily_readings": [
+    {
+      "date": "2018-10-10",
+      "magnitude": 2.6,
+      "directional_bias": -0.5,
+      "volatility": 1
+    }
+  ],
+  "reading_count": 1,
   "provenance": {
     "math_brain_version": "3.3.0-four-report-types",
     "ephemeris_source": "best-astrology-api-v3",
-    "build_ts": "2025-12-03T10:39:47.649Z",
+    "build_ts": "2025-12-09T12:27:11.289Z",
     "house_system": "Placidus",
     "orbs_profile": "wm-spec-2025-09",
     "timezone_db_version": "IANA-2024a",
-    "relocation_mode": "None",
+    "relocation_mode": "A_local",
     "engine_versions": {
       "seismograph": "2.1.0",
       "balance_meter": "5.0.0",

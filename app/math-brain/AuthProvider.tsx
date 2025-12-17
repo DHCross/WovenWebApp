@@ -2,8 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getRedirectUri, getAuthConnection, normalizeAuth0Audience, normalizeAuth0ClientId, normalizeAuth0Domain } from '../../lib/auth';
-import { isAuthEnabled, getMockUser } from '../../lib/devAuth';
-import { RedirectLoginResult } from '@auth0/auth0-spa-js';
+import { RedirectLoginResult, Auth0Client, Auth0ClientOptions } from '@auth0/auth0-spa-js';
+
+// Centralize the auth toggle logic
+const isAuthEnabled = (() => {
+  const raw = process.env.NEXT_PUBLIC_ENABLE_AUTH;
+  if (typeof raw !== 'string') return false;
+  const normalized = raw.trim().toLowerCase();
+  return !['', 'false', '0', 'off'].includes(normalized);
+})();
 
 export interface AuthState {
   authReady: boolean;
@@ -138,6 +145,9 @@ export default function AuthProvider({ onStateChange }: AuthProviderProps) {
           creator({
             domain,
             clientId,
+            cacheLocation: 'localstorage',
+            useRefreshTokens: true,
+            useRefreshTokensFallback: true,
             authorizationParams: {
               redirect_uri: getRedirectUri(),
               ...(audience ? { audience } : {}),

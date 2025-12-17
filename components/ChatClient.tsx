@@ -12,6 +12,13 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { useRavenRequest } from "@/hooks/useRavenRequest";
 import { useValidation } from "@/hooks/useValidation";
 import {
+  recoverBridgeSession,
+  acknowledgeBridgeSession,
+  consumeBridgeSession,
+  hasPendingBridgeSession,
+  type BridgeSession,
+} from "@/lib/session-bridge";
+import {
   hasPendingValidations,
   getValidationStats,
   formatValidationSummary,
@@ -26,8 +33,10 @@ import type {
 import MirrorResponseActions from "./MirrorResponseActions";
 import SessionWrapUpModal from "./SessionWrapUpModal";
 import WrapUpCard from "./WrapUpCard";
+import TherapeuticIntegrationStep from "./feedback/TherapeuticIntegrationStep";
 import { pingTracker } from "../lib/ping-tracker";
 import GranularValidation from "./feedback/GranularValidation";
+import PlainModeToggle from "./ui/PlainModeToggle";
 import {
   APP_NAME,
   STATUS_CONNECTED,
@@ -141,6 +150,9 @@ export default function ChatClient() {
   // Track whether user has Math Brain data available (for guided UX)
   const [hasMathBrainSession, setHasMathBrainSession] = useState<boolean | null>(null);
 
+  // Track pending bridge session for cross-auth handoff
+  const [pendingBridgeSession, setPendingBridgeSession] = useState<BridgeSession | null>(null);
+
   // Check localStorage for Math Brain payload on mount and when tab regains focus
   // Math Brain saves to mb.lastPayload.{userId} or mb.lastPayload.anon
   useEffect(() => {
@@ -161,10 +173,10 @@ export default function ChatClient() {
         // Check the correct key that Math Brain saves to
         const payloadKey = `mb.lastPayload.${scope}`;
         const stored = localStorage.getItem(payloadKey);
-        
+
         // Also check legacy mb.lastSession for backward compatibility
         const legacyStored = localStorage.getItem('mb.lastSession');
-        
+
         setHasMathBrainSession(Boolean(stored) || Boolean(legacyStored));
       } catch {
         setHasMathBrainSession(false);
@@ -174,10 +186,21 @@ export default function ChatClient() {
     // Initial check
     checkForMathBrainSession();
 
+    // Also check for pending bridge session (from pre-auth Math Brain handoff)
+    const bridgeSession = recoverBridgeSession();
+    if (bridgeSession) {
+      setPendingBridgeSession(bridgeSession);
+      setHasMathBrainSession(true); // Bridge session counts as having data
+    }
+
     // Re-check when user returns to tab (e.g., after visiting Math Brain)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         checkForMathBrainSession();
+        // Also re-check bridge session
+        if (!pendingBridgeSession && hasPendingBridgeSession()) {
+          setPendingBridgeSession(recoverBridgeSession());
+        }
       }
     };
 
@@ -185,6 +208,11 @@ export default function ChatClient() {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key?.startsWith('mb.lastPayload') || e.key === 'mb.lastSession' || e.key === 'auth.status') {
         checkForMathBrainSession();
+      }
+      // Check for bridge session changes
+      if (e.key === 'woven.bridgeSession') {
+        const bridgeSession = recoverBridgeSession();
+        setPendingBridgeSession(bridgeSession);
       }
     };
 
@@ -197,7 +225,7 @@ export default function ChatClient() {
       window.removeEventListener('focus', checkForMathBrainSession);
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [pendingBridgeSession]);
 
   const { validationMap, setValidationPoints, updateValidationNote } = useValidation({
     sessionId,
@@ -292,6 +320,7 @@ export default function ChatClient() {
   const [input, setInput] = useState("");
   const [isWrapUpOpen, setIsWrapUpOpen] = useState(false);
   const [wrapUpLoading, setWrapUpLoading] = useState(false);
+  const [showTherapeuticIntegration, setShowTherapeuticIntegration] = useState(false);
   const [showWrapUpPanel, setShowWrapUpPanel] = useState(false);
   const [wrapUpExport, setWrapUpExport] = useState<RavenSessionExport | null>(null);
   const [showClearMirrorExport, setShowClearMirrorExport] = useState(false);
@@ -624,6 +653,62 @@ export default function ChatClient() {
     };
   }, [resumeFlashToken]);
 
+  // Auto-load bridge session when detected (cross-auth handoff from Math Brain)
+  useEffect(() => {
+    if (!pendingBridgeSession || typing || sessionStarted) return;
+
+    // Acknowledge the bridge session so it won't be recovered again
+    acknowledgeBridgeSession(pendingBridgeSession.id);
+
+    // Display a welcome message based on archetype
+    const archetypeMessages: Record<string, string> = {
+      antiDread: "I sense you're looking for grounded clarity. Let me translate this geometry into actionable patterns.",
+      creative: "I see creative energy in this configuration. Let me illuminate the artistic currents in your chart.",
+      jungCurious: "Let's explore the psychological depth here. I'll translate these patterns into insights about your inner landscape.",
+    };
+
+    const welcomeMessage = pendingBridgeSession.archetype
+      ? archetypeMessages[pendingBridgeSession.archetype] ?? "Your chart data has been received. Beginning the structured reading now."
+      : "Your chart data has been received. Beginning the structured reading now.";
+
+    // Announce the bridge handoff
+    pushRavenNarrative(welcomeMessage, {
+      hook: "Bridge · Session Recovered",
+      climate: "VOICE · Auto-Loading",
+    });
+
+    // Process the bridged report data through analyzeReportContext
+    if (pendingBridgeSession.reportData) {
+      // Map bridge report type to ReportContext type (bridge uses 'mirror'/'relational'/'weather', context uses 'mirror'/'balance')
+      const mappedType = pendingBridgeSession.reportType === 'weather' ? 'balance' : 'mirror';
+
+      const reportContext: ReportContext = {
+        id: generateId(),
+        type: mappedType,
+        name: pendingBridgeSession.personAName || 'Bridged Report',
+        summary: pendingBridgeSession.personBName
+          ? `Relational: ${pendingBridgeSession.personAName} ↔ ${pendingBridgeSession.personBName}`
+          : 'Solo mirror reading',
+        content: pendingBridgeSession.reportData,
+        relocation: undefined,
+      };
+
+      setReportContexts([reportContext]);
+
+      // Trigger the analysis after a brief delay to allow UI to update
+      window.setTimeout(() => {
+        void analyzeReportContext(reportContext, [reportContext]);
+        // Consume the bridge session after successful handoff
+        consumeBridgeSession(pendingBridgeSession.id);
+        setPendingBridgeSession(null);
+      }, 500);
+    } else {
+      // No report data, just clear the bridge session
+      consumeBridgeSession(pendingBridgeSession.id);
+      setPendingBridgeSession(null);
+    }
+  }, [pendingBridgeSession, typing, sessionStarted, pushRavenNarrative, analyzeReportContext]);
+
   const sendMessage = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
@@ -668,15 +753,15 @@ export default function ChatClient() {
         const guardDraft = mentionsAstroSeek
           ? { ...ASTROSEEK_GUARD_DRAFT }
           : (() => {
-              const copy = buildNoContextGuardCopy();
-              return {
-                picture: copy.picture,
-                feeling: copy.feeling,
-                container: copy.container,
-                option: copy.option,
-                next_step: copy.next_step,
-              };
-            })();
+            const copy = buildNoContextGuardCopy();
+            return {
+              picture: copy.picture,
+              feeling: copy.feeling,
+              container: copy.container,
+              option: copy.option,
+              next_step: copy.next_step,
+            };
+          })();
         const guardSource = mentionsAstroSeek ? ASTROSEEK_GUARD_SOURCE : NO_CONTEXT_GUARD_SOURCE;
         const guardProv = { source: guardSource };
         const { html: guardHtml, rawText: guardRawText } = formatShareableDraft(guardDraft, guardProv);
@@ -907,7 +992,9 @@ export default function ChatClient() {
       }
 
       setWrapUpExport(exportPayload);
-      setShowWrapUpPanel(true);
+      // Show therapeutic integration step first (Golden Thread integration)
+      // If user skips or completes, they proceed to WrapUpCard
+      setShowTherapeuticIntegration(true);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Failed to prepare wrap-up:", error);
@@ -923,13 +1010,71 @@ export default function ChatClient() {
     setShowClearMirrorExport(true);
   }, []);
 
+  // Therapeutic integration handlers (Golden Thread integration)
+  const handleTherapeuticComplete = useCallback(() => {
+    // This handler is no longer directly triggered by the wrap-up flow,
+    // but might be called from other parts of the application if therapeutic integration is re-introduced.
+    setShowTherapeuticIntegration(false);
+    setShowWrapUpPanel(true);
+  }, []);
+
+  const handleTherapeuticSkip = useCallback(() => {
+    // This handler is no longer directly triggered by the wrap-up flow,
+    // but might be called from other parts of the application if therapeutic integration is re-introduced.
+    setShowTherapeuticIntegration(false);
+    setShowWrapUpPanel(true);
+  }, []);
+
+  // Extract hookStack from localStorage Math Brain payload for therapeutic integration
+  const getHookStackFromStorage = useCallback((): {
+    titles: Array<{ title: string; intensity: number; polarity: string }>;
+    volatilityIndex: number;
+  } | undefined => {
+    try {
+      // Resolve userId from auth.status
+      let scope = 'anon';
+      try {
+        const authRaw = localStorage.getItem('auth.status');
+        if (authRaw) {
+          const auth = JSON.parse(authRaw);
+          if (auth?.userId && typeof auth.userId === 'string') {
+            scope = auth.userId;
+          }
+        }
+      } catch { /* ignore */ }
+
+      const payloadKey = `mb.lastPayload.${scope}`;
+      const stored = localStorage.getItem(payloadKey);
+      if (!stored) {
+        // Try legacy key
+        const legacy = localStorage.getItem('mb.lastSession');
+        if (legacy) {
+          const parsed = JSON.parse(legacy);
+          return parsed?.woven_map?.hook_stack || parsed?.wovenMap?.hook_stack;
+        }
+        return undefined;
+      }
+
+      const parsed = JSON.parse(stored);
+      // Navigate to hook_stack in various possible locations
+      return (
+        parsed?.payload?.woven_map?.hook_stack ||
+        parsed?.payload?.wovenMap?.hook_stack ||
+        parsed?.woven_map?.hook_stack ||
+        parsed?.wovenMap?.hook_stack
+      );
+    } catch {
+      return undefined;
+    }
+  }, []);
+
   const handleGenerateClearMirrorPDF = useCallback(async (sessionDiagnostics?: any) => {
     try {
       const { buildClearMirrorFromContexts } = await import('@/lib/pdf/clear-mirror-context-adapter');
       const { generateClearMirrorPDF } = await import('@/lib/pdf/clear-mirror-pdf');
-      
+
       const clearMirrorData = buildClearMirrorFromContexts(reportContexts, sessionDiagnostics);
-      
+
       // Validate report integrity before PDF export (Jules Constitution compliance)
       // Note: clearMirrorData is in Poetic Brain format, validate underlying source if present
       if (clearMirrorData?.mathBrainSnapshot) {
@@ -941,9 +1086,9 @@ export default function ChatClient() {
           console.warn('[Clear Mirror PDF] Validation warnings:', validation.warnings);
         }
       }
-      
+
       await generateClearMirrorPDF(clearMirrorData);
-      
+
       setStatusMessage('Clear Mirror PDF exported successfully.');
       setShowClearMirrorExport(false);
       performSessionReset();
@@ -970,6 +1115,14 @@ export default function ChatClient() {
     setStatusMessage(null);
   }, []);
 
+  const handleRequestPoem = useCallback(() => {
+    setShowWrapUpPanel(false);
+    // Use a slight delay to ensure the modal closes before the message sends/scrolls happen
+    window.setTimeout(() => {
+      void sendMessage("Translate this reading to a poem");
+    }, 100);
+  }, [sendMessage]);
+
   const showRelocationBanner = relocation !== null;
 
   const canRecoverStoredPayload = hasSavedPayloadSnapshot || Boolean(storedPayload);
@@ -979,7 +1132,7 @@ export default function ChatClient() {
       {/* Distinctive Raven Identity Header */}
       <header className="relative border-b border-slate-800/60 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-emerald-950/30 backdrop-blur-sm">
         {/* Subtle glyph/pattern overlay for brand identity */}
-        <div 
+        <div
           className="absolute inset-0 opacity-[0.03] pointer-events-none"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5 L55 30 L30 55 L5 30 Z' fill='none' stroke='%2310b981' stroke-width='0.5'/%3E%3C/svg%3E")`,
@@ -1027,6 +1180,7 @@ export default function ChatClient() {
                   {PERSONA_DESCRIPTIONS[personaMode]}
                 </p>
               </div>
+              <PlainModeToggle />
               <button
                 type="button"
                 onClick={() => handleUploadButton("mirror")}
@@ -1038,11 +1192,10 @@ export default function ChatClient() {
                 <button
                   type="button"
                   onClick={recoverLastStoredPayload}
-                  className={`rounded-lg border px-4 py-2 font-medium text-emerald-100 transition ${
-                    resumeFlashActive
-                      ? "border-emerald-400/80 bg-emerald-500/30 shadow-[0_0_18px_rgba(16,185,129,0.65)] ring-2 ring-emerald-300/90"
-                      : "border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20"
-                  }`}
+                  className={`rounded-lg border px-4 py-2 font-medium text-emerald-100 transition ${resumeFlashActive
+                    ? "border-emerald-400/80 bg-emerald-500/30 shadow-[0_0_18px_rgba(16,185,129,0.65)] ring-2 ring-emerald-300/90"
+                    : "border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20"
+                    }`}
                 >
                   Resume Last Chart
                 </button>
@@ -1205,7 +1358,7 @@ export default function ChatClient() {
             <div className="flex-1">
               <h2 className="text-lg font-semibold text-emerald-200">Welcome to Raven&apos;s Chamber</h2>
               <p className="mt-2 text-sm text-slate-300 leading-relaxed">
-                I&apos;m here to translate your chart geometry into plain-language reflections. 
+                I&apos;m here to translate your chart geometry into plain-language reflections.
                 Feel free to ask about the Woven Map system, how readings work, or what any of the terminology means.
               </p>
             </div>
@@ -1221,7 +1374,7 @@ export default function ChatClient() {
                     For a personal reading, I&apos;ll need your chart geometry first
                   </p>
                   <p className="mt-1 text-xs text-amber-200/80">
-                    Head to Math Brain to generate a Solo or Relational report with your birth data, 
+                    Head to Math Brain to generate a Solo or Relational report with your birth data,
                     then return here—I&apos;ll automatically detect it and we can begin the structured reading.
                   </p>
                   <Link
@@ -1247,7 +1400,7 @@ export default function ChatClient() {
                     I see you have chart data ready
                   </p>
                   <p className="mt-1 text-xs text-emerald-200/80">
-                    Click below to load your last Math Brain session and begin a structured reading, 
+                    Click below to load your last Math Brain session and begin a structured reading,
                     or keep chatting freely about concepts and questions.
                   </p>
                   {canRecoverStoredPayload && (
@@ -1332,7 +1485,7 @@ export default function ChatClient() {
             <div className="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 rounded-xl border border-indigo-500/30 p-6 mb-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-indigo-200">{resonanceCard.title}</h3>
-                <button 
+                <button
                   onClick={() => setShowResonanceCard(false)}
                   className="text-indigo-400 hover:text-indigo-200"
                 >
@@ -1347,13 +1500,12 @@ export default function ChatClient() {
                   <span className="px-3 py-1 bg-indigo-800/50 rounded-full text-indigo-200">
                     {resonanceCard.scoreIndicator}
                   </span>
-                  <span className={`px-3 py-1 rounded-full ${
-                    resonanceCard.resonanceFidelity.band === 'HIGH' 
-                      ? 'bg-green-900/50 text-green-200' 
-                      : resonanceCard.resonanceFidelity.band === 'MIXED'
+                  <span className={`px-3 py-1 rounded-full ${resonanceCard.resonanceFidelity.band === 'HIGH'
+                    ? 'bg-green-900/50 text-green-200'
+                    : resonanceCard.resonanceFidelity.band === 'MIXED'
                       ? 'bg-amber-900/50 text-amber-200'
                       : 'bg-rose-900/50 text-rose-200'
-                  }`}>
+                    }`}>
                     {resonanceCard.resonanceFidelity.percentage}% {resonanceCard.resonanceFidelity.label}
                   </span>
                 </div>
@@ -1403,9 +1555,8 @@ export default function ChatClient() {
             const validationStats = hasValidation ? getValidationStats(validationPoints) : null;
             const validationSummaryText = hasValidation
               ? validationPending
-                ? `Resonance check in progress: ${validationStats?.completed ?? 0} of ${
-                    validationStats?.total ?? validationPoints.length
-                  } reflections tagged.`
+                ? `Resonance check in progress: ${validationStats?.completed ?? 0} of ${validationStats?.total ?? validationPoints.length
+                } reflections tagged.`
                 : formatValidationSummary(validationPoints)
               : null;
             const resonanceActive = msg.validationMode === 'resonance';
@@ -1419,11 +1570,10 @@ export default function ChatClient() {
                 className={`group flex ${isRaven ? "justify-start" : "justify-end"}`}
               >
                 <div
-                  className={`relative max-w-full rounded-2xl px-5 py-4 transition ${
-                    isRaven
-                      ? "bg-gradient-to-br from-slate-900/80 to-slate-900/60 border border-slate-800/50 shadow-lg shadow-slate-950/50"
-                      : "bg-gradient-to-br from-emerald-950/40 to-slate-900/60 border border-emerald-800/30 shadow-md"
-                  }`}
+                  className={`relative max-w-full rounded-2xl px-5 py-4 transition ${isRaven
+                    ? "bg-gradient-to-br from-slate-900/80 to-slate-900/60 border border-slate-800/50 shadow-lg shadow-slate-950/50"
+                    : "bg-gradient-to-br from-emerald-950/40 to-slate-900/60 border border-emerald-800/30 shadow-md"
+                    }`}
                   style={{ width: "100%" }}
                 >
                   {/* Simplified header - cleaner hierarchy */}
@@ -1440,14 +1590,14 @@ export default function ChatClient() {
                       </span>
                     )}
                   </div>
-                  
+
                   {/* Message content - flowing prose */}
                   <div className="relative">
                     <div
                       className="prose-sm prose-slate prose-invert max-w-none text-[15px] leading-[1.7] text-slate-200"
                       dangerouslySetInnerHTML={{ __html: sanitizeHtml(msg.html) }}
                     />
-                    
+
                     {/* Subtle copy button - appears on hover */}
                     {showCopyButton && (
                       <button
@@ -1460,7 +1610,7 @@ export default function ChatClient() {
                       </button>
                     )}
                   </div>
-                  
+
                   {isRaven && msg.probe && !msg.pingFeedbackRecorded && (
                     <div className="mt-4">
                       <MirrorResponseActions
@@ -1474,11 +1624,10 @@ export default function ChatClient() {
                     <div className="mt-4 space-y-3">
                       {validationSummaryText && (
                         <p
-                          className={`rounded-md border px-3 py-2 text-xs ${
-                            validationPending
-                              ? "border-amber-500/40 bg-amber-500/10 text-amber-200"
-                              : "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
-                          }`}
+                          className={`rounded-md border px-3 py-2 text-xs ${validationPending
+                            ? "border-amber-500/40 bg-amber-500/10 text-amber-200"
+                            : "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+                            }`}
                         >
                           {validationSummaryText}
                         </p>
@@ -1645,6 +1794,17 @@ export default function ChatClient() {
           </div>
         </div>
       )}
+      {showTherapeuticIntegration && (
+        <div className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/80 px-4 py-6 overflow-y-auto">
+          <TherapeuticIntegrationStep
+            sessionId={sessionId ?? 'unknown'}
+            hookStack={getHookStackFromStorage()}
+            sessionScores={wrapUpExport?.scores}
+            onComplete={handleTherapeuticComplete}
+            onSkip={handleTherapeuticSkip}
+          />
+        </div>
+      )}
       {showWrapUpPanel && (
         <div className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/80 px-4 py-6">
           <div className="w-full max-w-4xl">
@@ -1661,6 +1821,7 @@ export default function ChatClient() {
                 setShowWrapUpPanel(false);
                 setShowClearMirrorExport(true);
               } : undefined}
+              onRequestPoem={handleRequestPoem}
             />
           </div>
         </div>
