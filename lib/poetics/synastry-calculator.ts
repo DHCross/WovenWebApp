@@ -172,14 +172,19 @@ function angularDistance(posA: number, posB: number): number {
 }
 
 /**
- * Determine if an aspect is applying (getting closer) or separating
- * This is a simplified heuristic based on position order
+ * Determine if an aspect is applying (getting closer) or separating.
+ * 
+ * NOTE: This is a HEURISTIC ESTIMATE. A precise calculation requires 
+ * daily motion/velocity vectors for both bodies. Without them, we 
+ * assume a forward-moving field for Person A relative to Person B.
  */
 function isApplying(posA: number, posB: number, aspectAngle: number): boolean {
-    // For now, use a simple heuristic: if posA < posB, likely applying
-    // A more accurate calculation would require daily motion data
     const diff = normalizeAngle(posB - posA);
     const targetDiff = normalizeAngle(aspectAngle);
+
+    // In a forward-moving field, if current distance is slightly less 
+    // than target and closing, it's applying. 
+    // This remains a rough approximation until velocity data is integrated.
     return diff < targetDiff;
 }
 
