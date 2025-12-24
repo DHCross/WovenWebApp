@@ -84,7 +84,11 @@ export function useAuth() {
     if (!client) {
       // Fallback to stored token if client not ready
       return typeof window !== 'undefined'
+
+        ? window.localStorage.getItem(AUTH_TOKEN_KEY) 
+
         ? window.localStorage.getItem(AUTH_TOKEN_KEY)
+
         : null;
     }
 
@@ -107,11 +111,34 @@ export function useAuth() {
     } catch (error) {
       console.warn('[useAuth] Failed to get token silently:', error);
 
+
+      // Clear any stale token so we do not keep sending invalid credentials
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(AUTH_TOKEN_KEY);
+      }
+
+      // If login is required, force a redirect so the user can re-authenticate cleanly
+      const requiresLogin = (error as any)?.error === 'login_required' || (error as any)?.error === 'consent_required';
+      if (requiresLogin) {
+        try {
+          await client.loginWithRedirect({
+            authorizationParams: {
+              redirect_uri: getRedirectUri(),
+            }
+          });
+        } catch (redirectError) {
+          console.warn('[useAuth] Redirect for re-auth failed:', redirectError);
+        }
+      }
+
+      return null;
+
       // If refresh fails, try to return cached token as last resort
       // (it might still work if the error was transient)
       return typeof window !== 'undefined'
         ? window.localStorage.getItem(AUTH_TOKEN_KEY)
         : null;
+
     }
   }, []);
 
@@ -129,7 +156,10 @@ export async function getAccessTokenAsync(): Promise<string | null> {
   const client = await getAuth0Client();
 
   if (!client) {
+
+=======
     // No client = auth not configured. Return stored token if exists.
+
     return typeof window !== 'undefined'
       ? window.localStorage.getItem(AUTH_TOKEN_KEY)
       : null;
@@ -148,6 +178,26 @@ export async function getAccessTokenAsync(): Promise<string | null> {
     }
 
     return token;
+
+  } catch (error) {
+    console.warn('[getAccessTokenAsync] Failed to get token:', error);
+
+    // Clear stale token to avoid repeated invalid-session failures
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(AUTH_TOKEN_KEY);
+    }
+
+    const requiresLogin = (error as any)?.error === 'login_required' || (error as any)?.error === 'consent_required';
+    if (requiresLogin) {
+      try {
+        await client.loginWithRedirect({
+          authorizationParams: {
+            redirect_uri: getRedirectUri(),
+          }
+        });
+      } catch (redirectError) {
+        console.warn('[getAccessTokenAsync] Redirect for re-auth failed:', redirectError);
+
   } catch (error: any) {
     console.warn('[getAccessTokenAsync] Failed to get token:', error?.message || error);
 
@@ -164,6 +214,7 @@ export async function getAccessTokenAsync(): Promise<string | null> {
         errorMsg.includes('invalid')) {
         console.log('[getAccessTokenAsync] Clearing stale token - reauth required');
         window.localStorage.removeItem(AUTH_TOKEN_KEY);
+
       }
     }
 
