@@ -1455,10 +1455,20 @@ async function fetchNatalChartComplete(subject, headers, pass, subjectLabel, con
 
   // Extract house cusps for transit-to-natal-house calculations
   if (natalResponse.data) {
-    const houseCusps = extractHouseCusps(natalResponse.data);
-    if (houseCusps) {
-      natalData.chart.house_cusps = houseCusps;
-      logger.debug(`Extracted ${houseCusps.length} natal house cusps for ${subjectLabel}:`, houseCusps.map(c => c.toFixed(2)));
+    const houseCuspsResult = extractHouseCusps(natalResponse.data);
+    if (houseCuspsResult) {
+      natalData.chart.house_cusps = houseCuspsResult.cusps;
+      if (houseCuspsResult.missing.length > 0) {
+        natalData.chart.missing_cusps = houseCuspsResult.missing;
+        logger.warn(`[${subjectLabel}] Missing ${houseCuspsResult.missing.length} house cusps from API response`, {
+          missing: houseCuspsResult.missing,
+          context: contextLabel
+        });
+      }
+      const foundCount = Object.keys(houseCuspsResult.cusps || {}).length;
+      if (foundCount > 0) {
+        logger.debug(`Extracted ${foundCount} natal house cusps for ${subjectLabel}`);
+      }
     } else {
       logger.warn(`Failed to extract house cusps from natal chart for ${subjectLabel}`);
     }
